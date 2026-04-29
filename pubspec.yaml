@@ -8,6 +8,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+    signature: ^5.4.0
+  image_picker: ^1.0.4
   
   # Estas son las herramientas que necesitamos para tu app:
   sqflite: ^2.3.0          # Base de datos local gratuita (para marcas/modelos)
