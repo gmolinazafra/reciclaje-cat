@@ -1,119 +1,103 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, Switch, TextInput, TouchableOpacity, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Signature from 'react-native-signature-canvas';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TextInput, Switch, TouchableOpacity, Alert } from 'react-native';
 
 export default function App() {
   const [tab, setTab] = useState('home');
-  const [trabajadores, setTrabajadores] = useState([]);
-  const [marcas, setMarcas] = useState(['SEAT', 'RENAULT', 'FORD']);
-  const [modelos, setModelos] = useState({'SEAT': ['IBIZA', 'LEON'], 'RENAULT': ['CLIO']});
+  const [form, setForm] = useState({ trabajador: '', matricula: '', marca: '', modelo: '', gas: false, gramos: '' });
   
-  // Datos del CAT
-  const [cat, setCat] = useState({ nombre: '', nima: '', cif: '' });
-
-  // Formulario actual
-  const [form, setForm] = useState({
-    trabajador: '', marca: '', modelo: '', matricula: '',
-    gasSi: false, gramos: '', airbag: 'Retirada'
-  });
-
-  const [items, setItems] = useState({
-    Bateria: false, AceiteMotor: false, AceiteCaja: false, 
-    Anticongelante: false, Frenos: false, FiltroAceite: false,
-    FiltroAire: false, FiltroCombustible: false, Catalizador: false
-  });
-
-  useEffect(() => { cargarPersistencia(); }, []);
-
-  const cargarPersistencia = async () => {
-    const t = await AsyncStorage.getItem('traba');
-    const c = await AsyncStorage.getItem('cat');
-    if (t) setTrabajadores(JSON.parse(t));
-    if (c) setCat(JSON.parse(c));
-  };
-
-  const guardarAjustes = async () => {
-    await AsyncStorage.setItem('traba', JSON.stringify(trabajadores));
-    await AsyncStorage.setItem('cat', JSON.stringify(cat));
-    Alert.alert("Guardado", "Datos almacenados en el teléfono");
-  };
+  // Lista simplificada de tus marcas (luego cargaremos el CSV completo)
+  const marcas = ["SEAT", "RENAULT", "PEUGEOT", "FORD", "CITROEN"];
 
   return (
     <View style={styles.container}>
-      <View style={styles.nav}>
-        <Text style={styles.headerTitle}>CAT RECICLAJE</Text>
+      {/* Cabecera */}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>CAT RECICLAJE - VISTA PREVIA</Text>
       </View>
 
       <ScrollView style={styles.content}>
         {tab === 'home' ? (
           <View>
-            <Text style={styles.label}>Operario Responsable:</Text>
-            <TextInput placeholder="Nombre del trabajador" style={styles.input} onChangeText={v => setForm({...form, trabajador: v})} />
-            
-            <Text style={styles.label}>Vehículo:</Text>
-            <TextInput placeholder="Matrícula / Bastidor" style={styles.input} onChangeText={v => setForm({...form, matricula: v})} />
+            <Text style={styles.label}>Operario Responsable</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Ej: Juan Pérez" 
+              onChangeText={(v) => setForm({...form, trabajador: v})}
+            />
+
+            <Text style={styles.label}>Matrícula / Bastidor</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="0000-BBB" 
+              onChangeText={(v) => setForm({...form, matricula: v})}
+            />
 
             <Text style={styles.section}>CHECKLIST DESCONTAMINACIÓN</Text>
-            {Object.keys(items).map(k => (
-              <View key={k} style={styles.switchRow}>
-                <Text>{k}</Text>
-                <Switch value={items[k]} onValueChange={() => setItems({...items, [k]: !items[k]})} />
+            {["Batería", "Aceite Motor", "Líquido Frenos", "Filtro Aceite", "Catalizador"].map(item => (
+              <View key={item} style={styles.row}>
+                <Text>{item}</Text>
+                <Switch 
+                  value={form[item]} 
+                  onValueChange={(v) => setForm({...form, [item]: v})} 
+                />
               </View>
             ))}
 
-            <View style={styles.switchRow}>
-              <Text style={{fontWeight: 'bold'}}>Gases Aire Acondicionado</Text>
-              <Switch value={form.gasSi} onValueChange={v => setForm({...form, gasSi: v})} />
+            <View style={styles.row}>
+              <Text style={{fontWeight: 'bold'}}>¿Gases Aire Acondicionado?</Text>
+              <Switch value={form.gas} onValueChange={(v) => setForm({...form, gas: v})} />
             </View>
-            {form.gasSi && <TextInput placeholder="Gramos de gas" keyboardType="numeric" style={styles.input} onChangeText={v => setForm({...form, gramos: v})} />}
 
-            <Text style={styles.warning}>
-              AVISO LEGAL: El trabajador firmante declara bajo su responsabilidad que realizará los trabajos de descontaminación según lo descrito.
+            {form.gas && (
+              <TextInput 
+                style={styles.input} 
+                placeholder="Gramos de gas" 
+                keyboardType="numeric"
+                onChangeText={(v) => setForm({...form, gramos: v})}
+              />
+            )}
+
+            <Text style={styles.legal}>
+              "El trabajador firmante declara bajo su responsabilidad que realizará los trabajos según normativa."
             </Text>
 
-            <TouchableOpacity style={styles.btn} onPress={() => setTab('firma')}>
-              <Text style={styles.btnText}>PROCEDER A FIRMAR</Text>
+            <TouchableOpacity style={styles.button} onPress={() => alert("Simulación de Firma y Envío")}>
+              <Text style={styles.buttonText}>FIRMAR Y GENERAR PDF</Text>
             </TouchableOpacity>
-          </View>
-        ) : tab === 'firma' ? (
-          <View style={{height: 500}}>
-            <Text style={styles.label}>Firma de {form.trabajador || 'operario'}:</Text>
-            <Signature onOK={(img) => Alert.alert("PDF Generado", "Enviando a Drive/WhatsApp...")} descriptionText="Firme aquí" clearText="Borrar" confirmText="Finalizar" />
-            <Button title="Volver" onPress={() => setTab('home')} />
           </View>
         ) : (
           <View>
-            <Text style={styles.section}>DATOS DEL CAT</Text>
-            <TextInput placeholder="Nombre Empresa" style={styles.input} value={cat.nombre} onChangeText={v => setCat({...cat, nombre: v})} />
-            <TextInput placeholder="NIMA / NIRI" style={styles.input} value={cat.nima} onChangeText={v => setCat({...cat, nima: v})} />
-            <TouchableOpacity style={styles.btnSave} onPress={guardarAjustes}>
-              <Text style={styles.btnText}>GUARDAR CONFIGURACIÓN</Text>
+            <Text style={styles.section}>CONFIGURACIÓN DEL CENTRO</Text>
+            <TextInput style={styles.input} placeholder="Nombre del CAT" />
+            <TextInput style={styles.input} placeholder="NIMA / NIRI" />
+            <TouchableOpacity style={[styles.button, {backgroundColor: '#34495e'}]}>
+              <Text style={styles.buttonText}>GUARDAR AJUSTES</Text>
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
 
-      <View style={styles.tabBar}>
-        <TouchableOpacity onPress={() => setTab('home')}><Text>NUEVO</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => setTab('config')}><Text>AJUSTES</Text></TouchableOpacity>
+      {/* Menú Inferior */}
+      <View style={styles.footer}>
+        <TouchableOpacity onPress={() => setTab('home')}><Text style={tab === 'home' ? styles.activeTab : null}>INFORME</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setTab('config')}><Text style={tab === 'config' ? styles.activeTab : null}>AJUSTES</Text></TouchableOpacity>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  nav: { padding: 50, backgroundColor: '#1a252f', alignItems: 'center' },
-  headerTitle: { color: 'white', fontWeight: 'bold', fontSize: 18 },
+  container: { flex: 1, backgroundColor: '#f0f2f5' },
+  header: { padding: 40, backgroundColor: '#1a252f', alignItems: 'center', paddingTop: 60 },
+  headerText: { color: 'white', fontWeight: 'bold', fontSize: 18 },
   content: { padding: 20 },
-  label: { fontSize: 14, fontWeight: 'bold', marginTop: 15 },
-  input: { backgroundColor: 'white', padding: 10, borderRadius: 5, marginTop: 5, borderWidth: 1, borderColor: '#ddd' },
-  section: { fontWeight: 'bold', fontSize: 16, marginTop: 25, color: '#2c3e50', borderBottomWidth: 1 },
-  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 0.5, borderColor: '#eee' },
-  warning: { color: 'red', fontSize: 12, fontStyle: 'italic', marginVertical: 20, textAlign: 'center' },
-  btn: { backgroundColor: '#27ae60', padding: 15, borderRadius: 5, alignItems: 'center' },
-  btnSave: { backgroundColor: '#2980b9', padding: 15, borderRadius: 5, alignItems: 'center', marginTop: 20 },
-  btnText: { color: 'white', fontWeight: 'bold' },
-  tabBar: { flexDirection: 'row', justifyContent: 'space-around', padding: 20, backgroundColor: 'white', borderTopWidth: 1, borderColor: '#ddd' }
+  label: { fontSize: 14, fontWeight: 'bold', marginTop: 15, color: '#34495e' },
+  input: { backgroundColor: 'white', padding: 12, borderRadius: 8, marginTop: 5, borderWidth: 1, borderColor: '#dcdde1' },
+  section: { fontWeight: 'bold', fontSize: 16, marginTop: 30, marginBottom: 10, color: '#2f3640', borderBottomWidth: 2, borderBottomColor: '#27ae60' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' },
+  legal: { color: '#c0392b', fontSize: 12, fontStyle: 'italic', marginVertical: 25, textAlign: 'center', padding: 10, backgroundColor: '#ffebed', borderRadius: 5 },
+  button: { backgroundColor: '#27ae60', padding: 18, borderRadius: 10, alignItems: 'center', marginTop: 10 },
+  buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  footer: { flexDirection: 'row', justifyContent: 'space-around', padding: 25, backgroundColor: 'white', borderTopWidth: 1, borderColor: '#dcdde1' },
+  activeTab: { color: '#27ae60', fontWeight: 'bold' }
 });
