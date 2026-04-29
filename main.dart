@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:signature/signature.dart'; // Librería para la firma
+import 'package:signature/signature.dart';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 void main() => runApp(MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -19,7 +23,6 @@ class _AppReciclajeCATState extends State<AppReciclajeCAT> {
   Map<String, List<String>> datosVehiculos = {};
   List<String> listaTrabajadores = [];
 
-  // Estados de selección
   String? marcaSel;
   String? modeloSel;
   String? trabajadorSel;
@@ -28,8 +31,8 @@ class _AppReciclajeCATState extends State<AppReciclajeCAT> {
   final TextEditingController _catNombre = TextEditingController();
   final TextEditingController _catNima = TextEditingController();
   final TextEditingController _catCif = TextEditingController();
+  final TextEditingController _matriculaCtrl = TextEditingController();
 
-  // Controlador de firma
   final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 3,
     penColor: Colors.black,
@@ -77,6 +80,40 @@ class _AppReciclajeCATState extends State<AppReciclajeCAT> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Configuración guardada")));
   }
 
+  // --- LÓGICA PARA GENERAR Y COMPARTIR PDF ---
+  Future<void> _generarPDF(Uint8List firmaImage) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Header(level: 0, child: pw.Text("ACTA DE DESCONTAMINACION - ${_catNombre.text}")),
+            pw.Text("DATOS DEL CAT: ${_catNombre.text} | CIF: ${_catCif.text} | NIMA: ${_catNima.text}"),
+            pw.Divider(),
+            pw.Text("VEHICULO: $marcaSel $modeloSel | MATRICULA/VIN: ${_matriculaCtrl.text}"),
+            pw.Text("OPERARIO: $trabajadorSel"),
+            pw.SizedBox(height: 10),
+            pw.Text("RESULTADO CHECKLIST:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            ...checklist.entries.map((e) => pw.Text("- ${e.key}: ${e.value ? 'SI' : 'NO'}")).toList(),
+            if (checklist["Gases AC"] == true) pw.Text("GRAMOS GAS AC: ${gasController.text} gr"),
+            pw.Text("ESTADO AIRBAGS: ${airbagSel ?? 'No especificado'}"),
+            pw.SizedBox(height: 20),
+            pw.Text("DECLARACION LEGAL:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            pw.Text("El trabajador $trabajadorSel declara bajo su responsabilidad que ha realizado los trabajos segun normativa."),
+            pw.SizedBox(height: 10),
+            pw.Image(pw.MemoryImage(firmaImage), width: 150),
+            pw.Text("Firma del operario"),
+          ],
+        ),
+      ),
+    );
+
+    // Abre el menú de compartir (WhatsApp, Drive, Email, etc.)
+    await Printing.sharePdf(bytes: await pdf.save(), filename: 'Descontaminacion_${_matriculaCtrl.text}.pdf');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -102,7 +139,7 @@ class _AppReciclajeCATState extends State<AppReciclajeCAT> {
             _selector("Trabajador firmante", listaTrabajadores, trabajadorSel, (v) => setState(() => trabajadorSel = v)),
             _selector("Marca", datosVehiculos.keys.toList(), marcaSel, (v) { setState(() { marcaSel = v; modeloSel = null; }); }),
             _selector("Modelo", datosVehiculos[marcaSel] ?? [], modeloSel, (v) => setState(() => modeloSel = v)),
-            TextField(decoration: InputDecoration(labelText: "Matrícula / Bastidor")),
+            TextField(controller: _matriculaCtrl, decoration: InputDecoration(labelText: "Matrícula / Bastidor")),
           ]),
           _bloque("ESTADO DE DESCONTAMINACIÓN", [
             ...checklist.keys.map((k) => SwitchListTile(title: Text(k), value: checklist[k]!, onChanged: (v) => setState(() => checklist[k] = v))),
@@ -112,22 +149,19 @@ class _AppReciclajeCATState extends State<AppReciclajeCAT> {
           _bloque("GESTIÓN AIRBAGS", [
             ...['Retirada', 'Detonación', 'Inertización'].map((opt) => RadioListTile(title: Text(opt), value: opt, groupValue: airbagSel, onChanged: (v) => setState(() => airbagSel = v as String))),
           ]),
-          SizedBox(height: 20),
           ElevatedButton(
             onPressed: () => _abrirFirmaLegala(),
             child: Text("PROCEDER A LA FIRMA"),
             style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 50), backgroundColor: Colors.orange[800], foregroundColor: Colors.white),
           ),
-          SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  // --- VENTANA DE FIRMA Y ADVERTENCIA LEGAL ---
   void _abrirFirmaLegala() {
-    if (trabajadorSel == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Seleccione un trabajador primero")));
+    if (trabajadorSel == null || _matriculaCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Rellene trabajador y matrícula")));
       return;
     }
     showModalBottomSheet(
@@ -138,26 +172,23 @@ class _AppReciclajeCATState extends State<AppReciclajeCAT> {
         padding: EdgeInsets.all(20),
         child: Column(
           children: [
-            Text("DECLARACIÓN DE RESPONSABILIDAD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red[900])),
-            Divider(),
-            Text(
-              "Yo, $trabajadorSel, declaro bajo mi responsabilidad que realizaré los trabajos de descontaminación según lo descrito en este formulario, cumpliendo con la normativa vigente de gestión de VFU.",
-              textAlign: TextAlign.justify,
-              style: TextStyle(fontStyle: FontStyle.italic),
-            ),
-            SizedBox(height: 20),
-            Text("Firma aquí:"),
+            Text("RESPONSABILIDAD LEGAL", style: TextStyle(fontWeight: pw.FontWeight.bold, color: Colors.red)),
+            Text("Yo, $trabajadorSel, declaro que he realizado los trabajos de descontaminación indicados."),
+            SizedBox(height: 10),
             Container(
               decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
               child: Signature(controller: _signatureController, height: 200, backgroundColor: Colors.white),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextButton(onPressed: () => _signatureController.clear(), child: Text("Borrar")),
-                ElevatedButton(onPressed: () => Navigator.pop(context), child: Text("GENERAR INFORME FINAL")),
-              ],
-            )
+            ElevatedButton(
+              onPressed: () async {
+                final signature = await _signatureController.toPngBytes();
+                if (signature != null) {
+                  Navigator.pop(context);
+                  _generarPDF(signature);
+                }
+              }, 
+              child: Text("GENERAR Y ENVIAR PDF")
+            ),
           ],
         ),
       ),
@@ -174,15 +205,10 @@ class _AppReciclajeCATState extends State<AppReciclajeCAT> {
             TextField(controller: _catCif, decoration: InputDecoration(labelText: "CIF Empresa")),
             TextField(controller: _catNima, decoration: InputDecoration(labelText: "NIMA / NIRI")),
           ]),
-          _bloque("GESTIÓN DE PERSONAL", [
-            TextField(
-              controller: TextEditingController(),
-              onSubmitted: (v) { setState(() => listaTrabajadores.add(v.toUpperCase())); },
-              decoration: InputDecoration(labelText: "Nuevo trabajador (Pulsa Enter)", suffixIcon: Icon(Icons.add)),
-            ),
-            ...listaTrabajadores.map((t) => ListTile(title: Text(t), trailing: IconButton(icon: Icon(Icons.delete), onPressed: () => setState(() => listaTrabajadores.remove(t))))),
+          _bloque("AÑADIR MARCA/MODELO", [
+             TextField(onSubmitted: (v) => setState(() => datosVehiculos[v.toUpperCase()] = []), decoration: InputDecoration(labelText: "Nueva Marca + Enter")),
           ]),
-          ElevatedButton(onPressed: _guardarTodo, child: Text("GUARDAR CONFIGURACIÓN")),
+          ElevatedButton(onPressed: _guardarTodo, child: Text("GUARDAR AJUSTES")),
         ],
       ),
     );
