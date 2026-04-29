@@ -1,0 +1,29 @@
+name: app_reciclaje_cat
+description: Aplicación para control de reciclaje en centros CAT.
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Estas son las herramientas que necesitamos para tu app:
+  sqflite: ^2.3.0          # Base de datos local gratuita (para marcas/modelos)
+  path: ^1.8.3             # Para gestionar carpetas en Android
+  signature: ^5.4.0        # Para que el trabajador firme con el dedo
+  shared_preferences: ^2.2.2 # Para guardar los datos del CAT (NIMA, NIRI, etc.)
+  cupertino_icons: ^1.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # Si vas a usar un logo para el CAT, lo declararemos aquí más adelante
+  # assets:
+  #   - assets/logo_cat.png
