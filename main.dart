@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 void main() => runApp(MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
-        useMaterial3: true,
-      ),
+      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey), useMaterial3: true),
       home: AppReciclajeCAT(),
     ));
 
@@ -18,33 +16,24 @@ class AppReciclajeCAT extends StatefulWidget {
 class _AppReciclajeCATState extends State<AppReciclajeCAT> {
   int _tabActual = 0;
 
-  // --- BASE DE DATOS DE MARCAS Y MODELOS (Extraídos de tus archivos) ---
-  final Map<String, List<String>> datosVehiculos = {
-    "SEAT": ["IBIZA", "LEON", "ALTEA", "CORDOBA", "ARONA", "ATECA"],
-    "RENAULT": ["CLIO", "MEGANE", "SCENIC", "LAGUNA", "KANGOO", "CAPTUR"],
-    "PEUGEOT": ["206", "207", "208", "307", "308", "PARTNER", "3008"],
-    "CITROEN": ["C3", "C4", "BERLINGO", "XSARA", "C5", "C1"],
-    "FORD": ["FOCUS", "FIESTA", "MONDEO", "TRANSIT", "C-MAX", "KUGA"],
-    "VOLKSWAGEN": ["GOLF", "POLO", "PASSAT", "TIGUAN", "TOURAN"],
-    "OPEL": ["CORSA", "ASTRA", "INSIGNIA", "ZAFIRA", "MOKKA"],
-    "AUDI": ["A3", "A4", "A6", "Q3", "Q5"],
-    "BMW": ["SERIE 1", "SERIE 3", "SERIE 5", "X1", "X3", "X5"],
-    "MERCEDES": ["CLASE A", "CLASE C", "CLASE E", "VITO", "SPRINTER"],
-  };
-
-  // --- ESTADOS DE LA APP ---
-  String? marcaSeleccionada;
-  String? modeloSeleccionado;
-  String? trabajadorSeleccionado;
-  String? airbagSeleccionado;
-  final TextEditingController gasController = TextEditingController();
-  
+  // --- DATOS DINÁMICOS ---
+  Map<String, List<String>> datosVehiculos = {};
   List<String> listaTrabajadores = [];
-  final TextEditingController _nuevoTrabaController = TextEditingController();
+
+  // --- CONTROLADORES Y ESTADOS ---
+  String? marcaSel;
+  String? modeloSel;
+  String? trabajadorSel;
+  String? airbagSel;
+  final TextEditingController gasController = TextEditingController();
   final TextEditingController _catNombre = TextEditingController();
   final TextEditingController _catNima = TextEditingController();
+  
+  // Controladores para añadir nuevos
+  final TextEditingController _nuevaMarcaCtrl = TextEditingController();
+  final TextEditingController _nuevoModeloCtrl = TextEditingController();
+  final TextEditingController _nuevoTrabajadorCtrl = TextEditingController();
 
-  // Checklist de residuos (Sí/No)
   Map<String, bool> checklist = {
     "Batería": false, "Aceite Motor": false, "Aceite Caja": false,
     "Líquido Dirección": false, "Anticongelante": false, "Gases AC": false,
@@ -56,173 +45,139 @@ class _AppReciclajeCATState extends State<AppReciclajeCAT> {
   @override
   void initState() {
     super.initState();
-    _cargarPreferencias();
+    _cargarDatos();
   }
 
-  // Carga trabajadores y datos CAT desde la memoria del móvil
-  _cargarPreferencias() async {
+  // CARGAR TODO DE LA MEMORIA LOCAL
+  _cargarDatos() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      listaTrabajadores = prefs.getStringList('trabajadores') ?? [];
       _catNombre.text = prefs.getString('cat_nombre') ?? "";
       _catNima.text = prefs.getString('cat_nima') ?? "";
+      listaTrabajadores = prefs.getStringList('trabajadores') ?? [];
+      
+      String? vehiculosJson = prefs.getString('vehiculos_data');
+      if (vehiculosJson != null) {
+        Map<String, dynamic> decoded = jsonDecode(vehiculosJson);
+        datosVehiculos = decoded.map((key, value) => MapEntry(key, List<String>.from(value)));
+      } else {
+        // Datos por defecto si está vacío
+        datosVehiculos = {
+          "SEAT": ["IBIZA", "LEON"],
+          "RENAULT": ["CLIO", "MEGANE"],
+          "FORD": ["FOCUS", "FIESTA"]
+        };
+      }
     });
   }
 
-  _guardarConfiguracion() async {
+  // GUARDAR TODO EN LA MEMORIA LOCAL
+  _guardarTodo() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('trabajadores', listaTrabajadores);
     await prefs.setString('cat_nombre', _catNombre.text);
     await prefs.setString('cat_nima', _catNima.text);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Configuración Guardada")));
+    await prefs.setStringList('trabajadores', listaTrabajadores);
+    await prefs.setString('vehiculos_data', jsonEncode(datosVehiculos));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Datos guardados correctamente")));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("CAT CONTROL PRO"),
-        backgroundColor: Colors.blueGrey[900],
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: Text("CAT CONTROL PRO"), backgroundColor: Colors.blueGrey[900], foregroundColor: Colors.white),
       body: _tabActual == 0 ? _pantallaChecklist() : _pantallaConfig(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _tabActual,
         onTap: (index) => setState(() => _tabActual = index),
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.car_repair), label: "Nueva Entrada"),
-          BottomNavigationBarItem(icon: Icon(Icons.admin_panel_settings), label: "Ajustes CAT"),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Ajustes / Alta"),
         ],
       ),
     );
   }
 
+  // --- PANTALLA 1: CHECKLIST ---
   Widget _pantallaChecklist() {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
       child: Column(
         children: [
           _bloque("IDENTIFICACIÓN", [
-            _selector("Trabajador", listaTrabajadores, trabajadorSeleccionado, (v) => setState(() => trabajadorSeleccionado = v)),
-            _selector("Marca", datosVehiculos.keys.toList(), marcaSeleccionada, (v) => setState(() { 
-              marcaSeleccionada = v; 
-              modeloSeleccionado = null; 
-            })),
-            _selector("Modelo", datosVehiculos[marcaSeleccionada] ?? [], modeloSeleccionado, (v) => setState(() => modeloSeleccionado = v)),
+            _selector("Trabajador", listaTrabajadores, trabajadorSel, (v) => setState(() => trabajadorSel = v)),
+            _selector("Marca", datosVehiculos.keys.toList(), marcaSel, (v) {
+              setState(() { marcaSel = v; modeloSel = null; });
+            }),
+            _selector("Modelo", datosVehiculos[marcaSel] ?? [], modeloSel, (v) => setState(() => modeloSel = v)),
             TextField(decoration: InputDecoration(labelText: "Matrícula / Bastidor")),
           ]),
-          
-          _bloque("RESIDUOS (SÍ/NO)", [
-            ...checklist.keys.map((key) => SwitchListTile(
-              title: Text(key),
-              value: checklist[key]!,
-              onChanged: (v) => setState(() => checklist[key] = v),
+          _bloque("CHECKLIST (SÍ/NO)", [
+            ...checklist.keys.map((k) => SwitchListTile(
+              title: Text(k), value: checklist[k]!,
+              onChanged: (v) => setState(() => checklist[k] = v),
             )),
           ]),
-
-          _bloque("DETALLES ESPECÍFICOS", [
+          _bloque("GASES Y AIRBAGS", [
             if (checklist["Gases AC"] == true)
-              TextField(
-                controller: gasController,
-                decoration: InputDecoration(labelText: "Cantidad de Gas (gramos)", suffixText: "gr"),
-                keyboardType: TextInputType.number,
-              ),
-            SizedBox(height: 15),
-            Text("Gestión de Airbags:", style: TextStyle(fontWeight: FontWeight.bold)),
-            _radioAirbag("Retirada"),
-            _radioAirbag("Detonación"),
-            _radioAirbag("Inertización (Batería)"),
+              TextField(controller: gasController, decoration: InputDecoration(labelText: "Gramos Gas", suffixText: "gr"), keyboardType: TextInputType.number),
+            ...['Retirada', 'Detonación', 'Inertización'].map((opt) => RadioListTile(
+              title: Text(opt), value: opt, groupValue: airbagSel,
+              onChanged: (v) => setState(() => airbagSel = v as String),
+            )),
           ]),
-
-          SizedBox(height: 20),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 55), backgroundColor: Colors.green, foregroundColor: Colors.white),
-            onPressed: () => _finalizar(),
-            icon: Icon(Icons.save),
-            label: Text("GRABAR Y FIRMAR"),
-          )
+          ElevatedButton(onPressed: () {}, child: Text("GRABAR Y FIRMAR"), style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 50), backgroundColor: Colors.green, foregroundColor: Colors.white))
         ],
       ),
     );
   }
 
+  // --- PANTALLA 2: AJUSTES (AÑADIR MARCAS, MODELOS Y TRABAJADORES) ---
   Widget _pantallaConfig() {
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.all(16),
       child: Column(
         children: [
-          _bloque("DATOS DEL CENTRO", [
-            TextField(controller: _catNombre, decoration: InputDecoration(labelText: "Nombre del CAT")),
+          _bloque("DATOS CAT", [
+            TextField(controller: _catNombre, decoration: InputDecoration(labelText: "Nombre CAT")),
             TextField(controller: _catNima, decoration: InputDecoration(labelText: "NIMA / NIRI")),
           ]),
-          _bloque("PERSONAL", [
-            TextField(
-              controller: _nuevoTrabaController,
-              decoration: InputDecoration(
-                labelText: "Nombre del Trabajador",
-                suffixIcon: IconButton(icon: Icon(Icons.add_box), onPressed: () {
-                  if (_nuevoTrabaController.text.isNotEmpty) {
-                    setState(() => listaTrabajadores.add(_nuevoTrabaController.text.toUpperCase()));
-                    _nuevoTrabaController.clear();
-                  }
-                }),
-              ),
-            ),
-            ...listaTrabajadores.map((t) => ListTile(
-              title: Text(t),
-              trailing: IconButton(icon: Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => listaTrabajadores.remove(t))),
-            )),
+          _bloque("AÑADIR MARCA NUEVA", [
+            _inputNuevo(_nuevaMarcaCtrl, "Nombre Marca", () {
+              if (_nuevaMarcaCtrl.text.isNotEmpty) {
+                setState(() => datosVehiculos[_nuevaMarcaCtrl.text.toUpperCase()] = []);
+                _nuevaMarcaCtrl.clear();
+              }
+            }),
           ]),
-          ElevatedButton(onPressed: _guardarConfiguracion, child: Text("GUARDAR TODO EN EL MÓVIL")),
+          _bloque("AÑADIR MODELO A ${_marcaSeleccionadaConfig()}", [
+            _selector("Marca a la que pertenece", datosVehiculos.keys.toList(), marcaSel, (v) => setState(() => marcaSel = v)),
+            _inputNuevo(_nuevoModeloCtrl, "Nombre Modelo", () {
+              if (marcaSel != null && _nuevoModeloCtrl.text.isNotEmpty) {
+                setState(() => datosVehiculos[marcaSel]!.add(_nuevoModeloCtrl.text.toUpperCase()));
+                _nuevoModeloCtrl.clear();
+              }
+            }),
+          ]),
+          _bloque("AÑADIR TRABAJADOR", [
+            _inputNuevo(_nuevoTrabajadorCtrl, "Nombre Operario", () {
+              if (_nuevoTrabajadorCtrl.text.isNotEmpty) {
+                setState(() => listaTrabajadores.add(_nuevoTrabajadorCtrl.text.toUpperCase()));
+                _nuevoTrabajadorCtrl.clear();
+              }
+            }),
+          ]),
+          ElevatedButton(onPressed: _guardarTodo, child: Text("GUARDAR CAMBIOS EN EL MÓVIL"), style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 45))),
         ],
       ),
     );
   }
 
-  // --- WIDGETS AUXILIARES ---
-  Widget _bloque(String titulo, List<Widget> children) {
-    return Card(
-      elevation: 2,
-      margin: EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: EdgeInsets.all(12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(titulo, style: TextStyle(color: Colors.blueGrey[800], fontWeight: FontWeight.bold)),
-          Divider(),
-          ...children
-        ]),
-      ),
-    );
-  }
+  // --- AUXILIARES ---
+  String _marcaSeleccionadaConfig() => marcaSel ?? "(Selecciona una marca arriba)";
 
-  Widget _selector(String label, List<String> items, String? val, Function(String?) onCh) {
-    return DropdownButtonFormField<String>(
-      decoration: InputDecoration(labelText: label),
-      value: val,
-      items: items.map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
-      onChanged: onCh,
-    );
-  }
+  Widget _bloque(String t, List<Widget> c) => Card(margin: EdgeInsets.only(bottom: 16), child: Padding(padding: EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(t, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)), Divider(), ...c])));
 
-  Widget _radioAirbag(String label) {
-    return RadioListTile(
-      title: Text(label), value: label, groupValue: airbagSeleccionado,
-      onChanged: (v) => setState(() => airbagSeleccionado = v as String),
-    );
-  }
+  Widget _selector(String l, List<String> i, String? v, Function(String?) on) => DropdownButtonFormField<String>(decoration: InputDecoration(labelText: l), value: v, items: i.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: on);
 
-  void _finalizar() {
-    if (trabajadorSeleccionado == null || marcaSeleccionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: Rellena trabajador y vehículo")));
-      return;
-    }
-    // Aquí abriríamos la pantalla de firma
-    showModalBottomSheet(context: context, builder: (c) => Container(
-      height: 300, child: Column(children: [
-        Padding(padding: EdgeInsets.all(20), child: Text("FIRMA DEL TRABAJADOR: $trabajadorSeleccionado")),
-        Expanded(child: Container(color: Colors.grey[200], child: Center(child: Text("PANEL DE FIRMA TÁCTIL")))),
-        ElevatedButton(onPressed: () => Navigator.pop(context), child: Text("GUARDAR PDF"))
-      ]),
-    ));
-  }
+  Widget _inputNuevo(TextEditingController ctrl, String label, VoidCallback onAdd) => TextField(controller: ctrl, decoration: InputDecoration(labelText: label, suffixIcon: IconButton(icon: Icon(Icons.add_circle, color: Colors.blueGrey), onPressed: onAdd)));
 }
