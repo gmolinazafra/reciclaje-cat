@@ -5,28 +5,7 @@ import {
 } from 'react-native';
 import { useActa } from '../context/ActaContext';
 import { getOperarios } from '../utils/storage';
-
-const VEHICULOS = [
-  { marca: 'AUDI', modelo: 'A1' }, { marca: 'AUDI', modelo: 'A3' }, { marca: 'AUDI', modelo: 'A4' }, { marca: 'AUDI', modelo: 'A6' }, { marca: 'AUDI', modelo: 'Q3' }, { marca: 'AUDI', modelo: 'Q5' },
-  { marca: 'BMW', modelo: 'Serie 1' }, { marca: 'BMW', modelo: 'Serie 3' }, { marca: 'BMW', modelo: 'Serie 5' }, { marca: 'BMW', modelo: 'X1' }, { marca: 'BMW', modelo: 'X3' },
-  { marca: 'CITROEN', modelo: 'Berlingo' }, { marca: 'CITROEN', modelo: 'C3' }, { marca: 'CITROEN', modelo: 'C4' }, { marca: 'CITROEN', modelo: 'C5' },
-  { marca: 'DACIA', modelo: 'Duster' }, { marca: 'DACIA', modelo: 'Logan' }, { marca: 'DACIA', modelo: 'Sandero' },
-  { marca: 'FIAT', modelo: '500' }, { marca: 'FIAT', modelo: 'Punto' },
-  { marca: 'FORD', modelo: 'Fiesta' }, { marca: 'FORD', modelo: 'Focus' }, { marca: 'FORD', modelo: 'Mondeo' }, { marca: 'FORD', modelo: 'Kuga' },
-  { marca: 'HONDA', modelo: 'Civic' }, { marca: 'HONDA', modelo: 'Jazz' }, { marca: 'HONDA', modelo: 'CR-V' },
-  { marca: 'HYUNDAI', modelo: 'i10' }, { marca: 'HYUNDAI', modelo: 'i20' }, { marca: 'HYUNDAI', modelo: 'i30' }, { marca: 'HYUNDAI', modelo: 'Tucson' },
-  { marca: 'KIA', modelo: 'Ceed' }, { marca: 'KIA', modelo: 'Rio' }, { marca: 'KIA', modelo: 'Sportage' },
-  { marca: 'MERCEDES-BENZ', modelo: 'Clase A' }, { marca: 'MERCEDES-BENZ', modelo: 'Clase C' }, { marca: 'MERCEDES-BENZ', modelo: 'Clase E' },
-  { marca: 'NISSAN', modelo: 'Juke' }, { marca: 'NISSAN', modelo: 'Micra' }, { marca: 'NISSAN', modelo: 'Qashqai' },
-  { marca: 'OPEL', modelo: 'Astra' }, { marca: 'OPEL', modelo: 'Corsa' }, { marca: 'OPEL', modelo: 'Mokka' },
-  { marca: 'PEUGEOT', modelo: '208' }, { marca: 'PEUGEOT', modelo: '308' }, { marca: 'PEUGEOT', modelo: '3008' },
-  { marca: 'RENAULT', modelo: 'Clio' }, { marca: 'RENAULT', modelo: 'Megane' }, { marca: 'RENAULT', modelo: 'Captur' }, { marca: 'RENAULT', modelo: 'Kadjar' },
-  { marca: 'SEAT', modelo: 'Arona' }, { marca: 'SEAT', modelo: 'Ateca' }, { marca: 'SEAT', modelo: 'Ibiza' }, { marca: 'SEAT', modelo: 'Leon' },
-  { marca: 'SKODA', modelo: 'Fabia' }, { marca: 'SKODA', modelo: 'Octavia' }, { marca: 'SKODA', modelo: 'Karoq' },
-  { marca: 'TOYOTA', modelo: 'Aygo' }, { marca: 'TOYOTA', modelo: 'Corolla' }, { marca: 'TOYOTA', modelo: 'RAV4' }, { marca: 'TOYOTA', modelo: 'Yaris' }, { marca: 'TOYOTA', modelo: 'Prius' }, { marca: 'TOYOTA', modelo: 'C-HR' },
-  { marca: 'VOLKSWAGEN', modelo: 'Golf' }, { marca: 'VOLKSWAGEN', modelo: 'Passat' }, { marca: 'VOLKSWAGEN', modelo: 'Polo' }, { marca: 'VOLKSWAGEN', modelo: 'Tiguan' }, { marca: 'VOLKSWAGEN', modelo: 'T-Roc' },
-  { marca: 'VOLVO', modelo: 'V60' }, { marca: 'VOLVO', modelo: 'XC40' }, { marca: 'VOLVO', modelo: 'XC60' },
-];
+import { VEHICULOS, MARCAS } from '../data/vehiculos_db';
 
 const TIPOS = ['Convencional', 'Híbrido', 'Eléctrico'];
 
@@ -42,17 +21,29 @@ export default function VehiculoScreen() {
     getOperarios().then(setOperarios);
   }, []);
 
+  // Búsqueda inteligente: filtra por marca O modelo
   const resultados = useMemo(() => {
-    if (!query || query.length < 2) return [];
-    const q = query.toLowerCase();
-    return VEHICULOS.filter(
-      (v) => v.marca.toLowerCase().includes(q) || v.modelo.toLowerCase().includes(q)
-    ).slice(0, 8);
+    const q = query.trim().toLowerCase();
+    if (q.length < 2) return [];
+
+    const palabras = q.split(' ').filter(Boolean);
+
+    return VEHICULOS.filter((v) => {
+      const texto = `${v.marca} ${v.modelo}`.toLowerCase();
+      return palabras.every((p) => texto.includes(p));
+    }).slice(0, 10);
   }, [query]);
 
+  // Al seleccionar un resultado
   function seleccionarVehiculo(v) {
     setVehiculo({ marca: v.marca, modelo: v.modelo });
-    setQuery(`${v.marca} ${v.modelo}`);
+    setQuery(`${v.marca} — ${v.modelo}`);
+    setShowResults(false);
+  }
+
+  function limpiarBusqueda() {
+    setQuery('');
+    setVehiculo({ marca: '', modelo: '' });
     setShowResults(false);
   }
 
@@ -60,11 +51,13 @@ export default function VehiculoScreen() {
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
 
       <Text style={styles.sectionLabel}>BÚSQUEDA DE VEHÍCULO</Text>
+      <Text style={styles.hint}>Base de datos: {VEHICULOS.length} modelos de {MARCAS.length} marcas</Text>
+
       <View style={styles.searchBox}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={styles.searchInput}
-          placeholder="Escribe marca o modelo..."
+          placeholder="Ej: Golf, Clio, Toyota Yaris..."
           placeholderTextColor="#999"
           value={query}
           onChangeText={(t) => {
@@ -72,19 +65,25 @@ export default function VehiculoScreen() {
             setShowResults(true);
             if (!t) setVehiculo({ marca: '', modelo: '' });
           }}
-          onFocus={() => setShowResults(true)}
+          onFocus={() => query.length >= 2 && setShowResults(true)}
+          autoCorrect={false}
         />
         {query.length > 0 && (
-          <TouchableOpacity onPress={() => { setQuery(''); setVehiculo({ marca: '', modelo: '' }); setShowResults(false); }}>
-            <Text style={{ color: '#999', fontSize: 16 }}>✕</Text>
+          <TouchableOpacity onPress={limpiarBusqueda}>
+            <Text style={{ color: '#999', fontSize: 18, lineHeight: 20 }}>✕</Text>
           </TouchableOpacity>
         )}
       </View>
 
+      {/* Resultados del buscador */}
       {showResults && resultados.length > 0 && (
         <View style={styles.dropdownList}>
           {resultados.map((v, i) => (
-            <TouchableOpacity key={i} style={styles.dropdownItem} onPress={() => seleccionarVehiculo(v)}>
+            <TouchableOpacity
+              key={`${v.marca}-${v.modelo}-${i}`}
+              style={[styles.dropdownItem, i === resultados.length - 1 && { borderBottomWidth: 0 }]}
+              onPress={() => seleccionarVehiculo(v)}
+            >
               <Text style={styles.dropdownMarca}>{v.marca}</Text>
               <Text style={styles.dropdownModelo}>{v.modelo}</Text>
             </TouchableOpacity>
@@ -92,23 +91,32 @@ export default function VehiculoScreen() {
         </View>
       )}
 
+      {showResults && query.length >= 2 && resultados.length === 0 && (
+        <View style={styles.noResults}>
+          <Text style={styles.noResultsText}>Sin resultados para "{query}"</Text>
+        </View>
+      )}
+
+      {/* Vehículo seleccionado */}
       {vehiculo.marca ? (
         <View style={styles.selectedBadge}>
-          <Text style={styles.selectedText}>✓ {vehiculo.marca} {vehiculo.modelo}</Text>
+          <Text style={styles.selectedText}>✓  {vehiculo.marca}  —  {vehiculo.modelo}</Text>
         </View>
       ) : null}
 
+      {/* Matrícula y bastidor */}
       <Text style={styles.sectionLabel}>DATOS DEL VEHÍCULO</Text>
       <View style={styles.fieldGroup}>
         <View style={styles.fieldRow}>
           <Text style={styles.fieldLabel}>Matrícula</Text>
           <TextInput
-            style={[styles.fieldInput, { fontFamily: 'monospace', textTransform: 'uppercase' }]}
+            style={[styles.fieldInput, { fontFamily: 'monospace', textTransform: 'uppercase', fontSize: 15, letterSpacing: 1 }]}
             placeholder="0000 AAA"
             placeholderTextColor="#bbb"
             value={vehiculo.matricula}
             onChangeText={(v) => setVehiculo({ matricula: v.toUpperCase() })}
             autoCapitalize="characters"
+            autoCorrect={false}
           />
         </View>
         <View style={[styles.fieldRow, styles.fieldRowLast]}>
@@ -121,10 +129,12 @@ export default function VehiculoScreen() {
             onChangeText={(v) => setVehiculo({ bastidor: v.toUpperCase() })}
             maxLength={17}
             autoCapitalize="characters"
+            autoCorrect={false}
           />
         </View>
       </View>
 
+      {/* Tipo de vehículo */}
       <Text style={styles.sectionLabel}>TIPO DE VEHÍCULO</Text>
       <View style={styles.chipRow}>
         {TIPOS.map((t) => (
@@ -138,13 +148,16 @@ export default function VehiculoScreen() {
         ))}
       </View>
 
+      {/* Operario y fecha */}
       <Text style={styles.sectionLabel}>OPERARIO Y FECHA</Text>
       <View style={styles.fieldGroup}>
-        <View style={styles.fieldRow}>
-          <Text style={styles.fieldLabel}>Operario</Text>
+        <View style={[styles.fieldRow, { alignItems: 'flex-start', paddingTop: 14 }]}>
+          <Text style={[styles.fieldLabel, { paddingTop: 2 }]}>Operario</Text>
           <View style={styles.pickerWrapper}>
             {operarios.length === 0 ? (
-              <Text style={{ color: '#999', fontSize: 12 }}>Sin operarios (añade en Ajustes)</Text>
+              <Text style={{ color: '#999', fontSize: 12 }}>
+                Sin operarios — añade en Ajustes
+              </Text>
             ) : (
               operarios.map((op, i) => (
                 <TouchableOpacity
@@ -172,7 +185,7 @@ export default function VehiculoScreen() {
         </View>
       </View>
 
-      <View style={{ height: 32 }} />
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
@@ -183,9 +196,12 @@ const styles = StyleSheet.create({
     fontSize: 11, fontWeight: '600', color: '#6B6B72',
     letterSpacing: 0.5, paddingHorizontal: 16, paddingTop: 20, paddingBottom: 6,
   },
+  hint: {
+    fontSize: 11, color: '#AEAEB2', paddingHorizontal: 16, paddingBottom: 6,
+  },
   searchBox: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
-    marginHorizontal: 16, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
+    marginHorizontal: 16, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11,
     borderWidth: 0.5, borderColor: '#E0E0E5',
   },
   searchIcon: { fontSize: 15, marginRight: 8 },
@@ -193,19 +209,24 @@ const styles = StyleSheet.create({
   dropdownList: {
     backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 10,
     marginTop: 4, borderWidth: 0.5, borderColor: '#E0E0E5', overflow: 'hidden',
+    maxHeight: 320,
   },
   dropdownItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 14, paddingVertical: 11,
-    borderBottomWidth: 0.5, borderBottomColor: '#F0F0F5',
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12,
+    borderBottomWidth: 0.5, borderBottomColor: '#F0F0F5', gap: 8,
   },
-  dropdownMarca: { fontSize: 13, fontWeight: '600', color: '#1D6FA4', width: 130 },
-  dropdownModelo: { fontSize: 13, color: '#3C3C43' },
+  dropdownMarca: { fontSize: 12, fontWeight: '600', color: '#1D6FA4', width: 110 },
+  dropdownModelo: { fontSize: 13, color: '#3C3C43', flex: 1 },
+  noResults: {
+    backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 10,
+    marginTop: 4, padding: 14, borderWidth: 0.5, borderColor: '#E0E0E5',
+  },
+  noResultsText: { fontSize: 13, color: '#AEAEB2', textAlign: 'center' },
   selectedBadge: {
     marginHorizontal: 16, marginTop: 8, backgroundColor: '#E1F5EE',
-    borderRadius: 8, padding: 8, borderWidth: 0.5, borderColor: '#1D9E75',
+    borderRadius: 8, padding: 10, borderWidth: 0.5, borderColor: '#1D9E75',
   },
-  selectedText: { fontSize: 13, color: '#0F6E56', fontWeight: '500' },
+  selectedText: { fontSize: 13, color: '#0F6E56', fontWeight: '500', textAlign: 'center' },
   fieldGroup: {
     backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 10,
     borderWidth: 0.5, borderColor: '#E0E0E5', overflow: 'hidden',
