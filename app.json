@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "DesconCAT",
+    "slug": "desconcat-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1D6FA4"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1D6FA4"
+      },
+      "package": "com.desconcat.app",
+      "versionCode": 1,
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Necesario para cargar el logo del CAT."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "TU_PROJECT_ID_EAS"
+      }
+    }
+  }
+}
