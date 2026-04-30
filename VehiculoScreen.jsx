@@ -1,22 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  View, Text, TextInput, FlatList, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity,
   StyleSheet, ScrollView,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useActa } from '../context/ActaContext';
 import { getOperarios } from '../utils/storage';
-
-// Importamos el CSV como texto plano con Expo Asset o inline
-// Para Expo, usamos require y Asset; aquí parseamos inline
-const CSV_RAW = require('../data/vehiculos.csv');
-
-function parseCSV(raw) {
-  const lines = raw.trim().split('\n').slice(1); // skip header
-  return lines.map((line) => {
-    const [marca, modelo] = line.split(',');
-    return { marca: marca?.trim(), modelo: modelo?.trim() };
-  });
-}
 
 const VEHICULOS = [
   { marca: 'AUDI', modelo: 'A1' }, { marca: 'AUDI', modelo: 'A3' }, { marca: 'AUDI', modelo: 'A4' }, { marca: 'AUDI', modelo: 'A6' }, { marca: 'AUDI', modelo: 'Q3' }, { marca: 'AUDI', modelo: 'Q5' },
@@ -43,16 +31,12 @@ const VEHICULOS = [
 const TIPOS = ['Convencional', 'Híbrido', 'Eléctrico'];
 
 export default function VehiculoScreen() {
-  const insets = useSafeAreaInsets();
-  const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState(null);
+  const { vehiculo, setVehiculo } = useActa();
+  const [query, setQuery] = useState(
+    vehiculo.marca ? `${vehiculo.marca} ${vehiculo.modelo}` : ''
+  );
   const [showResults, setShowResults] = useState(false);
-  const [matricula, setMatricula] = useState('');
-  const [bastidor, setBastidor] = useState('');
-  const [tipo, setTipo] = useState('Convencional');
   const [operarios, setOperarios] = useState([]);
-  const [operario, setOperario] = useState('');
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     getOperarios().then(setOperarios);
@@ -62,19 +46,19 @@ export default function VehiculoScreen() {
     if (!query || query.length < 2) return [];
     const q = query.toLowerCase();
     return VEHICULOS.filter(
-      (v) =>
-        v.marca.toLowerCase().includes(q) || v.modelo.toLowerCase().includes(q)
+      (v) => v.marca.toLowerCase().includes(q) || v.modelo.toLowerCase().includes(q)
     ).slice(0, 8);
   }, [query]);
 
   function seleccionarVehiculo(v) {
-    setSelected(v);
+    setVehiculo({ marca: v.marca, modelo: v.modelo });
     setQuery(`${v.marca} ${v.modelo}`);
     setShowResults(false);
   }
 
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+
       <Text style={styles.sectionLabel}>BÚSQUEDA DE VEHÍCULO</Text>
       <View style={styles.searchBox}>
         <Text style={styles.searchIcon}>🔍</Text>
@@ -83,11 +67,15 @@ export default function VehiculoScreen() {
           placeholder="Escribe marca o modelo..."
           placeholderTextColor="#999"
           value={query}
-          onChangeText={(t) => { setQuery(t); setShowResults(true); setSelected(null); }}
+          onChangeText={(t) => {
+            setQuery(t);
+            setShowResults(true);
+            if (!t) setVehiculo({ marca: '', modelo: '' });
+          }}
           onFocus={() => setShowResults(true)}
         />
         {query.length > 0 && (
-          <TouchableOpacity onPress={() => { setQuery(''); setSelected(null); setShowResults(false); }}>
+          <TouchableOpacity onPress={() => { setQuery(''); setVehiculo({ marca: '', modelo: '' }); setShowResults(false); }}>
             <Text style={{ color: '#999', fontSize: 16 }}>✕</Text>
           </TouchableOpacity>
         )}
@@ -96,11 +84,7 @@ export default function VehiculoScreen() {
       {showResults && resultados.length > 0 && (
         <View style={styles.dropdownList}>
           {resultados.map((v, i) => (
-            <TouchableOpacity
-              key={i}
-              style={styles.dropdownItem}
-              onPress={() => seleccionarVehiculo(v)}
-            >
+            <TouchableOpacity key={i} style={styles.dropdownItem} onPress={() => seleccionarVehiculo(v)}>
               <Text style={styles.dropdownMarca}>{v.marca}</Text>
               <Text style={styles.dropdownModelo}>{v.modelo}</Text>
             </TouchableOpacity>
@@ -108,11 +92,11 @@ export default function VehiculoScreen() {
         </View>
       )}
 
-      {selected && (
+      {vehiculo.marca ? (
         <View style={styles.selectedBadge}>
-          <Text style={styles.selectedText}>✓ {selected.marca} {selected.modelo}</Text>
+          <Text style={styles.selectedText}>✓ {vehiculo.marca} {vehiculo.modelo}</Text>
         </View>
-      )}
+      ) : null}
 
       <Text style={styles.sectionLabel}>DATOS DEL VEHÍCULO</Text>
       <View style={styles.fieldGroup}>
@@ -122,8 +106,8 @@ export default function VehiculoScreen() {
             style={[styles.fieldInput, { fontFamily: 'monospace', textTransform: 'uppercase' }]}
             placeholder="0000 AAA"
             placeholderTextColor="#bbb"
-            value={matricula}
-            onChangeText={setMatricula}
+            value={vehiculo.matricula}
+            onChangeText={(v) => setVehiculo({ matricula: v.toUpperCase() })}
             autoCapitalize="characters"
           />
         </View>
@@ -133,8 +117,8 @@ export default function VehiculoScreen() {
             style={[styles.fieldInput, { fontFamily: 'monospace', fontSize: 11 }]}
             placeholder="17 caracteres"
             placeholderTextColor="#bbb"
-            value={bastidor}
-            onChangeText={setBastidor}
+            value={vehiculo.bastidor}
+            onChangeText={(v) => setVehiculo({ bastidor: v.toUpperCase() })}
             maxLength={17}
             autoCapitalize="characters"
           />
@@ -146,10 +130,10 @@ export default function VehiculoScreen() {
         {TIPOS.map((t) => (
           <TouchableOpacity
             key={t}
-            style={[styles.chip, tipo === t && styles.chipSelected]}
-            onPress={() => setTipo(t)}
+            style={[styles.chip, vehiculo.tipo === t && styles.chipSelected]}
+            onPress={() => setVehiculo({ tipo: t })}
           >
-            <Text style={[styles.chipText, tipo === t && styles.chipTextSelected]}>{t}</Text>
+            <Text style={[styles.chipText, vehiculo.tipo === t && styles.chipTextSelected]}>{t}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -160,15 +144,17 @@ export default function VehiculoScreen() {
           <Text style={styles.fieldLabel}>Operario</Text>
           <View style={styles.pickerWrapper}>
             {operarios.length === 0 ? (
-              <Text style={{ color: '#999', fontSize: 13 }}>Sin operarios (añade en Ajustes)</Text>
+              <Text style={{ color: '#999', fontSize: 12 }}>Sin operarios (añade en Ajustes)</Text>
             ) : (
               operarios.map((op, i) => (
                 <TouchableOpacity
                   key={i}
-                  style={[styles.opChip, operario === op && styles.opChipSelected]}
-                  onPress={() => setOperario(op)}
+                  style={[styles.opChip, vehiculo.operario === op && styles.opChipSelected]}
+                  onPress={() => setVehiculo({ operario: op })}
                 >
-                  <Text style={[styles.opChipText, operario === op && styles.opChipTextSelected]}>{op}</Text>
+                  <Text style={[styles.opChipText, vehiculo.operario === op && styles.opChipTextSelected]}>
+                    {op}
+                  </Text>
                 </TouchableOpacity>
               ))
             )}
@@ -178,9 +164,9 @@ export default function VehiculoScreen() {
           <Text style={styles.fieldLabel}>Fecha</Text>
           <TextInput
             style={styles.fieldInput}
-            value={fecha}
-            onChangeText={setFecha}
-            placeholder="YYYY-MM-DD"
+            value={vehiculo.fecha}
+            onChangeText={(v) => setVehiculo({ fecha: v })}
+            placeholder="DD/MM/AAAA"
             placeholderTextColor="#bbb"
           />
         </View>
@@ -198,9 +184,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5, paddingHorizontal: 16, paddingTop: 20, paddingBottom: 6,
   },
   searchBox: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
+    marginHorizontal: 16, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
     borderWidth: 0.5, borderColor: '#E0E0E5',
   },
   searchIcon: { fontSize: 15, marginRight: 8 },
@@ -214,7 +199,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 11,
     borderBottomWidth: 0.5, borderBottomColor: '#F0F0F5',
   },
-  dropdownMarca: { fontSize: 13, fontWeight: '600', color: '#1D6FA4', width: 120 },
+  dropdownMarca: { fontSize: 13, fontWeight: '600', color: '#1D6FA4', width: 130 },
   dropdownModelo: { fontSize: 13, color: '#3C3C43' },
   selectedBadge: {
     marginHorizontal: 16, marginTop: 8, backgroundColor: '#E1F5EE',

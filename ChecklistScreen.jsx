@@ -1,51 +1,20 @@
-import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
   TextInput, Switch, StyleSheet,
 } from 'react-native';
-
-const RESIDUOS = [
-  'Batería (12V)',
-  'Batería alta tensión',
-  'Aceite caja cambios y transfer',
-  'Aceite motor',
-  'Líquido de dirección',
-  'Líquido de frenos',
-  'Líquido anticongelante',
-  'Filtro de aire',
-  'Filtro de aceite',
-  'Filtro de combustible',
-  'Gas AC (refrigerante)',
-  'Catalizador',
-  'Airbag',
-  'Vidrio',
-  'Parachoques',
-  'Salpicaderos',
-  'Neumáticos',
-  'Cables',
-];
+import { useActa } from '../context/ActaContext';
 
 const AIRBAG_METODOS = ['Retirada', 'Detonación', 'Inertización'];
 
 export default function ChecklistScreen() {
-  const [valores, setValores] = useState(
-    Object.fromEntries(RESIDUOS.map((r) => [r, null]))
-  );
-  const [gasAC, setGasAC] = useState('');
-  const [airbagMetodo, setAirbagMetodo] = useState('Retirada');
-  const [esHibrido, setEsHibrido] = useState(false);
-  const [responsableDesconexion, setResponsableDesconexion] = useState('');
+  const { checklist, tecnico, checklistProgreso, setResiduo, setTecnico } = useActa();
 
-  const gestionados = Object.values(valores).filter((v) => v === 'si').length;
-  const total = RESIDUOS.length;
+  const { gestionados, total } = checklistProgreso;
   const progreso = Math.round((gestionados / total) * 100);
-
-  function setValor(residuo, val) {
-    setValores((prev) => ({ ...prev, [residuo]: val }));
-  }
 
   return (
     <ScrollView style={styles.container}>
+
       {/* Barra de progreso */}
       <View style={styles.progressContainer}>
         <View style={styles.progressHeader}>
@@ -59,28 +28,24 @@ export default function ChecklistScreen() {
 
       <Text style={styles.sectionLabel}>RESIDUOS Y COMPONENTES</Text>
       <View style={styles.fieldGroup}>
-        {RESIDUOS.map((residuo, i) => (
+        {checklist.map((item, i) => (
           <View
-            key={residuo}
-            style={[styles.itemRow, i === RESIDUOS.length - 1 && styles.itemRowLast]}
+            key={item.nombre}
+            style={[styles.itemRow, i === checklist.length - 1 && styles.itemRowLast]}
           >
-            <Text style={styles.itemName}>{residuo}</Text>
+            <Text style={styles.itemName}>{item.nombre}</Text>
             <View style={styles.toggleGroup}>
               <TouchableOpacity
-                style={[styles.toggleBtn, valores[residuo] === 'si' && styles.toggleYes]}
-                onPress={() => setValor(residuo, 'si')}
+                style={[styles.toggleBtn, item.valor === 'si' && styles.toggleYes]}
+                onPress={() => setResiduo(item.nombre, 'si')}
               >
-                <Text style={[styles.toggleText, valores[residuo] === 'si' && styles.toggleYesText]}>
-                  Sí
-                </Text>
+                <Text style={[styles.toggleText, item.valor === 'si' && styles.toggleYesText]}>Sí</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.toggleBtn, valores[residuo] === 'no' && styles.toggleNo]}
-                onPress={() => setValor(residuo, 'no')}
+                style={[styles.toggleBtn, item.valor === 'no' && styles.toggleNo]}
+                onPress={() => setResiduo(item.nombre, 'no')}
               >
-                <Text style={[styles.toggleText, valores[residuo] === 'no' && styles.toggleNoText]}>
-                  No
-                </Text>
+                <Text style={[styles.toggleText, item.valor === 'no' && styles.toggleNoText]}>No</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -98,8 +63,8 @@ export default function ChecklistScreen() {
             placeholder="0"
             placeholderTextColor="#bbb"
             keyboardType="numeric"
-            value={gasAC}
-            onChangeText={setGasAC}
+            value={tecnico.gasAC}
+            onChangeText={(v) => setTecnico({ gasAC: v })}
           />
           <Text style={styles.numUnit}>gramos</Text>
         </View>
@@ -112,10 +77,10 @@ export default function ChecklistScreen() {
           {AIRBAG_METODOS.map((m) => (
             <TouchableOpacity
               key={m}
-              style={[styles.chip, airbagMetodo === m && styles.chipSelected]}
-              onPress={() => setAirbagMetodo(m)}
+              style={[styles.chip, tecnico.airbagMetodo === m && styles.chipSelected]}
+              onPress={() => setTecnico({ airbagMetodo: m })}
             >
-              <Text style={[styles.chipText, airbagMetodo === m && styles.chipTextSelected]}>{m}</Text>
+              <Text style={[styles.chipText, tecnico.airbagMetodo === m && styles.chipTextSelected]}>{m}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -129,21 +94,21 @@ export default function ChecklistScreen() {
             <Text style={styles.switchSub}>Requiere desconexión batería AT</Text>
           </View>
           <Switch
-            value={esHibrido}
-            onValueChange={setEsHibrido}
+            value={tecnico.esHibrido}
+            onValueChange={(v) => setTecnico({ esHibrido: v })}
             trackColor={{ false: '#E0E0E5', true: '#1D6FA4' }}
             thumbColor="#fff"
           />
         </View>
-        {esHibrido && (
+        {tecnico.esHibrido && (
           <View style={styles.hybridExtra}>
             <Text style={styles.techLabel}>Responsable de la desconexión</Text>
             <TextInput
               style={styles.hybridInput}
               placeholder="Nombre del operario cualificado..."
               placeholderTextColor="#bbb"
-              value={responsableDesconexion}
-              onChangeText={setResponsableDesconexion}
+              value={tecnico.responsableDesconexion}
+              onChangeText={(v) => setTecnico({ responsableDesconexion: v })}
             />
           </View>
         )}
@@ -174,9 +139,8 @@ const styles = StyleSheet.create({
     borderWidth: 0.5, borderColor: '#E0E0E5', overflow: 'hidden',
   },
   itemRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 11,
-    borderBottomWidth: 0.5, borderBottomColor: '#F0F0F5',
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14,
+    paddingVertical: 11, borderBottomWidth: 0.5, borderBottomColor: '#F0F0F5',
   },
   itemRowLast: { borderBottomWidth: 0 },
   itemName: { flex: 1, fontSize: 13, color: '#1C1C1E' },
