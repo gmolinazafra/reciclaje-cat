@@ -1,24 +1,23 @@
-import { useEffect } from 'react';
-import { Platform, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ActaProvider } from './src/context/ActaContext';
-import AppNavigator from './src/navigation/AppNavigator';
+import { View, Text, StyleSheet } from 'react-native';
 
 export default function App() {
-  useEffect(() => {
-    if (Platform.OS === 'web' && window.__hideSplash) {
-      window.__hideSplash();
-    }
-  }, []);
-
   return (
-    <GestureHandlerRootView style={{ flex: 1, height: '100vh', width: '100vw' }}>
-      <SafeAreaProvider>
-        <ActaProvider>
-          <AppNavigator />
-        </ActaProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <View style={styles.container}>
+      <Text style={styles.texto}>✅ DesconCAT funcionando</Text>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#1D6FA4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  texto: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+});
