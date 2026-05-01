@@ -33,7 +33,7 @@ export default function AppNavigator() {
           tabBarActiveTintColor: COLORS.primary,
           tabBarInactiveTintColor: COLORS.inactive,
           tabBarStyle: {
-            backgroundColor: '#fff',
+            backgroundColor: '#F2F2F7',
             borderTopColor: '#E5E5EA',
             borderTopWidth: 0.5,
             paddingBottom: 4,
