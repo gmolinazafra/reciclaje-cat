@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="ReciclaCAT — La app para CATs que genera el acta de descontaminacion obligatoria por ley, incluyendo desconexion de hibridos y electricos. Pago unico de 18 euros." />
-  <meta name="keywords" content="reciclacat, acta descontaminacion, app cat, desguaces, vehiculos hibridos, vehiculos electricos, real decreto 20/2017" />
-  <meta property="og:title" content="ReciclaCAT — Acta de descontaminacion digital para CATs" />
-  <meta property="og:description" content="Cumple con el RD 20/2017 desde tu movil. Acta de descontaminacion y desconexion de hibridos/electricos. Pago unico 18 euros." />
+  <meta name="description" content="ReciclaCAT — La app para CATs que genera el boletín de supresión de tensión (RD 614/2001) y el acta de descontaminación de vehículos al final de su vida útil. Pago único de 18€." />
+  <meta name="keywords" content="reciclacat, acta descontaminación, boletín supresión tensión, app cat, desguaces, vehículos híbridos, vehículos eléctricos, real decreto 265/2021, real decreto 614/2001" />
+  <meta property="og:title" content="ReciclaCAT — Boletín de supresión de tensión y acta de descontaminación" />
+  <meta property="og:description" content="Cumple con el RD 614/2001 desde tu móvil. Boletín de supresión de tensión y acta de descontaminación. Pago único 18€." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://reciclacat.es" />
-  <title>ReciclaCAT — Acta de descontaminacion digital para Centros Autorizados de Tratamiento</title>
+  <title>ReciclaCAT — Boletín de supresión de tensión y acta de descontaminación digital</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -217,7 +217,6 @@
 
     .hero-visual { position: relative; display: flex; justify-content: center; align-items: center; }
 
-    /* === MARCO DE MOVIL (reutilizable) === */
     .phone {
       background: var(--ink);
       border-radius: 38px;
@@ -253,7 +252,6 @@
       z-index: 5;
     }
 
-    /* Hero phone size */
     .phone-hero {
       width: 280px;
       height: 560px;
@@ -309,7 +307,6 @@
       text-transform: uppercase;
     }
 
-    /* Feature phone size (más pequeño, con captura real) */
     .phone-feature {
       width: 260px;
       height: 530px;
@@ -488,7 +485,26 @@
     .feature-list li::before { content: '\2192'; color: var(--terracota); font-weight: 700; }
     .feature-list li:last-child { border-bottom: none; }
 
-    /* Visual de feature: marco de movil con captura real */
+    /* Badge específico para "obligatorio" */
+    .feature-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--terracota);
+      color: var(--cream);
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .feature-badge.optional {
+      background: var(--green-soft);
+      color: var(--cream);
+    }
+
     .feature-visual {
       display: flex;
       justify-content: center;
@@ -796,7 +812,7 @@
         Recicla<span class="brand-cat">CAT</span>
       </a>
       <div class="nav-links">
-        <a href="#alerta">Por que importa</a>
+        <a href="#alerta">Por qué importa</a>
         <a href="#funciones">La app</a>
         <a href="#roadmap">Roadmap</a>
         <a href="#precio">Precio</a>
@@ -809,20 +825,20 @@
     <div class="container">
       <div class="hero-grid">
         <div class="hero-text">
-          <div class="hero-badge">Proximamente en Google Play</div>
+          <div class="hero-badge">Próximamente en Google Play</div>
           <h1 class="hero-title">
-            El acta de descontaminacion, <em>desde tu movil.</em>
+            Boletín de supresión de tensión <em>desde tu móvil.</em>
           </h1>
           <p class="hero-sub">
-            ReciclaCAT genera el acta del proceso de descontaminacion y de la desconexion de vehiculos hibridos y electricos. Lo que la ley exige a tu CAT, sin papeleo, sin Excel, sin software de cinco cifras.
+            ReciclaCAT genera el boletín de supresión de tensión que el RD 614/2001 exige al manipular vehículos híbridos y eléctricos, y el acta de descontaminación firmada por el operario que protege al CAT ante una inspección. Sin papeleo, sin Excel, sin software de cinco cifras.
           </p>
           <div class="hero-cta-row">
-            <a href="#lista" class="btn btn-primary">Apuntate a la lista &rarr;</a>
-            <a href="#funciones" class="btn btn-secondary">Ver como funciona</a>
+            <a href="#lista" class="btn btn-primary">Apúntate a la lista &rarr;</a>
+            <a href="#funciones" class="btn btn-secondary">Ver cómo funciona</a>
           </div>
           <div class="hero-trust">
-            <span>Cumple RD 20/2017</span>
-            <span>Pago unico 18&euro;</span>
+            <span>Cumple RD 614/2001</span>
+            <span>Pago único 18€</span>
             <span>Funciona offline</span>
           </div>
         </div>
@@ -834,30 +850,30 @@
             <div class="phone-screen">
               <div class="phone-notch"></div>
               <div class="phone-content">
-                <div class="phone-header">Acta n. 0247</div>
-                <div class="phone-subheader">Audi A4 &middot; 2014 &middot; HIBRIDO</div>
+                <div class="phone-header">Acta n.º 0247</div>
+                <div class="phone-subheader">Audi A4 · 2014 · HÍBRIDO</div>
 
                 <div class="phone-card">
-                  <div class="phone-card-title">Descontaminacion</div>
+                  <div class="phone-card-title">Descontaminación</div>
                   <div class="phone-checklist">
                     <span class="phone-check">Combustible retirado</span>
                     <span class="phone-check">Aceite motor</span>
-                    <span class="phone-check">Liquido refrigerante</span>
+                    <span class="phone-check">Líquido refrigerante</span>
                     <span class="phone-check">Gas A/C R-134a</span>
-                    <span class="phone-check">Bateria 12V</span>
+                    <span class="phone-check">Batería 12V</span>
                   </div>
                 </div>
 
                 <div class="phone-card">
-                  <div class="phone-card-title">Desconexion HV</div>
+                  <div class="phone-card-title">Supresión de tensión</div>
                   <div class="phone-checklist">
-                    <span class="phone-check">Bateria HV aislada</span>
+                    <span class="phone-check">Batería HV aislada</span>
                     <span class="phone-check">Service plug retirado</span>
-                    <span class="phone-pending">Verificacion 5 min</span>
+                    <span class="phone-pending">Verificación 5 min</span>
                   </div>
                 </div>
 
-                <div class="phone-acta-stamp">Acta lista para firmar</div>
+                <div class="phone-acta-stamp">Listo para firmar</div>
               </div>
             </div>
           </div>
@@ -871,38 +887,38 @@
       <div class="alerta-grid">
         <div class="reveal">
           <span class="alerta-tag">Aviso al sector</span>
-          <h2>El acta ya no es papeleo. <em>Es tu coartada legal.</em></h2>
+          <h2>El acta no es solo papeleo. <em>Es tu protección.</em></h2>
           <p>
-            En noviembre de 2025, la Audiencia Provincial de Madrid dicto sentencia condenatoria contra los responsables de un CAT de San Martin de la Vega. Cuatro personas, propietario y trabajadores incluidos, fueron condenadas a hasta 4 anos de prision por delito contra el medio ambiente.
+            En noviembre de 2025, la Audiencia Provincial de Madrid dictó sentencia condenatoria contra los responsables de un CAT de San Martín de la Vega. Cuatro personas, propietario y trabajadores incluidos, fueron condenadas a hasta 4 años de prisión por delito contra el medio ambiente.
           </p>
           <p>
-            La causa: una descontaminacion deficiente. Concretamente, no haber retirado correctamente el gas refrigerante de los aires acondicionados antes del achatarramiento.
+            La causa: una descontaminación deficiente. Concretamente, no haber retirado correctamente el gas refrigerante de los aires acondicionados antes del achatarramiento.
           </p>
           <p>
-            El acta de descontaminacion, bien hecha y bien documentada, es la prueba real de que tu CAT cumple. Es la diferencia entre una inspeccion rutinaria y un proceso penal.
+            Un acta firmada por el operario, con fecha, hora y procedimiento detallado, da al CAT trazabilidad ante una inspección y permite al empresario repercutir la responsabilidad sobre el trabajador en caso de descontaminación deficiente. La diferencia entre un susto y un proceso penal puede estar en tener un acta firmada.
           </p>
         </div>
         <div class="alerta-card reveal">
           <div class="alerta-card-title">La sentencia, en cifras</div>
           <div class="alerta-stats">
             <div class="alerta-stat">
-              <div class="alerta-stat-num">4 anos</div>
-              <div class="alerta-stat-text">de prision para responsables del CAT (propietario y trabajadores)</div>
+              <div class="alerta-stat-num">4 años</div>
+              <div class="alerta-stat-text">de prisión para responsables del CAT (propietario y trabajadores)</div>
             </div>
             <div class="alerta-stat">
-              <div class="alerta-stat-num">152.645&euro;</div>
-              <div class="alerta-stat-text">de indemnizacion al Reino de Espana por dano ambiental</div>
+              <div class="alerta-stat-num">152.645€</div>
+              <div class="alerta-stat-text">de indemnización al Reino de España por daño ambiental</div>
             </div>
             <div class="alerta-stat">
-              <div class="alerta-stat-num">36.000&euro;</div>
-              <div class="alerta-stat-text">de multa a la empresa, mas inhabilitacion de 10 anos para subvenciones publicas</div>
+              <div class="alerta-stat-num">36.000€</div>
+              <div class="alerta-stat-text">de multa a la empresa, más inhabilitación de 10 años para subvenciones públicas</div>
             </div>
             <div class="alerta-stat">
               <div class="alerta-stat-num">20.900 t</div>
-              <div class="alerta-stat-text">de CO2 emitidas por descontaminacion deficiente</div>
+              <div class="alerta-stat-text">de CO₂ emitidas por descontaminación deficiente</div>
             </div>
           </div>
-          <p class="alerta-source">Fuente: Audiencia Provincial de Madrid, sentencia de noviembre de 2025. Caso Desguaces El Choque (San Martin de la Vega).</p>
+          <p class="alerta-source">Fuente: Audiencia Provincial de Madrid, sentencia de noviembre de 2025. Caso Desguaces El Choque (San Martín de la Vega).</p>
         </div>
       </div>
     </div>
@@ -912,29 +928,30 @@
     <div class="container">
       <div class="reveal">
         <span class="section-label">Lo que hace ReciclaCAT hoy</span>
-        <h2 class="section-title">Una sola cosa, <em>hecha a conciencia.</em></h2>
+        <h2 class="section-title">Dos documentos. <em>Bien hechos.</em></h2>
         <p class="section-intro">
-          La version 1.0 esta enfocada en lo que la ley te obliga a documentar: el acta del proceso de descontaminacion y la desconexion de vehiculos hibridos y electricos. Sin distracciones.
+          Centrados en lo que un CAT necesita cuando entra un vehículo: el boletín de supresión de tensión cuando es híbrido o eléctrico, y el acta de descontaminación con todas las operaciones realizadas. Sin distracciones.
         </p>
       </div>
 
       <div class="feature-row reveal">
         <div class="feature-text">
-          <h3>Acta de descontaminacion paso a paso</h3>
+          <span class="feature-badge optional">Buena práctica · Protege al CAT</span>
+          <h3>Acta de descontaminación firmada por el operario</h3>
           <p>
-            La app te guia por todos los puntos exigidos en el RD 20/2017 y su Anexo IV: extraccion de fluidos, retirada de baterias, desmontaje de pirotecnicos, gestion de gases del aire acondicionado. Cada paso queda registrado, fechado y listo para firmar.
+            El operario que ejecuta la descontaminación firma cada paso: extracción de fluidos, retirada de baterías, gestión de gases del aire acondicionado, desmontaje de pirotécnicos. Si la inspección detecta una descontaminación deficiente, el CAT tiene un acta firmada que permite repercutir la responsabilidad sobre el trabajador. Trazabilidad para ti, protección para la empresa.
           </p>
           <ul class="feature-list">
             <li>1.621 modelos de 139 marcas precargados</li>
-            <li>Datos del vehiculo: matricula, bastidor (VIN), tipo</li>
-            <li>Soporta convencional, hibrido y electrico</li>
+            <li>Datos del vehículo: matrícula, bastidor (VIN), tipo</li>
+            <li>Soporta convencional, híbrido y eléctrico</li>
             <li>Fotos del estado para trazabilidad completa</li>
           </ul>
         </div>
         <div class="feature-visual">
           <div class="phone phone-feature">
             <div class="phone-screen">
-              <img src="imagenes/captura-acta.jpg" alt="Pantalla de busqueda y datos del vehiculo en ReciclaCAT" loading="lazy" />
+              <img src="imagenes/captura-acta.jpg" alt="Pantalla de búsqueda y datos del vehículo en ReciclaCAT" loading="lazy" />
             </div>
           </div>
         </div>
@@ -942,21 +959,22 @@
 
       <div class="feature-row reverse reveal">
         <div class="feature-text">
-          <h3>Boletin de control de supresion de tension</h3>
+          <span class="feature-badge">Obligatorio · RD 614/2001</span>
+          <h3>Boletín de supresión de tensión</h3>
           <p>
-            El sector que mas crece y el que mas riesgo tiene. ReciclaCAT incluye el boletin especifico para vehiculos hibridos y electricos: certificacion del tecnico HVT, EPIs, procedimiento y trazabilidad de cada operacion de alta tension.
+            El RD 614/2001 exige documentar las operaciones en instalaciones eléctricas con riesgo. Para vehículos híbridos y eléctricos, ReciclaCAT genera el boletín específico: certificación del técnico HVT, EPIs, procedimiento de supresión y trazabilidad de cada operación de alta tensión.
           </p>
           <ul class="feature-list">
-            <li>Verificacion del certificado HVT y caducidad</li>
+            <li>Verificación del certificado HVT y caducidad</li>
             <li>Aviso legal: solo trabajadores cualificados</li>
             <li>Checklist de EPIs y material de seguridad</li>
-            <li>Numero de boletin auto-generado</li>
+            <li>Número de boletín auto-generado</li>
           </ul>
         </div>
         <div class="feature-visual">
           <div class="phone phone-feature">
             <div class="phone-screen">
-              <img src="imagenes/captura-hv.jpg" alt="Boletin de control de supresion de tension para vehiculos HV" loading="lazy" />
+              <img src="imagenes/captura-hv.jpg" alt="Boletín de control de supresión de tensión para vehículos HV" loading="lazy" />
             </div>
           </div>
         </div>
@@ -966,11 +984,11 @@
         <div class="feature-text">
           <h3>Genera el PDF y comparte donde quieras</h3>
           <p>
-            Acta firmada por el operario, PDF generado en el mismo dispositivo, listo para enviar por WhatsApp, correo, Drive o lo que uses. Sin servidores nuestros guardando nada. Tus datos viven donde tu decides.
+            Acta firmada por el operario, PDF generado en el mismo dispositivo, listo para enviar por WhatsApp, correo, Drive o lo que uses. Sin servidores nuestros guardando nada. Tus datos viven donde tú decides.
           </p>
           <ul class="feature-list">
-            <li>Firma manuscrita del operario en el movil</li>
-            <li>Generacion de acta en PDF al instante</li>
+            <li>Firma manuscrita del operario en el móvil</li>
+            <li>Generación de acta en PDF al instante</li>
             <li>Comparte por WhatsApp, Email, Drive...</li>
             <li>Funciona offline, sin nube obligatoria</li>
           </ul>
@@ -978,7 +996,7 @@
         <div class="feature-visual">
           <div class="phone phone-feature">
             <div class="phone-screen">
-              <img src="imagenes/captura-pdf.jpg" alt="Generacion de acta PDF y opciones para compartir" loading="lazy" />
+              <img src="imagenes/captura-pdf.jpg" alt="Generación de acta PDF y opciones para compartir" loading="lazy" />
             </div>
           </div>
         </div>
@@ -990,29 +1008,29 @@
     <div class="container">
       <div class="reveal">
         <span class="section-label">El camino por delante</span>
-        <h2 class="section-title">Empezamos por lo legal. <em>Despues, todo lo demas.</em></h2>
+        <h2 class="section-title">Empezamos por lo crítico. <em>Después, todo lo demás.</em></h2>
         <p class="section-intro">
-          ReciclaCAT tiene una hoja de ruta clara. La version 1.0 cubre lo obligatorio. Las siguientes versiones llegan sin coste adicional para los usuarios actuales.
+          ReciclaCAT tiene una hoja de ruta clara. La versión 1.0 cubre los dos documentos clave del proceso. Las siguientes versiones llegan sin coste adicional para los usuarios actuales.
         </p>
       </div>
       <div class="roadmap-track">
         <div class="roadmap-card active reveal">
-          <div class="roadmap-version">VERSION 1.0</div>
+          <div class="roadmap-version">VERSIÓN 1.0</div>
           <div class="roadmap-status">DISPONIBLE</div>
-          <div class="roadmap-card-title">Actas de descontaminacion</div>
-          <p>Acta del proceso de descontaminacion completo. Boletin HV para hibridos y electricos. Generacion de PDF. Funciona offline.</p>
+          <div class="roadmap-card-title">Boletín y acta digitales</div>
+          <p>Boletín de supresión de tensión (RD 614/2001) y acta de descontaminación con todas las operaciones. Generación de PDF. Firma del operario. Funciona offline.</p>
         </div>
         <div class="roadmap-card reveal">
-          <div class="roadmap-version">VERSION 2.0</div>
-          <div class="roadmap-status">PROXIMAMENTE</div>
-          <div class="roadmap-card-title">Gestion de campa</div>
-          <p>Inventario de vehiculos en campa, ubicacion fisica, estado del despiece. Convierte tu campa en una base de datos consultable desde el movil.</p>
+          <div class="roadmap-version">VERSIÓN 2.0</div>
+          <div class="roadmap-status">PRÓXIMAMENTE</div>
+          <div class="roadmap-card-title">Gestión de campa</div>
+          <p>Inventario de vehículos en campa, ubicación física, estado del despiece. Convierte tu campa en una base de datos consultable desde el móvil.</p>
         </div>
         <div class="roadmap-card reveal">
-          <div class="roadmap-version">VERSION 2.x</div>
+          <div class="roadmap-version">VERSIÓN 2.x</div>
           <div class="roadmap-status">EN ESTUDIO</div>
           <div class="roadmap-card-title">Inventario de piezas</div>
-          <p>Catalogo de piezas recuperadas con foto y referencia. Historico de ventas. Sincronizacion LAN entre movil del operario y tablet de oficina.</p>
+          <p>Catálogo de piezas recuperadas con foto y referencia. Histórico de ventas. Sincronización LAN entre móvil del operario y tablet de oficina.</p>
         </div>
       </div>
     </div>
@@ -1025,23 +1043,23 @@
         <h2 class="section-title" style="margin: 0 auto;">Pagas una vez. <em>Es tuya.</em></h2>
       </div>
       <div class="pricing-card reveal">
-        <div class="pricing-name">ReciclaCAT &mdash; Edicion CAT</div>
-        <div class="pricing-price"><sup>&euro;</sup>18</div>
-        <div class="pricing-period">Pago unico &middot; sin suscripciones</div>
+        <div class="pricing-name">ReciclaCAT — Edición CAT</div>
+        <div class="pricing-price"><sup>€</sup>18</div>
+        <div class="pricing-period">Pago único · sin suscripciones</div>
         <ul class="pricing-list">
-          <li>Actas de descontaminacion ilimitadas</li>
-          <li>Boletin HV para hibridos y electricos</li>
+          <li>Boletín de supresión de tensión (RD 614/2001)</li>
+          <li>Acta de descontaminación con trazabilidad</li>
           <li>1.621 modelos precargados</li>
           <li>Funciona offline siempre</li>
           <li>Backup manual exportable</li>
-          <li>Actualizaciones futuras incluidas (gestion de campa, etc.)</li>
+          <li>Actualizaciones futuras incluidas (gestión de campa, etc.)</li>
         </ul>
         <a href="#lista" class="btn btn-primary" style="width: 100%; justify-content: center;">
           Quiero estar el primero &rarr;
         </a>
       </div>
       <p class="pricing-compare">
-        Otros softwares del sector: 30&ndash;80&euro; al mes &middot; Pago anual minimo &middot; Nube obligatoria
+        Otros softwares del sector: 30–80€ al mes · Pago anual mínimo · Nube obligatoria
       </p>
     </div>
   </section>
@@ -1050,21 +1068,21 @@
     <div class="container">
       <div class="reveal">
         <span class="section-label">Lista de espera</span>
-        <h2 class="section-title">Se de los primeros <em>en tenerla.</em></h2>
+        <h2 class="section-title">Sé de los primeros <em>en tenerla.</em></h2>
         <p class="section-intro">
-          Apuntate y te avisamos en cuanto la app este disponible en Google Play. Los primeros suscriptores recibiran ademas un descuento exclusivo de lanzamiento.
+          Apúntate y te avisamos en cuanto la app esté disponible en Google Play. Los primeros suscriptores recibirán además un descuento exclusivo de lanzamiento.
         </p>
         <!--
           ════════════════════════════════════════════════════════════
           IMPORTANTE: cambiar la URL de "action" por la tuya de Formspree
           1. Ve a https://formspree.io y crea cuenta con info@reciclacat.es
           2. Crea un formulario nuevo, copia el endpoint
-          3. Pegalo aqui abajo en lugar de YOUR_FORM_ID
+          3. Pégalo aquí abajo en lugar de YOUR_FORM_ID
           ════════════════════════════════════════════════════════════
         -->
         <form class="waitlist-form" action="https://formspree.io/f/YOUR_FORM_ID" method="POST" id="waitlistForm">
           <input type="email" name="email" placeholder="tucorreo@empresa.com" required />
-          <input type="hidden" name="_subject" value="Nueva suscripcion ReciclaCAT" />
+          <input type="hidden" name="_subject" value="Nueva suscripción ReciclaCAT" />
           <button type="submit">Apuntarme</button>
         </form>
         <p class="waitlist-counter">
@@ -1082,45 +1100,51 @@
       </div>
       <div class="faq-list">
         <div class="faq-item reveal">
-          <button class="faq-q">Es la app un sustituto del software del CAT?</button>
+          <button class="faq-q">¿Es obligatorio el boletín de supresión de tensión?</button>
           <div class="faq-a">
-            No, todavia no. La version 1.0 esta enfocada exclusivamente en generar el acta del proceso de descontaminacion y el boletin de control de supresion de tension para vehiculos hibridos y electricos, que es lo que la ley exige documentar. La gestion de campa y el inventario de piezas llegaran en proximas actualizaciones, sin coste adicional para quien ya haya comprado la app.
+            Sí. El RD 614/2001 exige documentar las operaciones que se realizan en instalaciones eléctricas con riesgo. Para los vehículos híbridos y eléctricos, esto incluye el procedimiento de supresión de tensión antes de cualquier intervención. ReciclaCAT genera el boletín con la trazabilidad que la norma exige y los datos del técnico cualificado (HVT) responsable.
           </div>
         </div>
         <div class="faq-item reveal">
-          <button class="faq-q">El acta que genera ReciclaCAT tiene validez legal?</button>
+          <button class="faq-q">¿Y el acta de descontaminación es obligatoria?</button>
           <div class="faq-a">
-            El acta sigue los requisitos del Real Decreto 20/2017 y su Anexo IV (operaciones a realizar para la descontaminacion). Documenta cada paso del proceso con fecha, hora y operario responsable, y queda firmada digitalmente. Es la prueba escrita de que el procedimiento se ha realizado correctamente, exportable en PDF para tus archivos. Como en cualquier proceso legal, conviene complementarla con tus protocolos internos y con la documentacion fotografica que tu CAT genere.
+            El acta de descontaminación como documento concreto no es obligatoria por ley en su forma específica, pero es muy recomendable: protege al empresario. Si la inspección detecta una descontaminación deficiente, tener un acta firmada por el operario que ejecutó la operación permite a la empresa repercutir la responsabilidad sobre el trabajador. Sin ese acta, el responsable directo es el CAT. Además, te da trazabilidad de cada vehículo descontaminado ante cualquier inspección.
           </div>
         </div>
         <div class="faq-item reveal">
-          <button class="faq-q">Funciona sin internet?</button>
+          <button class="faq-q">¿Es la app un sustituto del software del CAT?</button>
           <div class="faq-a">
-            Si, completamente. Toda la app esta pensada para funcionar offline desde el primer momento, porque sabemos que en la zona de descontaminacion la cobertura suele ser irregular. Tus datos se guardan en el propio dispositivo. La conexion solo es necesaria para descargar la app desde Google Play y para hacer un backup en la nube si asi lo decides.
+            No, todavía no. La versión 1.0 está enfocada exclusivamente en generar el boletín de supresión de tensión y el acta de descontaminación. La gestión de campa y el inventario de piezas llegarán en próximas actualizaciones, sin coste adicional para quien ya haya comprado la app.
           </div>
         </div>
         <div class="faq-item reveal">
-          <button class="faq-q">Cuando llegara la gestion de campa?</button>
+          <button class="faq-q">¿Funciona sin internet?</button>
           <div class="faq-a">
-            La version 2.0 con gestion de campa esta en desarrollo. Aun no tenemos fecha publica de lanzamiento porque queremos que llegue bien probada con CATs reales. Si te apuntas a la lista de espera, seras de los primeros en saberlo y de los primeros en poder probarla.
+            Sí, completamente. Toda la app está pensada para funcionar offline desde el primer momento, porque sabemos que en la zona de descontaminación la cobertura suele ser irregular. Tus datos se guardan en el propio dispositivo. La conexión solo es necesaria para descargar la app desde Google Play y para hacer un backup en la nube si así lo decides.
           </div>
         </div>
         <div class="faq-item reveal">
-          <button class="faq-q">18 euros es pago unico o suscripcion?</button>
+          <button class="faq-q">¿Cuándo llegará la gestión de campa?</button>
           <div class="faq-a">
-            Pago unico. Sin renovaciones. Sin sorpresas en la tarjeta. Pagas 18 euros una vez en Google Play y la app es tuya para siempre, con todas las actualizaciones de la version 1.x incluidas. La gestion de campa de la version 2.0 tambien estara incluida para los compradores actuales, sin coste adicional.
+            La versión 2.0 con gestión de campa está en desarrollo. Aún no tenemos fecha pública de lanzamiento porque queremos que llegue bien probada con CATs reales. Si te apuntas a la lista de espera, serás de los primeros en saberlo y de los primeros en poder probarla.
           </div>
         </div>
         <div class="faq-item reveal">
-          <button class="faq-q">Hay version para iPhone?</button>
+          <button class="faq-q">¿18€ es pago único o suscripción?</button>
           <div class="faq-a">
-            Por ahora solo Android. La gran mayoria de CATs en Espana trabajan con dispositivos Android, asi que hemos priorizado esa plataforma. Si la demanda en iOS es suficiente, valoraremos sacarla.
+            Pago único. Sin renovaciones. Sin sorpresas en la tarjeta. Pagas 18€ una vez en Google Play y la app es tuya para siempre, con todas las actualizaciones de la versión 1.x incluidas. La gestión de campa de la versión 2.0 también estará incluida para los compradores actuales, sin coste adicional.
           </div>
         </div>
         <div class="faq-item reveal">
-          <button class="faq-q">Mis datos se suben a algun servidor?</button>
+          <button class="faq-q">¿Hay versión para iPhone?</button>
           <div class="faq-a">
-            No. Los datos viven en tu dispositivo. No hay servidores nuestros recogiendo nada. Si en algun momento decides hacer un backup en la nube, eres tu quien lo decide y eliges donde lo guardas (Google Drive, correo, USB, etc.).
+            Por ahora solo Android. La gran mayoría de CATs en España trabajan con dispositivos Android, así que hemos priorizado esa plataforma. Si la demanda en iOS es suficiente, valoraremos sacarla.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q">¿Mis datos se suben a algún servidor?</button>
+          <div class="faq-a">
+            No. Los datos viven en tu dispositivo. No hay servidores nuestros recogiendo nada. Si en algún momento decides hacer un backup en la nube, eres tú quien lo decide y eliges dónde lo guardas (Google Drive, correo, USB, etc.).
           </div>
         </div>
       </div>
@@ -1133,7 +1157,7 @@
         <div>
           <div class="footer-brand">Recicla<span class="footer-brand-cat">CAT</span></div>
           <p class="footer-tagline">
-            La app de actas de descontaminacion pensada para Centros Autorizados de Tratamiento de vehiculos. Cumple. Documenta. Protege.
+            La app de boletín de supresión de tensión y acta de descontaminación pensada para Centros Autorizados de Tratamiento de vehículos. Cumple. Documenta. Protege.
           </p>
         </div>
         <div class="footer-col">
@@ -1146,13 +1170,13 @@
         <div class="footer-col">
           <h4>Contacto</h4>
           <a href="mailto:info@reciclacat.es">info@reciclacat.es</a>
-          <a href="politica-privacidad.html">Politica de privacidad</a>
-          <a href="#">Terminos de uso</a>
+          <a href="politica-privacidad.html">Política de privacidad</a>
+          <a href="#">Términos de uso</a>
         </div>
       </div>
       <div class="footer-bottom">
-        <span>&copy; 2026 ReciclaCAT &middot; Desarrollado por Gustavo Molina Zafra</span>
-        <span>Tecnico en vehiculos hibridos y electricos &middot; Hecho en Espana</span>
+        <span>© 2026 ReciclaCAT · Desarrollado por Gustavo Molina Zafra</span>
+        <span>Técnico en vehículos híbridos y eléctricos · Hecho en España</span>
       </div>
     </div>
   </footer>
