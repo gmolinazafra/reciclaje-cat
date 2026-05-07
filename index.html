@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Reciclacat — La app para CATs que genera el acta de descontaminacion obligatoria por ley, incluyendo desconexion de hibridos y electricos. Pago unico de 18 euros." />
+  <meta name="description" content="ReciclaCAT — La app para CATs que genera el acta de descontaminacion obligatoria por ley, incluyendo desconexion de hibridos y electricos. Pago unico de 18 euros." />
   <meta name="keywords" content="reciclacat, acta descontaminacion, app cat, desguaces, vehiculos hibridos, vehiculos electricos, real decreto 20/2017" />
-  <meta property="og:title" content="Reciclacat — Acta de descontaminacion digital para CATs" />
+  <meta property="og:title" content="ReciclaCAT — Acta de descontaminacion digital para CATs" />
   <meta property="og:description" content="Cumple con el RD 20/2017 desde tu movil. Acta de descontaminacion y desconexion de hibridos/electricos. Pago unico 18 euros." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://reciclacat.es" />
-  <title>Reciclacat — Acta de descontaminacion digital para Centros Autorizados de Tratamiento</title>
+  <title>ReciclaCAT — Acta de descontaminacion digital para Centros Autorizados de Tratamiento</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -82,6 +82,11 @@
       align-items: center;
       gap: 10px;
       text-decoration: none;
+    }
+    .brand-cat {
+      font-weight: 700;
+      color: var(--green-mid);
+      letter-spacing: 0.02em;
     }
     .brand-mark {
       width: 32px; height: 32px;
@@ -211,35 +216,52 @@
     .hero-trust span::before { content: '\2713'; color: var(--green-mid); font-weight: 700; }
 
     .hero-visual { position: relative; display: flex; justify-content: center; align-items: center; }
-    .phone-frame {
-      width: 280px;
-      height: 560px;
+
+    /* === MARCO DE MOVIL (reutilizable) === */
+    .phone {
       background: var(--ink);
       border-radius: 38px;
       padding: 12px;
       position: relative;
-      box-shadow: 0 30px 60px -15px rgba(26, 61, 46, 0.4), 0 15px 30px -10px rgba(26, 61, 46, 0.3);
-      transform: rotate(-3deg);
+      box-shadow: 0 30px 60px -15px rgba(26, 61, 46, 0.4),
+                  0 15px 30px -10px rgba(26, 61, 46, 0.3);
       transition: transform 0.4s ease;
+      overflow: hidden;
     }
-    .phone-frame:hover { transform: rotate(0deg) translateY(-8px); }
     .phone-screen {
-      width: 100%; height: 100%;
-      background: linear-gradient(160deg, var(--green-deep) 0%, var(--green-mid) 100%);
+      width: 100%;
+      height: 100%;
       border-radius: 28px;
       overflow: hidden;
       position: relative;
-      display: flex;
-      flex-direction: column;
+      background: #fff;
+    }
+    .phone-screen img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      display: block;
     }
     .phone-notch {
       position: absolute;
-      top: 0; left: 50%;
+      top: 12px; left: 50%;
       transform: translateX(-50%);
       width: 100px; height: 24px;
       background: var(--ink);
       border-radius: 0 0 16px 16px;
       z-index: 5;
+    }
+
+    /* Hero phone size */
+    .phone-hero {
+      width: 280px;
+      height: 560px;
+      transform: rotate(-3deg);
+    }
+    .phone-hero:hover { transform: rotate(0deg) translateY(-8px); }
+    .phone-hero .phone-screen {
+      background: linear-gradient(160deg, var(--green-deep) 0%, var(--green-mid) 100%);
     }
     .phone-content {
       padding: 50px 18px 18px;
@@ -285,6 +307,12 @@
       text-align: center;
       letter-spacing: 0.05em;
       text-transform: uppercase;
+    }
+
+    /* Feature phone size (más pequeño, con captura real) */
+    .phone-feature {
+      width: 260px;
+      height: 530px;
     }
 
     .blob { position: absolute; border-radius: 50%; filter: blur(60px); z-index: -1; opacity: 0.4; }
@@ -460,32 +488,26 @@
     .feature-list li::before { content: '\2192'; color: var(--terracota); font-weight: 700; }
     .feature-list li:last-child { border-bottom: none; }
 
+    /* Visual de feature: marco de movil con captura real */
     .feature-visual {
-      aspect-ratio: 1 / 1;
-      background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
-      border-radius: var(--radius-lg);
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       position: relative;
-      overflow: hidden;
-      box-shadow: 0 20px 50px -10px rgba(26, 61, 46, 0.3);
+      padding: 20px;
     }
-    .feature-visual::after {
+    .feature-visual::before {
       content: '';
       position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 30% 30%, rgba(245, 241, 232, 0.15), transparent 50%);
+      inset: 10%;
+      background: radial-gradient(circle, var(--green-soft) 0%, transparent 70%);
+      filter: blur(50px);
+      opacity: 0.3;
+      z-index: 0;
     }
-    .feature-visual .placeholder-text {
-      color: rgba(245, 241, 232, 0.6);
-      font-family: var(--font-display);
-      font-style: italic;
-      font-size: 18px;
-      text-align: center;
-      padding: 40px;
+    .feature-visual .phone {
       position: relative;
-      z-index: 2;
+      z-index: 1;
     }
 
     .roadmap { background: var(--cream); }
@@ -720,6 +742,7 @@
       font-weight: 600;
       margin-bottom: 12px;
     }
+    .footer-brand-cat { color: #ffb89c; font-weight: 700; }
     .footer-tagline { color: rgba(245, 241, 232, 0.7); font-size: 15px; max-width: 320px; }
     .footer-col h4 {
       font-size: 13px;
@@ -770,7 +793,7 @@
     <div class="container">
       <a href="#" class="brand">
         <span class="brand-mark">R</span>
-        Reciclacat
+        Recicla<span class="brand-cat">CAT</span>
       </a>
       <div class="nav-links">
         <a href="#alerta">Por que importa</a>
@@ -791,7 +814,7 @@
             El acta de descontaminacion, <em>desde tu movil.</em>
           </h1>
           <p class="hero-sub">
-            Reciclacat genera el acta del proceso de descontaminacion y de la desconexion de vehiculos hibridos y electricos. Lo que la ley exige a tu CAT, sin papeleo, sin Excel, sin software de cinco cifras.
+            ReciclaCAT genera el acta del proceso de descontaminacion y de la desconexion de vehiculos hibridos y electricos. Lo que la ley exige a tu CAT, sin papeleo, sin Excel, sin software de cinco cifras.
           </p>
           <div class="hero-cta-row">
             <a href="#lista" class="btn btn-primary">Apuntate a la lista &rarr;</a>
@@ -807,7 +830,7 @@
         <div class="hero-visual">
           <div class="blob blob-1"></div>
           <div class="blob blob-2"></div>
-          <div class="phone-frame">
+          <div class="phone phone-hero">
             <div class="phone-screen">
               <div class="phone-notch"></div>
               <div class="phone-content">
@@ -888,7 +911,7 @@
   <section class="features" id="funciones">
     <div class="container">
       <div class="reveal">
-        <span class="section-label">Lo que hace Reciclacat hoy</span>
+        <span class="section-label">Lo que hace ReciclaCAT hoy</span>
         <h2 class="section-title">Una sola cosa, <em>hecha a conciencia.</em></h2>
         <p class="section-intro">
           La version 1.0 esta enfocada en lo que la ley te obliga a documentar: el acta del proceso de descontaminacion y la desconexion de vehiculos hibridos y electricos. Sin distracciones.
@@ -902,50 +925,62 @@
             La app te guia por todos los puntos exigidos en el RD 20/2017 y su Anexo IV: extraccion de fluidos, retirada de baterias, desmontaje de pirotecnicos, gestion de gases del aire acondicionado. Cada paso queda registrado, fechado y listo para firmar.
           </p>
           <ul class="feature-list">
-            <li>Checklist completo segun normativa</li>
-            <li>Fecha y hora de cada operacion</li>
-            <li>Operario responsable identificado</li>
-            <li>Acta exportable en PDF para tus archivos</li>
+            <li>1.621 modelos de 139 marcas precargados</li>
+            <li>Datos del vehiculo: matricula, bastidor (VIN), tipo</li>
+            <li>Soporta convencional, hibrido y electrico</li>
+            <li>Fotos del estado para trazabilidad completa</li>
           </ul>
         </div>
         <div class="feature-visual">
-          <div class="placeholder-text">[ Captura de pantalla<br/>&middot; Acta paso a paso &middot; ]</div>
+          <div class="phone phone-feature">
+            <div class="phone-screen">
+              <img src="imagenes/captura-acta.jpg" alt="Pantalla de busqueda y datos del vehiculo en ReciclaCAT" loading="lazy" />
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="feature-row reverse reveal">
         <div class="feature-text">
-          <h3>Desconexion de hibridos y electricos</h3>
+          <h3>Boletin de control de supresion de tension</h3>
           <p>
-            El sector que mas crece y el que mas riesgo tiene. Reciclacat documenta el procedimiento de desconexion de alta tension de vehiculos hibridos y electricos: aislamiento de bateria, retirada del service plug, tiempos de espera. Trazabilidad total.
+            El sector que mas crece y el que mas riesgo tiene. ReciclaCAT incluye el boletin especifico para vehiculos hibridos y electricos: certificacion del tecnico HVT, EPIs, procedimiento y trazabilidad de cada operacion de alta tension.
           </p>
           <ul class="feature-list">
-            <li>Procedimiento HV especifico</li>
-            <li>Tiempos de espera registrados</li>
-            <li>Operario con formacion certificada</li>
-            <li>Anexo HV adjunto al acta principal</li>
+            <li>Verificacion del certificado HVT y caducidad</li>
+            <li>Aviso legal: solo trabajadores cualificados</li>
+            <li>Checklist de EPIs y material de seguridad</li>
+            <li>Numero de boletin auto-generado</li>
           </ul>
         </div>
         <div class="feature-visual">
-          <div class="placeholder-text">[ Captura de pantalla<br/>&middot; Desconexion HV &middot; ]</div>
+          <div class="phone phone-feature">
+            <div class="phone-screen">
+              <img src="imagenes/captura-hv.jpg" alt="Boletin de control de supresion de tension para vehiculos HV" loading="lazy" />
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="feature-row reveal">
         <div class="feature-text">
-          <h3>Funciona offline. Tus datos, tuyos.</h3>
+          <h3>Genera el PDF y comparte donde quieras</h3>
           <p>
-            En la zona de descontaminacion la cobertura es escasa. Reciclacat trabaja sin internet y guarda todo en tu dispositivo. Sin nube obligatoria, sin servidores ajenos, sin cuotas mensuales por almacenamiento.
+            Acta firmada por el operario, PDF generado en el mismo dispositivo, listo para enviar por WhatsApp, correo, Drive o lo que uses. Sin servidores nuestros guardando nada. Tus datos viven donde tu decides.
           </p>
           <ul class="feature-list">
-            <li>100% funcional sin cobertura</li>
-            <li>Datos guardados en local</li>
-            <li>Backup manual cuando tu quieras</li>
-            <li>Sin terceros tocando tu informacion</li>
+            <li>Firma manuscrita del operario en el movil</li>
+            <li>Generacion de acta en PDF al instante</li>
+            <li>Comparte por WhatsApp, Email, Drive...</li>
+            <li>Funciona offline, sin nube obligatoria</li>
           </ul>
         </div>
         <div class="feature-visual">
-          <div class="placeholder-text">[ Captura de pantalla<br/>&middot; Modo offline &middot; ]</div>
+          <div class="phone phone-feature">
+            <div class="phone-screen">
+              <img src="imagenes/captura-pdf.jpg" alt="Generacion de acta PDF y opciones para compartir" loading="lazy" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -957,7 +992,7 @@
         <span class="section-label">El camino por delante</span>
         <h2 class="section-title">Empezamos por lo legal. <em>Despues, todo lo demas.</em></h2>
         <p class="section-intro">
-          Reciclacat tiene una hoja de ruta clara. La version 1.0 cubre lo obligatorio. Las siguientes versiones llegan sin coste adicional para los usuarios actuales.
+          ReciclaCAT tiene una hoja de ruta clara. La version 1.0 cubre lo obligatorio. Las siguientes versiones llegan sin coste adicional para los usuarios actuales.
         </p>
       </div>
       <div class="roadmap-track">
@@ -965,7 +1000,7 @@
           <div class="roadmap-version">VERSION 1.0</div>
           <div class="roadmap-status">DISPONIBLE</div>
           <div class="roadmap-card-title">Actas de descontaminacion</div>
-          <p>Acta del proceso de descontaminacion completo. Anexo HV para hibridos y electricos. Exportacion en PDF. Funciona offline.</p>
+          <p>Acta del proceso de descontaminacion completo. Boletin HV para hibridos y electricos. Generacion de PDF. Funciona offline.</p>
         </div>
         <div class="roadmap-card reveal">
           <div class="roadmap-version">VERSION 2.0</div>
@@ -990,14 +1025,14 @@
         <h2 class="section-title" style="margin: 0 auto;">Pagas una vez. <em>Es tuya.</em></h2>
       </div>
       <div class="pricing-card reveal">
-        <div class="pricing-name">Reciclacat &mdash; Edicion CAT</div>
+        <div class="pricing-name">ReciclaCAT &mdash; Edicion CAT</div>
         <div class="pricing-price"><sup>&euro;</sup>18</div>
         <div class="pricing-period">Pago unico &middot; sin suscripciones</div>
         <ul class="pricing-list">
           <li>Actas de descontaminacion ilimitadas</li>
-          <li>Modulo de desconexion HV incluido</li>
+          <li>Boletin HV para hibridos y electricos</li>
+          <li>1.621 modelos precargados</li>
           <li>Funciona offline siempre</li>
-          <li>Tus datos en tu dispositivo</li>
           <li>Backup manual exportable</li>
           <li>Actualizaciones futuras incluidas (gestion de campa, etc.)</li>
         </ul>
@@ -1029,7 +1064,7 @@
         -->
         <form class="waitlist-form" action="https://formspree.io/f/YOUR_FORM_ID" method="POST" id="waitlistForm">
           <input type="email" name="email" placeholder="tucorreo@empresa.com" required />
-          <input type="hidden" name="_subject" value="Nueva suscripcion Reciclacat" />
+          <input type="hidden" name="_subject" value="Nueva suscripcion ReciclaCAT" />
           <button type="submit">Apuntarme</button>
         </form>
         <p class="waitlist-counter">
@@ -1049,13 +1084,13 @@
         <div class="faq-item reveal">
           <button class="faq-q">Es la app un sustituto del software del CAT?</button>
           <div class="faq-a">
-            No, todavia no. La version 1.0 esta enfocada exclusivamente en generar el acta del proceso de descontaminacion y la desconexion de vehiculos hibridos y electricos, que es lo que la ley exige documentar. La gestion de campa y el inventario de piezas llegaran en proximas actualizaciones, sin coste adicional para quien ya haya comprado la app.
+            No, todavia no. La version 1.0 esta enfocada exclusivamente en generar el acta del proceso de descontaminacion y el boletin de control de supresion de tension para vehiculos hibridos y electricos, que es lo que la ley exige documentar. La gestion de campa y el inventario de piezas llegaran en proximas actualizaciones, sin coste adicional para quien ya haya comprado la app.
           </div>
         </div>
         <div class="faq-item reveal">
-          <button class="faq-q">El acta que genera Reciclacat tiene validez legal?</button>
+          <button class="faq-q">El acta que genera ReciclaCAT tiene validez legal?</button>
           <div class="faq-a">
-            El acta sigue los requisitos del Real Decreto 20/2017 y su Anexo IV (operaciones a realizar para la descontaminacion). Documenta cada paso del proceso con fecha, hora y operario responsable. Es la prueba escrita de que el procedimiento se ha realizado correctamente, exportable en PDF para tus archivos. Como en cualquier proceso legal, conviene complementarla con tus protocolos internos y con la documentacion fotografica que tu CAT genere.
+            El acta sigue los requisitos del Real Decreto 20/2017 y su Anexo IV (operaciones a realizar para la descontaminacion). Documenta cada paso del proceso con fecha, hora y operario responsable, y queda firmada digitalmente. Es la prueba escrita de que el procedimiento se ha realizado correctamente, exportable en PDF para tus archivos. Como en cualquier proceso legal, conviene complementarla con tus protocolos internos y con la documentacion fotografica que tu CAT genere.
           </div>
         </div>
         <div class="faq-item reveal">
@@ -1096,7 +1131,7 @@
     <div class="container">
       <div class="footer-grid">
         <div>
-          <div class="footer-brand">Reciclacat</div>
+          <div class="footer-brand">Recicla<span class="footer-brand-cat">CAT</span></div>
           <p class="footer-tagline">
             La app de actas de descontaminacion pensada para Centros Autorizados de Tratamiento de vehiculos. Cumple. Documenta. Protege.
           </p>
@@ -1111,13 +1146,13 @@
         <div class="footer-col">
           <h4>Contacto</h4>
           <a href="mailto:info@reciclacat.es">info@reciclacat.es</a>
-          <a href="#">Politica de privacidad</a>
+          <a href="politica-privacidad.html">Politica de privacidad</a>
           <a href="#">Terminos de uso</a>
         </div>
       </div>
       <div class="footer-bottom">
-        <span>&copy; 2026 Reciclacat. Todos los derechos reservados.</span>
-        <span>Hecho en Espana para el sector del reciclaje de vehiculos.</span>
+        <span>&copy; 2026 ReciclaCAT &middot; Desarrollado por Gustavo Molina Zafra</span>
+        <span>Tecnico en vehiculos hibridos y electricos &middot; Hecho en Espana</span>
       </div>
     </div>
   </footer>
