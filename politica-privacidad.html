@@ -54,7 +54,7 @@
 
 <h1>Política de Privacidad de ReciclaCAT</h1>
 
-<div class="meta">Última actualización: 7 de mayo de 2026</div>
+<div class="meta">Última actualización: 9 de mayo de 2026</div>
 
 <div class="highlight">
 <strong>Resumen rápido:</strong> ReciclaCAT es una herramienta profesional para Centros Autorizados de Tratamiento (CAT). Los datos que introduces en la app se almacenan principalmente en tu dispositivo. Si activas la sincronización opcional con Google Sheets, algunos datos se enviarán a tu propia cuenta de Google (no a nosotros) para que puedas consultarlos online. NO compartimos tus datos con terceros, NO usamos publicidad ni análisis externos.
@@ -144,9 +144,10 @@
 <h3>5.2. Permisos solicitados a Google</h3>
 <p>Para esta funcionalidad, ReciclaCAT solicita los siguientes ámbitos (scopes) de la API de Google:</p>
 <ul>
-  <li><code>https://www.googleapis.com/auth/spreadsheets</code> — Lectura y escritura de las hojas de cálculo creadas por la aplicación.</li>
-  <li><code>https://www.googleapis.com/auth/drive.file</code> — Acceso únicamente a los archivos creados o abiertos por la propia aplicación. ReciclaCAT NO accede al resto del Google Drive del usuario.</li>
-  <li><code>https://www.googleapis.com/auth/userinfo.email</code> — Identificación del usuario para vincular la sesión.</li>
+  <li><code>https://www.googleapis.com/auth/drive.file</code> — Acceso únicamente a los archivos creados o abiertos por la propia aplicación, incluyendo las hojas de Google Sheets que la propia app crea para sincronizar la campa. ReciclaCAT NO accede al resto del Google Drive del usuario.</li>
+  <li><code>https://www.googleapis.com/auth/userinfo.email</code> — Identificación del email del usuario para vincular la sesión.</li>
+  <li><code>https://www.googleapis.com/auth/userinfo.profile</code> — Nombre del usuario para mostrar en la app.</li>
+  <li><code>openid</code> — Identificación estándar OpenID Connect.</li>
 </ul>
 
 <h3>5.3. Datos que se sincronizan con Google Sheets</h3>
