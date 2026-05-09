@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="ReciclaCAT — La app para CATs que genera el boletín de supresión de tensión (RD 614/2001) y el acta de descontaminación de vehículos al final de su vida útil. Pago único de 26,99€." />
-  <meta name="keywords" content="reciclacat, acta descontaminación, boletín supresión tensión, app cat, desguaces, vehículos híbridos, vehículos eléctricos, real decreto 265/2021, real decreto 614/2001" />
-  <meta property="og:title" content="ReciclaCAT — Boletín de supresión de tensión y acta de descontaminación" />
-  <meta property="og:description" content="Cumple con el RD 614/2001 desde tu móvil. Boletín de supresión de tensión y acta de descontaminación. Pago único 26,99€." />
+  <meta name="description" content="ReciclaCAT — La app para CATs que genera el boletín de supresión de tensión (RD 614/2001) y el acta de descontaminación. PDFs subidos automáticamente a tu Drive y campa sincronizada con Google Sheets, accesible desde oficina, móvil y tablet. Pago único de 26,99€." />
+  <meta name="keywords" content="reciclacat, acta descontaminación, boletín supresión tensión, app cat, desguaces, vehículos híbridos, vehículos eléctricos, real decreto 265/2021, real decreto 614/2001, gestión campa, google sheets, multi dispositivo" />
+  <meta property="og:title" content="ReciclaCAT — Boletín, acta y campa sincronizada con Google Sheets" />
+  <meta property="og:description" content="Boletín RD 614/2001, acta firmada en PDF y tu campa sincronizada con Google Sheets. Consulta el inventario desde oficina, móvil o tablet. Pago único 26,99€." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://reciclacat.es" />
   <title>ReciclaCAT — Boletín de supresión de tensión y acta de descontaminación digital</title>
@@ -880,7 +880,7 @@
             Boletín de supresión de tensión <em>desde tu móvil.</em>
           </h1>
           <p class="hero-sub">
-            ReciclaCAT genera el boletín de supresión de tensión que el RD 614/2001 exige al manipular vehículos híbridos y eléctricos, y el acta de descontaminación firmada por el operario que protege al CAT ante una inspección. Sin papeleo, sin Excel, sin software de cinco cifras.
+            ReciclaCAT genera el boletín de supresión de tensión que el RD 614/2001 exige al manipular vehículos híbridos y eléctricos, el acta de descontaminación firmada por el operario, y mantiene tu campa sincronizada con Google Sheets para que puedas consultar el inventario desde la oficina, el móvil o la tablet del comercial. Sin papeleo, sin Excel, sin software de cinco cifras.
           </p>
           <div class="hero-cta-row">
             <a href="#lista" class="btn btn-primary">Apúntate a la lista &rarr;</a>
@@ -1051,6 +1051,74 @@
           </div>
         </div>
       </div>
+
+      <div class="feature-row reveal">
+        <div class="feature-text">
+          <h3>Tus actas, ordenadas solas en tu Drive</h3>
+          <p>
+            Cuando conectas tu cuenta de Google, ReciclaCAT crea automáticamente una carpeta «ReciclaCAT - Actas» en tu Drive y, dentro, una subcarpeta por cada año. Cada vez que se firma un acta, el PDF se sube solo a la subcarpeta del año en curso. Cero gestión manual: el archivo histórico se construye por sí mismo, año a año.
+          </p>
+          <ul class="feature-list">
+            <li>Carpeta «ReciclaCAT - Actas» creada en tu Drive automáticamente</li>
+            <li>Subcarpetas por año (2026, 2027, 2028…) generadas solas</li>
+            <li>Cada acta firmada se sube al instante a la carpeta del año</li>
+            <li>Permiso mínimo: la app solo accede a lo que ella crea, no al resto de tu Drive</li>
+            <li>Opcional: se puede desactivar desde Ajustes en cualquier momento</li>
+          </ul>
+        </div>
+        <div class="feature-visual">
+          <div class="phone phone-feature">
+            <div class="phone-screen">
+              <img src="imagenes/captura-pdf.jpg" alt="Carpeta automática de actas en Google Drive organizada por año" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row reveal">
+        <div class="feature-text">
+          <h3>Tu campa, sincronizada y consultable desde cualquier sitio</h3>
+          <p>
+            ReciclaCAT crea automáticamente una hoja de Google Sheets con el inventario de tu campa: matrícula, marca, modelo, bastidor, zona, estado y fecha de cada vehículo. La sincronización es bidireccional: lo que el operario hace en el móvil aparece en la hoja, y lo que se edita en la hoja se refleja en la app al pulsar Sincronizar.
+          </p>
+          <ul class="feature-list">
+            <li>Hoja «ReciclaCAT - Campa» creada en tu Drive automáticamente</li>
+            <li>Sincronización bidireccional con merge campo a campo</li>
+            <li>Botón Sincronizar siempre visible en la pantalla de Campa</li>
+            <li>Si cambias de móvil o reinstalas, la app reencuentra la hoja y carga el inventario</li>
+            <li>Acceso multi-dispositivo: oficina, móvil del operario, tablet del comercial</li>
+          </ul>
+        </div>
+        <div class="feature-visual">
+          <div class="phone phone-feature">
+            <div class="phone-screen">
+              <img src="imagenes/captura-acta.jpg" alt="Inventario de campa sincronizado con Google Sheets" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row reveal">
+        <div class="feature-text">
+          <h3>Tres dispositivos, un solo inventario</h3>
+          <p>
+            Una vez activada la sincronización, cada perfil del CAT trabaja desde donde le toca con la información actualizada al minuto.
+          </p>
+          <ul class="feature-list">
+            <li><strong>Operario en zona de descontaminación:</strong> añade vehículos y firma actas desde el móvil. Funciona offline y sincroniza al recuperar señal.</li>
+            <li><strong>Gerente / oficina:</strong> consulta el inventario desde el ordenador abriendo la hoja de Google Sheets. Puede editar zonas, marcar retiradas o añadir notas — los cambios llegan al móvil al sincronizar.</li>
+            <li><strong>Comercial fuera del CAT:</strong> consulta stock desde la tablet o el móvil para responder a clientes al momento, sin llamar a la oficina.</li>
+            <li><strong>Inventario inicial:</strong> atajo «Añadir directamente a campa» con badge MANUAL para vehículos pre-existentes que no pasan por el flujo completo.</li>
+          </ul>
+        </div>
+        <div class="feature-visual">
+          <div class="phone phone-feature">
+            <div class="phone-screen">
+              <img src="imagenes/captura-acta.jpg" alt="Inventario de campa accesible desde móvil, ordenador y tablet" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1058,9 +1126,9 @@
     <div class="container">
       <div class="reveal">
         <span class="section-label">El camino por delante</span>
-        <h2 class="section-title">Empezamos por lo crítico. <em>Después, todo lo demás.</em></h2>
+        <h2 class="section-title">Lo que hay. <em>Y lo que llega.</em></h2>
         <p class="section-intro">
-          ReciclaCAT tiene una hoja de ruta clara. La versión 1.0 cubre los dos documentos clave del proceso. Las siguientes versiones llegan sin coste adicional para los usuarios actuales.
+          ReciclaCAT tiene una hoja de ruta clara. Cada versión llega sin coste adicional para los usuarios actuales: pagas una vez, y las actualizaciones futuras están incluidas.
         </p>
       </div>
       <div class="roadmap-track">
@@ -1070,17 +1138,11 @@
           <div class="roadmap-card-title">Boletín y acta digitales</div>
           <p>Boletín de supresión de tensión (RD 614/2001) y acta de descontaminación con todas las operaciones. Generación de PDF. Firma del operario. Funciona offline.</p>
         </div>
-        <div class="roadmap-card reveal">
-          <div class="roadmap-version">VERSIÓN 2.0</div>
-          <div class="roadmap-status">PRÓXIMAMENTE</div>
-          <div class="roadmap-card-title">Gestión de campa</div>
-          <p>Inventario de vehículos en campa, ubicación física, estado del despiece. Convierte tu campa en una base de datos consultable desde el móvil.</p>
-        </div>
-        <div class="roadmap-card reveal">
-          <div class="roadmap-version">VERSIÓN 2.x</div>
-          <div class="roadmap-status">EN ESTUDIO</div>
-          <div class="roadmap-card-title">Inventario de piezas</div>
-          <p>Catálogo de piezas recuperadas con foto y referencia. Histórico de ventas. Sincronización LAN entre móvil del operario y tablet de oficina.</p>
+        <div class="roadmap-card active reveal">
+          <div class="roadmap-version">VERSIÓN 1.1</div>
+          <div class="roadmap-status">DISPONIBLE</div>
+          <div class="roadmap-card-title">Sincronización con Google</div>
+          <p>Carpeta de actas en Drive ordenada por año, hoja de Google Sheets para la campa con sincronización bidireccional, y consulta del inventario desde oficina, móvil y tablet.</p>
         </div>
       </div>
     </div>
@@ -1095,11 +1157,15 @@
       <div class="pricing-card reveal">
         <div class="pricing-name">ReciclaCAT — Edición CAT</div>
         <div class="pricing-price"><sup>€</sup>26<span style="font-size: 32px; vertical-align: super; margin-left: 4px; letter-spacing: 0;">,99</span></div>
-        <div class="pricing-period">Pago único · sin suscripciones</div>
+        <div class="pricing-period">Pago único</div>
         <ul class="pricing-list">
           <li>Boletín de supresión de tensión (RD 614/2001)</li>
-          <li>Acta de descontaminación con trazabilidad</li>
-          <li>Gestión de campa con sincronización a Google Sheets</li>
+          <li>Acta de descontaminación firmada por el operario</li>
+          <li>Generación automática de PDF al firmar</li>
+          <li>Subida automática de cada acta a tu Google Drive, en carpeta organizada por año</li>
+          <li>Hoja de Google Sheets de la campa creada automáticamente</li>
+          <li>Sincronización bidireccional Sheets ↔ App</li>
+          <li>Consulta tu campa desde oficina, móvil o tablet</li>
           <li>1.621 modelos precargados</li>
           <li>Funciona offline siempre</li>
           <li>Backup manual exportable</li>
@@ -1109,9 +1175,6 @@
           Quiero estar el primero &rarr;
         </a>
       </div>
-      <p class="pricing-compare">
-        Otros softwares del sector: 30–80€ al mes · Pago anual mínimo · Nube obligatoria
-      </p>
     </div>
   </section>
 
@@ -1155,27 +1218,45 @@
           </div>
         </div>
         <div class="faq-item reveal">
-          <button class="faq-q">¿Es la app un sustituto del software del CAT?</button>
+          <button class="faq-q">¿Qué hace exactamente la app además del boletín y el acta?</button>
           <div class="faq-a">
-            No, todavía no. La versión 1.0 está enfocada exclusivamente en generar el boletín de supresión de tensión y el acta de descontaminación. La gestión de campa y el inventario de piezas llegarán en próximas actualizaciones, sin coste adicional para quien ya haya comprado la app.
+            La versión actual (1.1) cubre todo el flujo del vehículo: generación del boletín de supresión de tensión y del acta de descontaminación, firma del operario, generación del PDF, subida automática del PDF a tu Google Drive en una carpeta organizada por año, y sincronización del inventario de campa con una hoja de Google Sheets. La hoja se crea sola la primera vez y se sincroniza en ambos sentidos: lo que hace el operario en el móvil aparece en la hoja, y lo que se edita en la hoja se refleja en la app al pulsar Sincronizar.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q">¿Cómo funciona la subida automática de actas a Drive?</button>
+          <div class="faq-a">
+            La primera vez que conectas tu cuenta de Google, ReciclaCAT crea en tu Drive una carpeta llamada «ReciclaCAT - Actas». Dentro, crea automáticamente una subcarpeta por cada año (2026, 2027…). Cuando un operario firma un acta, el PDF se sube solo a la subcarpeta del año en curso y queda guardado ahí. Tú no tienes que arrastrar nada ni ordenar carpetas. Si prefieres no subir nada a Drive, se puede desactivar desde Ajustes.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q">¿Puedo ver mi campa desde el ordenador de la oficina?</button>
+          <div class="faq-a">
+            Sí. Cuando conectas tu cuenta de Google, ReciclaCAT crea automáticamente una hoja de cálculo «ReciclaCAT - Campa» en tu Drive con todos los vehículos: matrícula, marca, modelo, bastidor, zona, estado y fecha. Esa hoja se actualiza en tiempo real con lo que el operario hace en el móvil, y puedes abrirla desde cualquier ordenador, tablet o móvil con tu cuenta de Google. Esto cubre tres situaciones típicas: el operario en zona, el gerente en oficina y el comercial fuera del CAT consultando stock.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q">¿Si edito la hoja de Sheets desde el navegador, la app se entera?</button>
+          <div class="faq-a">
+            Sí. La sincronización es bidireccional. Si cambias la zona de un vehículo, marcas uno como retirado o añades una nota desde Sheets, esos cambios bajan a la app cuando el operario pulsa Sincronizar en la pantalla de Campa. La app fusiona campo a campo: si tú cambias la zona y el operario cambia el estado, ambas modificaciones se conservan.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q">¿Qué permisos pide la app a Google? ¿Puede ver todo mi Drive?</button>
+          <div class="faq-a">
+            No. ReciclaCAT pide únicamente el permiso «drive.file», que solo da acceso a los archivos que la propia app crea. La app no puede ver, leer ni tocar el resto de archivos de tu Drive (fotos, documentos personales, hojas que ya tenías…). Solo trabaja con la carpeta «ReciclaCAT - Actas» y la hoja «ReciclaCAT - Campa» que ella misma genera. Es el permiso mínimo posible.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q">¿Y si cambio de móvil o reinstalo la app?</button>
+          <div class="faq-a">
+            Al volver a conectar la misma cuenta de Google, ReciclaCAT detecta automáticamente la hoja de campa que creó antes y se vuelve a vincular con ella. No pierdes el inventario, no se duplica nada. Tampoco las actas en Drive: siguen donde estaban, organizadas por año.
           </div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-q">¿Funciona sin internet?</button>
           <div class="faq-a">
-            Sí, completamente. Toda la app está pensada para funcionar offline desde el primer momento, porque sabemos que en la zona de descontaminación la cobertura suele ser irregular. Tus datos se guardan en el propio dispositivo. La conexión solo es necesaria para descargar la app desde Google Play y para hacer un backup en la nube si así lo decides.
-          </div>
-        </div>
-        <div class="faq-item reveal">
-          <button class="faq-q">¿Cuándo llegará la gestión de campa?</button>
-          <div class="faq-a">
-            La versión 2.0 con gestión de campa está en desarrollo. Aún no tenemos fecha pública de lanzamiento porque queremos que llegue bien probada con CATs reales. Si te apuntas a la lista de espera, serás de los primeros en saberlo y de los primeros en poder probarla.
-          </div>
-        </div>
-        <div class="faq-item reveal">
-          <button class="faq-q">¿26,99€ es pago único o suscripción?</button>
-          <div class="faq-a">
-            Pago único. Sin renovaciones. Sin sorpresas en la tarjeta. Pagas 26,99€ una vez en Google Play y la app es tuya para siempre, con todas las actualizaciones incluidas. El precio incluye el módulo de gestión de campa con sincronización a Google Sheets, sin coste adicional ni cuotas mensuales.
+            Sí. Toda la app funciona offline desde el primer momento, porque en la zona de descontaminación la cobertura suele ser irregular. La generación del boletín, del acta, la firma y el almacenamiento del vehículo en campa se hacen localmente. La conexión solo se usa para descargar la app desde Google Play y, si lo activas, para sincronizar con Drive y Sheets — y la app reintenta sola cuando recupera señal.
           </div>
         </div>
         <div class="faq-item reveal">
@@ -1185,9 +1266,9 @@
           </div>
         </div>
         <div class="faq-item reveal">
-          <button class="faq-q">¿Mis datos se suben a algún servidor?</button>
+          <button class="faq-q">¿Mis datos se suben a algún servidor de ReciclaCAT?</button>
           <div class="faq-a">
-            No. Los datos viven en tu dispositivo. No hay servidores nuestros recogiendo nada. Si en algún momento decides hacer un backup en la nube, eres tú quien lo decide y eliges dónde lo guardas (Google Drive, correo, USB, etc.).
+            No. ReciclaCAT no tiene servidores propios recogiendo datos. Todo vive en tu dispositivo y, si activas la sincronización, en tu propia cuenta de Google (tu Drive, tu hoja de Sheets). Tú eres el dueño y el único que decide qué hacer con esa información.
           </div>
         </div>
       </div>
@@ -1200,7 +1281,7 @@
         <div>
           <div class="footer-brand">Recicla<span class="footer-brand-cat">CAT</span></div>
           <p class="footer-tagline">
-            La app de boletín de supresión de tensión y acta de descontaminación pensada para Centros Autorizados de Tratamiento de vehículos. Cumple. Documenta. Protege.
+            La app para Centros Autorizados de Tratamiento de vehículos: boletín, acta firmada, archivo automático en Drive y campa sincronizada con Google Sheets desde cualquier dispositivo. Cumple. Documenta. Protege.
           </p>
         </div>
         <div class="footer-col">
