@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="ReciclaCAT — La app para CATs que genera el boletín de supresión de tensión (RD 614/2001) y el acta de descontaminación. PDFs subidos automáticamente a tu Drive y campa sincronizada con Google Sheets, accesible desde oficina, móvil y tablet. Pago único de 26,99€." />
-  <meta name="keywords" content="reciclacat, acta descontaminación, boletín supresión tensión, app cat, desguaces, vehículos híbridos, vehículos eléctricos, real decreto 265/2021, real decreto 614/2001, gestión campa, google sheets, multi dispositivo" />
-  <meta property="og:title" content="ReciclaCAT — Boletín, acta y campa sincronizada con Google Sheets" />
-  <meta property="og:description" content="Boletín RD 614/2001, acta firmada en PDF y tu campa sincronizada con Google Sheets. Consulta el inventario desde oficina, móvil o tablet. Pago único 26,99€." />
+  <meta name="description" content="ReciclaCAT — La app para CATs que genera el boletín de supresión de tensión (RD 614/2001), el acta de descontaminación, ordena las actas en tu Drive por años, sincroniza tu campa con Google Sheets y te avisa de los vehículos que superan los 2 años (Ley 7/2022). Pago único de 26,99€." />
+  <meta name="keywords" content="reciclacat, acta descontaminación, boletín supresión tensión, app cat, desguaces, vehículos híbridos, vehículos eléctricos, real decreto 265/2021, real decreto 614/2001, ley 7/2022 residuos, gestión campa, ocupación campa, plazo dos años VFU, google sheets, multi dispositivo" />
+  <meta property="og:title" content="ReciclaCAT — Boletín, acta, campa y control legal de plazos" />
+  <meta property="og:description" content="Boletín RD 614/2001, acta firmada en PDF, campa sincronizada con Sheets y aviso automático de vehículos que superan los 2 años (Ley 7/2022). Pago único 26,99€." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://reciclacat.es" />
   <title>ReciclaCAT — Boletín de supresión de tensión y acta de descontaminación digital</title>
@@ -880,7 +880,7 @@
             Boletín de supresión de tensión <em>desde tu móvil.</em>
           </h1>
           <p class="hero-sub">
-            ReciclaCAT genera el boletín de supresión de tensión que el RD 614/2001 exige al manipular vehículos híbridos y eléctricos, el acta de descontaminación firmada por el operario, y mantiene tu campa sincronizada con Google Sheets para que puedas consultar el inventario desde la oficina, el móvil o la tablet del comercial. Sin papeleo, sin Excel, sin software de cinco cifras.
+            ReciclaCAT genera el boletín de supresión de tensión que el RD 614/2001 exige al manipular vehículos híbridos y eléctricos, el acta de descontaminación firmada por el operario, y mantiene tu campa sincronizada con Google Sheets. Mapa de ocupación por zonas, búsqueda instantánea y aviso automático cuando un vehículo se acerca al límite legal de 2 años (Ley 7/2022). Sin papeleo, sin Excel, sin software de cinco cifras.
           </p>
           <div class="hero-cta-row">
             <a href="#lista" class="btn btn-primary">Apúntate a la lista &rarr;</a>
@@ -1119,6 +1119,58 @@
           </div>
         </div>
       </div>
+
+      <div class="feature-row reveal">
+        <div class="feature-text">
+          <h3>La pestaña Campa: tu cuadro de mando</h3>
+          <p>
+            La pestaña Campa de ReciclaCAT no es una simple lista. Está dividida en tres vistas pensadas para encontrar lo que buscas en segundos, sin importar el tamaño del CAT.
+          </p>
+          <ul class="feature-list">
+            <li><strong>Mapa de zonas:</strong> tarjeta por cada zona (A, B, C…) con barra de ocupación. Verde si hay sitio, amarillo a partir del 70%, rojo a partir del 90%. Pulsa para ver qué vehículos hay dentro y en qué hueco.</li>
+            <li><strong>Lista buscable:</strong> escribe matrícula, marca, modelo o bastidor y aparece al instante. Filtros rápidos por zona, por «Sin asignar» y por «Críticos &gt;2 años».</li>
+            <li><strong>Estadísticas:</strong> total en campa, total retirados, vehículos sin zona asignada, antiguos (más de 90 días), críticos (más de 2 años) y días promedio de estancia. Distribución visual de ocupación por zona.</li>
+            <li><strong>Asignar y retirar de un toque:</strong> cada vehículo tiene su tarjeta con botones para cambiar de ubicación o marcar como retirado, con motivo registrado para tu archivo cronológico.</li>
+            <li><strong>Sincroniza siempre:</strong> botón Sincronizar fijo en la parte superior, indicador del estado de Google y hora de la última sincronización exitosa.</li>
+          </ul>
+        </div>
+        <div class="feature-visual">
+          <div class="phone phone-feature">
+            <div class="phone-screen">
+              <img src="imagenes/captura-acta.jpg" alt="Pestaña Campa con mapa de zonas, lista filtrable y estadísticas" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row reveal">
+        <div class="feature-text">
+          <h3>El plazo legal de 2 años, controlado solo</h3>
+          <p>
+            La <strong>Ley 7/2022 de Residuos y Suelos Contaminados</strong> fija un plazo máximo de <strong>2 años</strong> para almacenar vehículos descontaminados destinados a valorización, y obliga a documentar la fecha inicial de almacenamiento en el archivo cronológico. Quedarse en blanco ante una inspección por no saber cuánto tiempo lleva un VFU en campa puede salir muy caro.
+          </p>
+          <p>
+            ReciclaCAT lo controla por ti. Cada vehículo lleva su contador desde el día que se descontaminó. Cuando cualquiera supera los 2 años, la app lo marca automáticamente:
+          </p>
+          <ul class="feature-list">
+            <li><strong>Tarjeta del vehículo en rojo</strong> con el aviso «Lleva X días en campa (más de 2 años)»</li>
+            <li><strong>Filtro «Críticos &gt;2 años»</strong> en la lista, con el contador de cuántos vehículos hay en esa situación</li>
+            <li><strong>Tarjeta «Críticos» en estadísticas</strong> que solo aparece si hay alguno — para que no se te pase ni uno</li>
+            <li><strong>Aviso visible también en Google Sheets</strong> al sincronizar, para que el gerente lo vea desde la oficina</li>
+            <li><strong>Vista «Antiguos &gt;90 días»</strong> como aviso temprano para empezar a planificar la salida</li>
+          </ul>
+          <p>
+            Convierte una obligación legal opaca en un panel de control de un golpe de vista.
+          </p>
+        </div>
+        <div class="feature-visual">
+          <div class="phone phone-feature">
+            <div class="phone-screen">
+              <img src="imagenes/captura-acta.jpg" alt="Vehículos críticos por superar los 2 años en campa según Ley 7/2022" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1166,6 +1218,10 @@
           <li>Hoja de Google Sheets de la campa creada automáticamente</li>
           <li>Sincronización bidireccional Sheets ↔ App</li>
           <li>Consulta tu campa desde oficina, móvil o tablet</li>
+          <li>Mapa de zonas con ocupación visual</li>
+          <li>Búsqueda y filtros instantáneos por matrícula, marca, modelo o zona</li>
+          <li>Estadísticas: ocupación por zona, sin asignar, antiguos, días promedio</li>
+          <li>Aviso automático de vehículos que superan los 2 años (Ley 7/2022)</li>
           <li>1.621 modelos precargados</li>
           <li>Funciona offline siempre</li>
           <li>Backup manual exportable</li>
@@ -1221,6 +1277,24 @@
           <button class="faq-q">¿Qué hace exactamente la app además del boletín y el acta?</button>
           <div class="faq-a">
             La versión actual (1.1) cubre todo el flujo del vehículo: generación del boletín de supresión de tensión y del acta de descontaminación, firma del operario, generación del PDF, subida automática del PDF a tu Google Drive en una carpeta organizada por año, y sincronización del inventario de campa con una hoja de Google Sheets. La hoja se crea sola la primera vez y se sincroniza en ambos sentidos: lo que hace el operario en el móvil aparece en la hoja, y lo que se edita en la hoja se refleja en la app al pulsar Sincronizar.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q">¿La app me avisa cuando un vehículo lleva más de 2 años en campa?</button>
+          <div class="faq-a">
+            Sí, automáticamente. La <strong>Ley 7/2022 de Residuos y Suelos Contaminados</strong> fija un plazo máximo de 2 años para almacenar VFU descontaminados destinados a valorización (1 año si van a eliminación), y obliga a documentar la fecha inicial de almacenamiento. ReciclaCAT cuenta los días desde que el vehículo entra en campa: cuando supera los 2 años, su tarjeta se pone en rojo con el aviso «Lleva X días en campa», aparece un filtro «Críticos &gt;2 años» en la lista con el número total, y se añade una tarjeta «Críticos» en las estadísticas. El aviso es visible tanto en la app como en la hoja de Google Sheets sincronizada.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q">¿Cómo organizo las zonas y los huecos de mi campa?</button>
+          <div class="faq-a">
+            Defines tus zonas con una letra (A, B, C…) y el número máximo de huecos de cada una. La pestaña Campa muestra entonces un mapa con tarjeta por zona, una barra de ocupación con colores (verde, amarillo a partir del 70%, rojo a partir del 90%) y, si pulsas, la lista de vehículos dentro con su hueco. Cuando se firma un acta nueva, el vehículo entra en estado «Sin asignar» y la app te recuerda colocarlo. Asignar o cambiar ubicación se hace de un toque desde la propia tarjeta del vehículo.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q">¿Qué estadísticas me da la pestaña Campa?</button>
+          <div class="faq-a">
+            Total de vehículos en campa, total de retirados (histórico), vehículos sin zona asignada, antiguos (más de 90 días), críticos (más de 2 años — Ley 7/2022), días promedio de estancia, y distribución de ocupación por zona con barras de progreso. Todo se actualiza al instante con cada cambio que hace el operario en el móvil o el gerente en la hoja de Sheets.
           </div>
         </div>
         <div class="faq-item reveal">
