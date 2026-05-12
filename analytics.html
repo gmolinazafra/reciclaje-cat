@@ -22,7 +22,7 @@
     <div class="flex items-center gap-3">
       <img src="imagenes/logo.png" alt="ReciclaCAT" class="w-12 h-12 object-contain" onerror="this.style.display='none'" />
       <div>
-        <div class="font-bold text-lg leading-tight">Analytics</div>
+        <div class="font-bold text-lg leading-tight">ReciclaCAT Analytics</div>
         <div class="text-xs text-gray-500">Centro Autorizado de Tratamiento de VFU</div>
       </div>
     </div>
@@ -110,6 +110,11 @@ const BLACKLIST_PATTERNS = [
   "MANO DE OBRA",
   "IBAN",
   "BBVA",
+  "AUTORIZACION",        // "Nº AUTORIZACIÓN 2025000169"
+  "SERVICIO DE TRASLADO",
+  "TRASLADO ITV",
+  "DESCUENTO",
+  "REDONDEO",
 ];
 
 /* ---------- Utilidades de normalización ---------- */
@@ -288,12 +293,25 @@ const state = { pesosFile: null, ventasFile: null };
 const $ = (id) => document.getElementById(id);
 const fmt = (n, dec = 0) => Number(n).toLocaleString("es-ES", { maximumFractionDigits: dec });
 
+/* Lee el archivo detectando automáticamente si es UTF-8 o Windows-1252/ISO-8859.
+   Los CSV exportados por ERPs en España suelen venir en Windows-1252. */
 function readFile(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
-    fr.onload = () => resolve(fr.result);
+    fr.onload = () => {
+      const buf = fr.result;
+      // Primer intento: UTF-8 estricto (falla si hay bytes inválidos)
+      try {
+        const utf8 = new TextDecoder("utf-8", { fatal: true }).decode(buf);
+        resolve(utf8);
+      } catch {
+        // Si falla, es Windows-1252 (típico de Excel en español)
+        const win = new TextDecoder("windows-1252").decode(buf);
+        resolve(win);
+      }
+    };
     fr.onerror = () => reject(new Error("No se pudo leer el archivo"));
-    fr.readAsText(file, "utf-8");
+    fr.readAsArrayBuffer(file);
   });
 }
 
