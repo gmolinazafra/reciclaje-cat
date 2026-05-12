@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ReciclaCAT Analytics</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    body { background: white !important; }
+    .print-break-inside-avoid { break-inside: avoid; }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-emerald-50/30 text-gray-900 min-h-screen">
+
+<!-- =============== HEADER =============== -->
+<header id="header" class="bg-white ring-1 ring-gray-200 no-print">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <img src="imagenes/logo.png" alt="ReciclaCAT" class="w-12 h-12 object-contain" onerror="this.style.display='none'" />
+      <div>
+        <div class="font-bold text-lg leading-tight">Analytics</div>
+        <div class="text-xs text-gray-500">Centro Autorizado de Tratamiento de VFU</div>
+      </div>
+    </div>
+    <div id="header-actions" class="hidden flex gap-2">
+      <button onclick="goBack()" class="px-4 py-2 rounded-lg ring-1 ring-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium">← Volver</button>
+      <button onclick="window.print()" class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm font-medium">📄 Exportar PDF</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-6 py-8">
+
+  <!-- =============== VISTA 1: CONFIGURACIÓN =============== -->
+  <section id="view-config" class="space-y-6">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight">Análisis de tasa de reutilización</h1>
+      <p class="mt-2 text-gray-600 max-w-2xl">Cruza el diccionario de pesos con tus ventas reales para descubrir qué porcentaje de la masa de los vehículos tratados vuelve al mercado como piezas reutilizadas.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="rounded-xl bg-white ring-1 ring-gray-200 p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">🚗 Vehículos procesados (VFU)</label>
+        <input id="input-vfu" type="number" min="1" value="450" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+      </div>
+      <div class="rounded-xl bg-white ring-1 ring-gray-200 p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">⚖️ Peso medio estimado (Kg)</label>
+        <input id="input-avg" type="number" min="1" value="900" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <label id="drop-pesos" class="block cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-emerald-400 hover:bg-emerald-50/30 p-6 text-center transition">
+        <input id="file-pesos" type="file" accept=".csv,text/csv" class="hidden" />
+        <div class="text-3xl mb-2" data-icon>📘</div>
+        <div class="font-semibold text-gray-800">Diccionario de pesos (PEsos.csv)</div>
+        <div class="mt-1 text-xs text-gray-500" data-hint>Arrastra el archivo o haz clic para seleccionarlo</div>
+      </label>
+      <label id="drop-ventas" class="block cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-emerald-400 hover:bg-emerald-50/30 p-6 text-center transition">
+        <input id="file-ventas" type="file" accept=".csv,text/csv" class="hidden" />
+        <div class="text-3xl mb-2" data-icon>📊</div>
+        <div class="font-semibold text-gray-800">Registro de ventas (Consulta_Ventas.csv)</div>
+        <div class="mt-1 text-xs text-gray-500" data-hint>Arrastra el archivo o haz clic para seleccionarlo</div>
+      </label>
+    </div>
+
+    <div id="error-box" class="hidden rounded-lg bg-red-50 ring-1 ring-red-200 p-4 text-red-800 text-sm"></div>
+
+    <div class="flex justify-end">
+      <button id="btn-analyze" disabled class="px-6 py-3 rounded-lg bg-emerald-600 text-white font-semibold shadow-sm hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition">
+        Analizar datos y cruzar →
+      </button>
+    </div>
+
+    <div class="rounded-lg bg-emerald-50/60 ring-1 ring-emerald-200 p-4 text-sm text-emerald-900">
+      <div class="font-semibold mb-1">¿Cómo funciona el cruce?</div>
+      <p>El motor extrae las palabras clave de cada artículo del diccionario (ignorando acentos y palabras vacías como "DE", "LA", "DEL"…) y busca esas palabras dentro del nombre completo de la pieza vendida. Por ejemplo, <em>"FARO DERECHO"</em> hará match con <em>"FARO DELANTERO DERECHO SEAT IBIZA"</em>. Las ventas que no cruzan (portes, mano de obra, etc.) se contabilizan aparte en la sección de auditoría.</p>
+    </div>
+  </section>
+
+  <!-- =============== VISTA 2: DASHBOARD =============== -->
+  <section id="view-dashboard" class="hidden space-y-6"></section>
+
+</main>
+
+<footer class="max-w-6xl mx-auto px-6 py-6 text-center text-xs text-gray-400 no-print">
+  ReciclaCAT Analytics · Procesamiento local de datos · Ningún archivo se sube a internet
+</footer>
+
+<script>
+/* ============================================================
+   Lógica completa de ReciclaCAT Analytics — vanilla JS
+   ============================================================ */
+
+/* ---------- Lista negra: conceptos a IGNORAR totalmente ---------- */
+/* Estas líneas no entran ni en el cruce ni en la auditoría de descartes.
+   Se compara por palabras clave (todas presentes), no por texto literal,
+   así que aguanta variaciones de mayúsculas, espacios o sufijos. */
+const BLACKLIST_PATTERNS = [
+  "FORMA DE PAGO",
+  "Nº CUENTA",
+  "NUMERO DE CUENTA",
+  "GASTOS DE ENVIO",
+  "PORTES",
+  "TRANSPORTE",
+  "MANO DE OBRA",
+  "IBAN",
+  "BBVA",
+];
+
+/* ---------- Utilidades de normalización ---------- */
+const STOP_WORDS = new Set(["DE","DEL","LA","EL","LOS","LAS","Y","O","A","EN","PARA","CON","POR","UN","UNA","UNO","AL","SU","SUS","SE","ES","MM","CM"]);
+
+function normalize(str) {
+  if (str == null) return "";
+  return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase()
+    .replace(/[^A-Z0-9\s/\-]/g," ").replace(/[\-/]/g," ").replace(/\s+/g," ").trim();
+}
+
+function keywords(str){
+  return normalize(str).split(" ").filter(w => w.length > 1 && !STOP_WORDS.has(w) && !/^\d+$/.test(w));
+}
+
+function parseNumber(raw) {
+  if (raw == null) return 0;
+  let s = String(raw).trim();
+  if (!s) return 0;
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  if (lastComma !== -1 && lastDot !== -1) {
+    if (lastComma > lastDot) s = s.replace(/\./g,"").replace(",",".");
+    else s = s.replace(/,/g,"");
+  } else if (lastComma !== -1) {
+    s = s.replace(",",".");
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+/* ---------- Parser CSV ---------- */
+function detectDelimiter(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim()).slice(0, 5);
+  let semi = 0, comma = 0;
+  for (const l of lines) {
+    semi += (l.match(/;/g) || []).length;
+    comma += (l.match(/,/g) || []).length;
+  }
+  return semi >= comma ? ";" : ",";
+}
+
+function splitCSVLine(line, delim) {
+  const out = []; let cur = ""; let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === delim && !inQuotes) {
+      out.push(cur); cur = "";
+    } else cur += ch;
+  }
+  out.push(cur);
+  return out.map(c => c.trim());
+}
+
+function parseCSV(text) {
+  const delim = detectDelimiter(text);
+  const rows = []; let cur = ""; let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      cur += ch;
+      if (inQuotes && text[i+1] === '"') { cur += text[++i]; }
+      else inQuotes = !inQuotes;
+    } else if ((ch === "\n" || ch === "\r") && !inQuotes) {
+      if (cur.length) { rows.push(cur); cur = ""; }
+      if (ch === "\r" && text[i+1] === "\n") i++;
+    } else cur += ch;
+  }
+  if (cur.length) rows.push(cur);
+  return rows.map(r => splitCSVLine(r, delim)).filter(arr => arr.some(c => c && c.length > 0));
+}
+
+function findHeaderRow(rows, required) {
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const norm = rows[i].map(c => normalize(c));
+    const map = {}; let ok = true;
+    for (const key of Object.keys(required)) {
+      const variants = required[key];
+      const found = variants.map(v => norm.indexOf(normalize(v))).find(idx => idx !== -1);
+      if (found == null || found === -1) { ok = false; break; }
+      map[key] = found;
+    }
+    if (ok) return { headerIdx: i, map };
+  }
+  return null;
+}
+
+/* ---------- Cruce ---------- */
+function crossData(pesosRows, ventasRows, vfuCount, vfuAvgKg) {
+  const pesosHeader = findHeaderRow(pesosRows, {
+    articulo: ["Articulo","Artículo","ARTICULO","Nombre"],
+    peso: ["Peso articulo","Peso artículo","Peso","PESO ARTICULO"]
+  });
+  if (!pesosHeader) throw new Error("No se encontraron las columnas 'Artículo' y 'Peso artículo' en PEsos.csv");
+
+  const dictionary = [];
+  for (let i = pesosHeader.headerIdx + 1; i < pesosRows.length; i++) {
+    const row = pesosRows[i];
+    const name = row[pesosHeader.map.articulo];
+    const weight = parseNumber(row[pesosHeader.map.peso]);
+    if (!name || !name.trim() || weight <= 0) continue;
+    const kw = keywords(name);
+    if (kw.length === 0) continue;
+    dictionary.push({ name: name.trim(), weight, keywords: kw });
+  }
+  dictionary.sort((a,b) => b.keywords.length - a.keywords.length);
+
+  const ventasHeader = findHeaderRow(ventasRows, {
+    articulo: ["ARTICULO","Articulo","Artículo"],
+    cantidad: ["CANTIDAD","Cantidad","Qty","Uds"]
+  });
+  if (!ventasHeader) throw new Error("No se encontraron las columnas 'ARTICULO' y 'CANTIDAD' en el CSV de ventas");
+
+  const matchAgg = new Map();
+  const discards = new Map();
+  let totalLines = 0, matchedLines = 0, blacklistedLines = 0;
+
+  // Pre-procesamos la blacklist a keywords una sola vez
+  const blacklistKw = BLACKLIST_PATTERNS.map(p => keywords(p)).filter(kw => kw.length > 0);
+
+  for (let i = ventasHeader.headerIdx + 1; i < ventasRows.length; i++) {
+    const row = ventasRows[i];
+    const saleNameRaw = row[ventasHeader.map.articulo];
+    if (!saleNameRaw || !saleNameRaw.trim()) continue;
+    const qty = parseNumber(row[ventasHeader.map.cantidad]) || 1;
+    if (qty <= 0) continue;
+
+    const saleWords = new Set(normalize(saleNameRaw).split(" "));
+
+    // ¿Está en la blacklist? → se ignora completamente (ni cruce ni auditoría)
+    const isBlacklisted = blacklistKw.some(kw => kw.every(k => saleWords.has(k)));
+    if (isBlacklisted) {
+      blacklistedLines += qty;
+      continue;
+    }
+
+    totalLines++;
+    let match = null;
+    for (const item of dictionary) {
+      if (item.keywords.every(k => saleWords.has(k))) { match = item; break; }
+    }
+    if (match) {
+      matchedLines++;
+      const agg = matchAgg.get(match.name) || { dictName: match.name, dictWeight: match.weight, units: 0, weight: 0 };
+      agg.units += qty;
+      agg.weight += qty * match.weight;
+      matchAgg.set(match.name, agg);
+    } else {
+      discards.set(saleNameRaw.trim(), (discards.get(saleNameRaw.trim()) || 0) + qty);
+    }
+  }
+
+  const matches = Array.from(matchAgg.values()).sort((a,b) => b.weight - a.weight);
+  const totalRecovered = matches.reduce((s,m) => s + m.weight, 0);
+  const totalFleetMass = vfuCount * vfuAvgKg;
+  const reusePct = totalFleetMass > 0 ? (totalRecovered / totalFleetMass) * 100 : 0;
+  const discardsList = Array.from(discards.entries()).map(([name,units]) => ({name,units})).sort((a,b) => b.units - a.units);
+
+  return {
+    matches, totalRecovered, totalFleetMass, reusePct,
+    co2Saved: totalRecovered * 2.5,
+    waterSaved: totalRecovered * 45,
+    discardsList,
+    totalLines, matchedLines, blacklistedLines,
+    discardedLines: totalLines - matchedLines,
+    dictSize: dictionary.length
+  };
+}
+
+/* ---------- Estado UI ---------- */
+const state = { pesosFile: null, ventasFile: null };
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n, dec = 0) => Number(n).toLocaleString("es-ES", { maximumFractionDigits: dec });
+
+function readFile(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    fr.readAsText(file, "utf-8");
+  });
+}
+
+function updateDropZone(dropId, file) {
+  const zone = $(dropId);
+  const icon = zone.querySelector('[data-icon]');
+  const hint = zone.querySelector('[data-hint]');
+  if (file) {
+    zone.classList.remove("border-gray-300","bg-gray-50");
+    zone.classList.add("border-emerald-500","bg-emerald-50/60");
+    icon.textContent = "✅";
+    hint.textContent = file.name;
+    hint.classList.remove("text-gray-500");
+    hint.classList.add("text-emerald-700","break-all");
+  }
+  $("btn-analyze").disabled = !(state.pesosFile && state.ventasFile);
+}
+
+function showError(msg) {
+  const box = $("error-box");
+  if (!msg) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  box.textContent = "⚠️ " + msg;
+}
+
+/* ---------- Listeners de drop/upload ---------- */
+function setupDrop(dropId, fileId, key) {
+  const zone = $(dropId);
+  const input = $(fileId);
+  input.addEventListener("change", (e) => {
+    const f = e.target.files?.[0];
+    if (f) { state[key] = f; updateDropZone(dropId, f); }
+  });
+  zone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    zone.classList.add("border-emerald-600","bg-emerald-50");
+  });
+  zone.addEventListener("dragleave", () => {
+    if (!state[key]) {
+      zone.classList.remove("border-emerald-600","bg-emerald-50");
+    }
+  });
+  zone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const f = e.dataTransfer.files?.[0];
+    if (f) { state[key] = f; updateDropZone(dropId, f); }
+  });
+}
+setupDrop("drop-pesos", "file-pesos", "pesosFile");
+setupDrop("drop-ventas", "file-ventas", "ventasFile");
+
+/* ---------- Analizar ---------- */
+$("btn-analyze").addEventListener("click", async () => {
+  showError("");
+  $("btn-analyze").disabled = true;
+  $("btn-analyze").textContent = "Procesando…";
+  try {
+    const [pesosText, ventasText] = await Promise.all([readFile(state.pesosFile), readFile(state.ventasFile)]);
+    const pesosRows = parseCSV(pesosText);
+    const ventasRows = parseCSV(ventasText);
+    const vfu = Number($("input-vfu").value) || 0;
+    const avg = Number($("input-avg").value) || 0;
+    const result = crossData(pesosRows, ventasRows, vfu, avg);
+    renderDashboard(result, vfu, avg);
+  } catch (e) {
+    showError(e.message || "Error inesperado al procesar los archivos.");
+    $("btn-analyze").disabled = false;
+    $("btn-analyze").textContent = "Analizar datos y cruzar →";
+  }
+});
+
+/* ---------- Render dashboard ---------- */
+function renderDashboard(r, vfu, avg) {
+  const units = r.matches.reduce((s,m) => s + m.units, 0);
+  const conclusion = `El tratamiento de ${fmt(vfu)} vehículos al final de su vida útil ha permitido reintroducir en el mercado ${fmt(units)} componentes funcionales, rescatando ${fmt(r.totalRecovered)} kg de materiales que de otro modo habrían sido procesados como chatarra. Esto representa una tasa de reutilización del ${r.reusePct.toFixed(2)}% sobre la masa total procesada, evitando la emisión estimada de ${fmt(r.co2Saved)} kg de CO₂ y conservando ${fmt(r.waterSaved)} litros de agua frente a la fabricación de piezas equivalentes nuevas.`;
+
+  const tones = {
+    emerald: "from-emerald-500 to-emerald-600",
+    teal: "from-teal-500 to-teal-600",
+    sky: "from-sky-500 to-sky-600",
+    amber: "from-amber-500 to-amber-600"
+  };
+  const kpi = (icon, label, value, sub, tone) => `
+    <div class="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden">
+      <div class="h-1 bg-gradient-to-r ${tones[tone]}"></div>
+      <div class="p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-2xl">${icon}</span>
+          <span class="text-xs uppercase tracking-wider text-gray-500">${label}</span>
+        </div>
+        <div class="mt-3 text-3xl font-bold text-gray-900">${value}</div>
+        ${sub ? `<div class="mt-1 text-xs text-gray-500">${sub}</div>` : ""}
+      </div>
+    </div>`;
+
+  const top = r.matches.slice(0,5);
+  const maxW = top[0]?.weight || 1;
+  const rankingHtml = top.length === 0
+    ? `<div class="text-sm text-gray-500 italic">Sin coincidencias.</div>`
+    : top.map((m,i) => {
+        const w = (m.weight / maxW) * 100;
+        return `
+          <div class="relative rounded-lg ring-1 ring-gray-200 bg-white overflow-hidden">
+            <div class="absolute inset-y-0 left-0 bg-emerald-100" style="width:${w}%"></div>
+            <div class="relative flex items-center justify-between px-4 py-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="flex-shrink-0 w-7 h-7 rounded-full bg-emerald-600 text-white text-sm font-bold flex items-center justify-center">${i+1}</span>
+                <div class="min-w-0">
+                  <div class="font-medium text-gray-900 truncate">${m.dictName}</div>
+                  <div class="text-xs text-gray-500">${fmt(m.units)} uds · ${fmt(m.dictWeight,2)} kg/ud</div>
+                </div>
+              </div>
+              <div class="flex-shrink-0 text-right pl-3">
+                <div class="font-bold text-emerald-700">${fmt(m.weight,1)} kg</div>
+              </div>
+            </div>
+          </div>`;
+      }).join("");
+
+  const pct = Math.max(0, Math.min(100, r.reusePct));
+  const R = 70, C = 2 * Math.PI * R, dash = (pct/100) * C;
+  const pieHtml = `
+    <div class="flex items-center gap-6">
+      <svg width="180" height="180" viewBox="0 0 180 180" style="transform:rotate(-90deg)">
+        <circle cx="90" cy="90" r="${R}" fill="none" stroke="#e5e7eb" stroke-width="22"/>
+        <circle cx="90" cy="90" r="${R}" fill="none" stroke="url(#grad)" stroke-width="22"
+          stroke-dasharray="${dash} ${C - dash}" stroke-linecap="butt"/>
+        <defs>
+          <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#10b981"/>
+            <stop offset="100%" stop-color="#059669"/>
+          </linearGradient>
+        </defs>
+        <text x="90" y="90" text-anchor="middle" dominant-baseline="middle"
+              transform="rotate(90 90 90)" font-size="22" font-weight="700" fill="#065f46">
+          ${pct.toFixed(1)}%
+        </text>
+      </svg>
+      <div class="space-y-2 text-sm">
+        <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-emerald-500"></span><span class="text-gray-700">Reutilización (${pct.toFixed(1)}%)</span></div>
+        <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-gray-200"></span><span class="text-gray-700">Reciclaje / chatarra (${(100-pct).toFixed(1)}%)</span></div>
+      </div>
+    </div>`;
+
+  const auditHtml = r.discardsList.length === 0
+    ? `<p class="text-sm text-gray-500 italic">No hay descartes: todas las ventas cruzaron con el diccionario.</p>`
+    : `<p class="text-sm text-gray-600 mb-3">Verifica que los siguientes artículos son realmente portes, mano de obra o conceptos no físicos (no piezas mal nombradas):</p>
+       <div class="overflow-hidden rounded-lg ring-1 ring-gray-200">
+         <table class="w-full text-sm">
+           <thead class="bg-gray-50 text-gray-600">
+             <tr><th class="text-left px-4 py-2 font-medium">Artículo descartado</th><th class="text-right px-4 py-2 font-medium w-24">Uds</th></tr>
+           </thead>
+           <tbody>
+             ${r.discardsList.slice(0,10).map(d => `
+               <tr class="border-t border-gray-100">
+                 <td class="px-4 py-2 text-gray-800">${d.name}</td>
+                 <td class="px-4 py-2 text-right font-medium">${fmt(d.units)}</td>
+               </tr>`).join("")}
+           </tbody>
+         </table>
+       </div>`;
+
+  $("view-dashboard").innerHTML = `
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight">Dashboard de resultados</h1>
+      <p class="mt-1 text-gray-600">${fmt(vfu)} vehículos · ${fmt(avg)} kg/ud · masa total procesada: ${fmt(r.totalFleetMass)} kg</p>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 print-break-inside-avoid">
+      ${kpi("⚖️","Masa recuperada", fmt(r.totalRecovered) + " kg", fmt(r.matchedLines) + " líneas con match","emerald")}
+      ${kpi("📊","Tasa de reutilización", r.reusePct.toFixed(2) + "%", "sobre masa total VFU","teal")}
+      ${kpi("🌱","CO₂ ahorrado", fmt(r.co2Saved) + " kg", "estimado (×2,5 kg CO₂/kg)","sky")}
+      ${kpi("💧","Agua conservada", fmt(r.waterSaved) + " L", "estimado (×45 L/kg)","amber")}
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6 print-break-inside-avoid">
+      <div class="lg:col-span-2 rounded-2xl bg-white ring-1 ring-gray-200 p-6">
+        <h2 class="text-lg font-semibold mb-4">🏆 Top 5 piezas recuperadas</h2>
+        <div class="space-y-3">${rankingHtml}</div>
+      </div>
+      <div class="rounded-2xl bg-white ring-1 ring-gray-200 p-6">
+        <h2 class="text-lg font-semibold mb-4">Proporción</h2>
+        ${pieHtml}
+      </div>
+    </div>
+
+    <div class="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-6 print-break-inside-avoid">
+      <h2 class="text-lg font-semibold mb-2">📝 Conclusión</h2>
+      <p class="text-emerald-50 leading-relaxed">${conclusion}</p>
+    </div>
+
+    <div class="no-print rounded-2xl bg-white ring-1 ring-gray-200 p-6">
+      <div class="flex items-baseline justify-between mb-4">
+        <h2 class="text-lg font-semibold">🔍 Auditoría de descartes</h2>
+        <span class="text-sm text-gray-500">${fmt(r.discardedLines)} de ${fmt(r.totalLines)} líneas ignoradas</span>
+      </div>
+      ${auditHtml}
+      <div class="mt-3 text-xs text-gray-500">Diccionario cargado: ${fmt(r.dictSize)} artículos · Cobertura del cruce: ${r.totalLines ? ((r.matchedLines / r.totalLines) * 100).toFixed(1) : 0}%${r.blacklistedLines > 0 ? ` · ${fmt(r.blacklistedLines)} líneas filtradas por lista negra (portes, forma de pago, etc.)` : ""}</div>
+    </div>
+  `;
+
+  $("view-config").classList.add("hidden");
+  $("view-dashboard").classList.remove("hidden");
+  $("header-actions").classList.remove("hidden");
+  $("header-actions").classList.add("flex");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function goBack() {
+  $("view-dashboard").classList.add("hidden");
+  $("view-config").classList.remove("hidden");
+  $("header-actions").classList.add("hidden");
+  $("header-actions").classList.remove("flex");
+  $("btn-analyze").disabled = false;
+  $("btn-analyze").textContent = "Analizar datos y cruzar →";
+}
+</script>
+</body>
+</html>
