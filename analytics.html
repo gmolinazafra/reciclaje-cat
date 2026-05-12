@@ -16,17 +16,11 @@
       margin: 14mm 12mm;
     }
 
-    /* Forzar al navegador a imprimir colores y fondos
-       (sin esto Chrome/Edge a veces los quita) */
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-    }
-
+    /* Fondo blanco siempre, sin gradientes residuales */
     html, body {
       background: white !important;
-      font-size: 11pt;
+      background-image: none !important;
+      font-size: 10.5pt;
     }
 
     /* Ocultar elementos no relevantes en el informe */
@@ -37,60 +31,66 @@
       box-shadow: none !important;
       border-bottom: 1px solid #d1d5db !important;
       page-break-after: avoid;
+      background: white !important;
     }
     main { max-width: 100% !important; padding: 0 !important; }
 
     /* Que los bloques importantes no se partan a mitad de página */
-    .print-break-inside-avoid {
+    .print-break-inside-avoid,
+    .rounded-2xl {
       break-inside: avoid;
       page-break-inside: avoid;
     }
 
-    /* Saltos de página estratégicos para que el informe quede limpio */
-    .print-page-break-before {
-      break-before: page;
-      page-break-before: always;
+    /* Forzar impresión de colores SOLO en elementos específicos
+       (no usamos selector universal *, que arrastra el fondo del body) */
+    .rounded-2xl,
+    .bg-emerald-50, .bg-emerald-100, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700,
+    .bg-teal-500, .bg-teal-600, .bg-teal-700,
+    .bg-sky-500, .bg-sky-600,
+    .bg-amber-500, .bg-amber-600,
+    .bg-yellow-400, .bg-yellow-500,
+    .bg-stone-500, .bg-stone-600,
+    .bg-orange-500, .bg-orange-600,
+    .bg-gradient-to-r, .bg-gradient-to-br,
+    .conclusion-block, .conclusion-block * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
     }
 
-    /* Las tarjetas KPI deben mantenerse compactas */
-    .grid { gap: 0.5rem !important; }
-
-    /* Bordes y fondos visibles en impresión */
-    .ring-1 { box-shadow: inset 0 0 0 1px #e5e7eb !important; }
-    .shadow-sm { box-shadow: none !important; }
-
-    /* El bloque de conclusión con fondo verde: que se imprima de verdad */
-    .bg-gradient-to-br {
+    /* Cuadro de conclusión: SOLO el cuadro, sin desbordarse al body.
+       Usamos una clase específica en vez de la utility de Tailwind. */
+    .conclusion-block {
       background: #047857 !important;
       color: white !important;
+      page-break-inside: avoid;
     }
+    .conclusion-block * { color: white !important; }
 
-    /* Logo en grande en el header impreso */
-    header img { width: 40px !important; height: 40px !important; }
+    /* Sombras y bordes sutiles */
+    .ring-1 { box-shadow: inset 0 0 0 1px #d1d5db !important; }
+    .shadow-sm { box-shadow: none !important; }
 
-    /* Hipervínculos: que no salgan en azul subrayados feos */
+    /* Hipervínculos */
     a { color: inherit !important; text-decoration: none !important; }
 
     /* Mostrar elementos marcados como print-only */
     .print-only { display: block !important; }
 
-    /* La barra de progreso del Top 5 funciona con absolute;
-       forzamos colores y altura para que se imprima visible */
-    .bg-emerald-100, .bg-emerald-500, .bg-emerald-600 {
-      print-color-adjust: exact !important;
-      -webkit-print-color-adjust: exact !important;
-    }
+    /* Logo en el header impreso */
+    header img { width: 40px !important; height: 40px !important; }
 
-    /* Las tablas del informe con bordes finos */
+    /* Tablas */
     table { border-collapse: collapse !important; width: 100% !important; }
     th, td { border: 1px solid #e5e7eb !important; }
 
-    /* Que cada bloque grande tenga aire suficiente */
+    /* Tipografía más densa para que entre todo */
     h1, h2 { page-break-after: avoid; }
     h2 { margin-top: 0 !important; }
 
-    /* Conclusión y metodología no deben partirse */
-    .rounded-2xl { page-break-inside: avoid; break-inside: avoid; }
+    /* Las tarjetas KPI más compactas en impresión */
+    .grid { gap: 0.4rem !important; }
   }
 
   /* En pantalla, ocultar lo que sólo es para impresión */
@@ -496,7 +496,7 @@ $("btn-analyze").addEventListener("click", async () => {
 /* ---------- Render dashboard ---------- */
 function renderDashboard(r, vfu, avg) {
   const units = r.matches.reduce((s,m) => s + m.units, 0);
-  const conclusion = `El tratamiento de ${fmt(vfu)} vehículos al final de su vida útil ha permitido reintroducir en el mercado ${fmt(units)} componentes funcionales, rescatando ${fmt(r.totalRecovered)} kg de materiales que de otro modo habrían sido procesados como chatarra. Esto representa una tasa de reutilización del ${r.reusePct.toFixed(2)}% sobre la masa total procesada, evitando la emisión estimada de ${fmt(r.co2Saved)} kg de CO₂ y conservando ${fmt(r.waterSaved)} litros de agua frente a la fabricación de piezas equivalentes nuevas.`;
+  const conclusion = `El tratamiento de ${fmt(vfu)} vehículos al final de su vida útil ha permitido reintroducir en el mercado ${fmt(units)} componentes funcionales, rescatando ${fmt(r.totalRecovered)} kg de materiales que de otro modo habrían sido procesados como chatarra. Esto representa una tasa de reutilización del ${r.reusePct.toFixed(2)}% sobre la masa total procesada, evitando la emisión de ${fmt(r.co2Saved)} kg de CO₂, conservando ${fmt(r.waterSaved)} litros de agua, ahorrando ${fmt(r.energySaved)} kWh de energía industrial y evitando la extracción de ${fmt(r.rawMaterialSaved)} kg de materias primas vírgenes frente a la fabricación de piezas equivalentes nuevas.`;
 
   const tones = {
     emerald: "from-emerald-500 to-emerald-600",
@@ -637,7 +637,7 @@ function renderDashboard(r, vfu, avg) {
       </div>
     </div>
 
-    <div class="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-6 print-break-inside-avoid">
+    <div class="conclusion-block rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-6 print-break-inside-avoid">
       <h2 class="text-lg font-semibold mb-2">📝 Conclusión</h2>
       <p class="text-emerald-50 leading-relaxed">${conclusion}</p>
     </div>
