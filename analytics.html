@@ -190,10 +190,20 @@
      basada en la huella hídrica de la siderurgia y producción de
      plásticos de automoción).
    - Energía: 25 MJ embebidos por kg de pieza (≈6,9 kWh/kg).
+   - Vertedero: densidad media de chatarra de automoción mixta ~1,2 t/m³
+     (Eurostat, residuos de fragmentación de VFU).
+   - Materias primas: ratio aproximado de mineral bruto necesario por kg
+     de pieza acabada, considerando mix típico de un VFU (~70% acero,
+     8% aluminio, 12% plásticos, resto vidrio/caucho/cobre). Para acero
+     se requieren ~1,6 kg de mineral de hierro + carbón por kg producido;
+     aluminio ~4 kg de bauxita por kg; plásticos ~2 kg de crudo por kg.
+     Ratio medio ponderado conservador: 1,8 kg materia prima / kg pieza.
 */
-const FACTOR_CO2_PER_KG     = 3;     // kg CO2eq / kg reutilizado
-const FACTOR_AGUA_L_PER_KG  = 20;    // L agua / kg reutilizado
-const FACTOR_ENERGIA_KWH_KG = 6.9;   // kWh / kg reutilizado
+const FACTOR_CO2_PER_KG       = 3;      // kg CO2eq / kg reutilizado
+const FACTOR_AGUA_L_PER_KG    = 20;     // L agua / kg reutilizado
+const FACTOR_ENERGIA_KWH_KG   = 6.9;    // kWh / kg reutilizado
+const FACTOR_VERTEDERO_M3_KG  = 1/1200; // m³ vertedero evitado / kg (densidad 1.200 kg/m³)
+const FACTOR_MATPRIMA_KG_KG   = 1.8;    // kg materia prima virgen evitada / kg pieza
 
 /* ---------- Lista negra: conceptos a IGNORAR totalmente ---------- */
 /* Estas líneas no entran ni en el cruce ni en la auditoría de descartes.
@@ -380,6 +390,8 @@ function crossData(pesosRows, ventasRows, vfuCount, vfuAvgKg) {
     co2Saved: totalRecovered * FACTOR_CO2_PER_KG,
     waterSaved: totalRecovered * FACTOR_AGUA_L_PER_KG,
     energySaved: totalRecovered * FACTOR_ENERGIA_KWH_KG,
+    landfillSaved: totalRecovered * FACTOR_VERTEDERO_M3_KG,
+    rawMaterialSaved: totalRecovered * FACTOR_MATPRIMA_KG_KG,
     discardsList,
     totalLines, matchedLines, blacklistedLines,
     discardedLines: totalLines - matchedLines,
@@ -490,9 +502,12 @@ function renderDashboard(r, vfu, avg) {
 
   const tones = {
     emerald: "from-emerald-500 to-emerald-600",
-    teal: "from-teal-500 to-teal-600",
-    sky: "from-sky-500 to-sky-600",
-    amber: "from-amber-500 to-amber-600"
+    teal:    "from-teal-500 to-teal-600",
+    sky:     "from-sky-500 to-sky-600",
+    amber:   "from-amber-500 to-amber-600",
+    yellow:  "from-yellow-400 to-yellow-500",
+    stone:   "from-stone-500 to-stone-600",
+    orange:  "from-orange-500 to-orange-600"
   };
   const kpi = (icon, label, value, sub, tone) => `
     <div class="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden">
@@ -598,11 +613,19 @@ function renderDashboard(r, vfu, avg) {
       <p class="mt-1 text-gray-600">${fmt(vfu)} vehículos · ${fmt(avg)} kg/ud · masa total procesada: ${fmt(r.totalFleetMass)} kg</p>
     </div>
 
+    <!-- Fila 1: KPIs principales -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 print-break-inside-avoid">
       ${kpi("⚖️","Masa recuperada", fmt(r.totalRecovered) + " kg", fmt(r.matchedLines) + " líneas con match","emerald")}
       ${kpi("📊","Tasa de reutilización", r.reusePct.toFixed(2) + "%", "sobre masa total VFU","teal")}
       ${kpi("🌱","CO₂ evitado", fmt(r.co2Saved) + " kg", `${FACTOR_CO2_PER_KG} kg CO₂eq/kg reutilizado`,"sky")}
       ${kpi("💧","Agua conservada", fmt(r.waterSaved) + " L", `${FACTOR_AGUA_L_PER_KG} L/kg reutilizado`,"amber")}
+    </div>
+
+    <!-- Fila 2: impacto material y energético -->
+    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 print-break-inside-avoid">
+      ${kpi("⚡","Energía ahorrada", fmt(r.energySaved) + " kWh", `${FACTOR_ENERGIA_KWH_KG} kWh/kg reutilizado`,"yellow")}
+      ${kpi("🗑️","Vertedero evitado", fmt(r.landfillSaved, 1) + " m³", "espacio de residuos no generados","stone")}
+      ${kpi("⛏️","Materias primas conservadas", fmt(r.rawMaterialSaved) + " kg", "mineral, caucho y plástico no extraídos","orange")}
     </div>
 
     <div class="grid lg:grid-cols-3 gap-6 print-break-inside-avoid">
@@ -669,6 +692,16 @@ function renderDashboard(r, vfu, avg) {
                 <td class="px-3 py-2">${FACTOR_ENERGIA_KWH_KG} kWh / kg reutilizado</td>
                 <td class="px-3 py-2">${fmt(r.totalRecovered)} kg × ${FACTOR_ENERGIA_KWH_KG} = ${fmt(r.energySaved)} kWh</td>
               </tr>
+              <tr class="border-t border-gray-200">
+                <td class="px-3 py-2">Vertedero evitado</td>
+                <td class="px-3 py-2">densidad media chatarra: 1.200 kg/m³</td>
+                <td class="px-3 py-2">${fmt(r.totalRecovered)} kg ÷ 1.200 = ${fmt(r.landfillSaved, 1)} m³</td>
+              </tr>
+              <tr class="border-t border-gray-200">
+                <td class="px-3 py-2">Materias primas conservadas</td>
+                <td class="px-3 py-2">${FACTOR_MATPRIMA_KG_KG} kg materia virgen / kg pieza</td>
+                <td class="px-3 py-2">${fmt(r.totalRecovered)} kg × ${FACTOR_MATPRIMA_KG_KG} = ${fmt(r.rawMaterialSaved)} kg</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -678,6 +711,8 @@ function renderDashboard(r, vfu, avg) {
             <li>Energía embebida en aceros y aluminios de automoción: 25-28 MJ/kg (~7 kWh/kg). Sato, F.E.K. et al., <em>Assessment of end-of-life vehicle recycling</em>, NCBI PMC8651122, 2021.</li>
             <li>Ahorro de emisiones por remanufactura de componentes de VFU: ~3.800 kg CO₂eq por vehículo desmontado para reutilización frente a reciclaje convencional. Misma referencia.</li>
             <li>Factor hídrico: estimación conservadora derivada de la huella hídrica reportada por la industria siderúrgica y de plásticos de automoción aplicada a piezas reutilizadas.</li>
+            <li>Densidad de chatarra de automoción mixta: ~1.200 kg/m³, según datos de fragmentación de VFU (Eurostat / ANGED).</li>
+            <li>Materias primas conservadas: ratio medio ponderado para mix típico de un VFU (acero ~70%, aluminio ~8%, plásticos ~12%, resto). Considera ~1,6 kg mineral de hierro+carbón por kg de acero, ~4 kg de bauxita por kg de aluminio y ~2 kg de crudo por kg de plástico.</li>
             <li>Análisis realizado sobre datos del ERP del centro autorizado. Las piezas vendidas a gestores autorizados de residuos (chatarra) no se contabilizan como reutilización.</li>
           </ul>
         </div>
