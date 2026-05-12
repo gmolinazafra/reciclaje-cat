@@ -180,28 +180,26 @@
    ============================================================ */
 
 /* ---------- Factores ambientales ----------
-   Valores conservadores aplicados a la masa de piezas REUTILIZADAS
-   (no a la chatarra que va a fundición). Documentación visible en la
-   sección "Metodología" del informe.
-   - CO2: 3 kg CO2eq por kg de pieza reutilizada (en línea con estudios
-     que estiman ~3.800 kg CO2 evitados por vehículo desmontado para
-     reutilización; PMC 8651122, 2021).
-   - Agua: 20 L por kg de pieza reutilizada (estimación conservadora
-     basada en la huella hídrica de la siderurgia y producción de
-     plásticos de automoción).
-   - Energía: 25 MJ embebidos por kg de pieza (≈6,9 kWh/kg).
-   - Vertedero: densidad media de chatarra de automoción mixta ~1,2 t/m³
-     (Eurostat, residuos de fragmentación de VFU).
-   - Materias primas: ratio aproximado de mineral bruto necesario por kg
-     de pieza acabada, considerando mix típico de un VFU (~70% acero,
-     8% aluminio, 12% plásticos, resto vidrio/caucho/cobre). Para acero
-     se requieren ~1,6 kg de mineral de hierro + carbón por kg producido;
-     aluminio ~4 kg de bauxita por kg; plásticos ~2 kg de crudo por kg.
-     Ratio medio ponderado conservador: 1,8 kg materia prima / kg pieza.
+   Valores CONSERVADORES aplicados a la masa de piezas REUTILIZADAS
+   (no a la chatarra que va a fundición). Cada factor está dimensionado
+   para que sea defendible frente a una auditoría externa.
+
+   - CO2: 3 kg CO2eq por kg de pieza reutilizada (estudios estiman
+     ~3.800 kg CO2 evitados por VFU desmontado; NCBI PMC8651122, 2021).
+   - Agua: 4 L por kg. En línea con la huella hídrica directa del
+     procesado de acero en horno eléctrico (4-6 L/kg). Aplicado a
+     piezas reutilizadas, que ni siquiera pasan por refundición.
+   - Energía: 2 kWh por kg. Representa solo la energía industrial de
+     fabricación de la pieza (estampación, ensamblaje, tratamientos),
+     sin incluir la energía embebida en la materia prima. La energía
+     embebida TOTAL sería ~6,9 kWh/kg (25 MJ/kg, NCBI PMC8651122).
+   - Vertedero: densidad media de chatarra de automoción ~1,2 t/m³.
+   - Materias primas: 1,8 kg de materia prima virgen evitada por kg
+     de pieza reutilizada (mix VFU acero+aluminio+plástico+caucho).
 */
 const FACTOR_CO2_PER_KG       = 3;      // kg CO2eq / kg reutilizado
-const FACTOR_AGUA_L_PER_KG    = 20;     // L agua / kg reutilizado
-const FACTOR_ENERGIA_KWH_KG   = 6.9;    // kWh / kg reutilizado
+const FACTOR_AGUA_L_PER_KG    = 4;      // L agua / kg reutilizado
+const FACTOR_ENERGIA_KWH_KG   = 2;      // kWh / kg reutilizado
 const FACTOR_VERTEDERO_M3_KG  = 1/1200; // m³ vertedero evitado / kg (densidad 1.200 kg/m³)
 const FACTOR_MATPRIMA_KG_KG   = 1.8;    // kg materia prima virgen evitada / kg pieza
 
@@ -708,9 +706,9 @@ function renderDashboard(r, vfu, avg) {
         <div class="text-xs text-gray-500 border-t border-gray-200 pt-3">
           <div class="font-semibold text-gray-700 mb-1">Referencias</div>
           <ul class="list-disc list-inside space-y-1">
-            <li>Energía embebida en aceros y aluminios de automoción: 25-28 MJ/kg (~7 kWh/kg). Sato, F.E.K. et al., <em>Assessment of end-of-life vehicle recycling</em>, NCBI PMC8651122, 2021.</li>
+            <li>Energía embebida total en aceros y aluminios de automoción: 25-28 MJ/kg (~7 kWh/kg). Sato, F.E.K. et al., <em>Assessment of end-of-life vehicle recycling</em>, NCBI PMC8651122, 2021. <strong>En este informe se aplica únicamente ${FACTOR_ENERGIA_KWH_KG} kWh/kg</strong>, valor conservador que refleja solo la fase de fabricación industrial (estampación, ensamblaje, tratamientos), excluyendo la energía de extracción y transformación de materias primas.</li>
             <li>Ahorro de emisiones por remanufactura de componentes de VFU: ~3.800 kg CO₂eq por vehículo desmontado para reutilización frente a reciclaje convencional. Misma referencia.</li>
-            <li>Factor hídrico: estimación conservadora derivada de la huella hídrica reportada por la industria siderúrgica y de plásticos de automoción aplicada a piezas reutilizadas.</li>
+            <li>Factor hídrico: ${FACTOR_AGUA_L_PER_KG} L/kg, en línea con la huella hídrica directa del procesado de acero en horno eléctrico (4-6 L/kg). Aplicado a piezas reutilizadas, que ni siquiera pasan por refundición, este valor es deliberadamente conservador.</li>
             <li>Densidad de chatarra de automoción mixta: ~1.200 kg/m³, según datos de fragmentación de VFU (Eurostat / ANGED).</li>
             <li>Materias primas conservadas: ratio medio ponderado para mix típico de un VFU (acero ~70%, aluminio ~8%, plásticos ~12%, resto). Considera ~1,6 kg mineral de hierro+carbón por kg de acero, ~4 kg de bauxita por kg de aluminio y ~2 kg de crudo por kg de plástico.</li>
             <li>Análisis realizado sobre datos del ERP del centro autorizado. Las piezas vendidas a gestores autorizados de residuos (chatarra) no se contabilizan como reutilización.</li>
