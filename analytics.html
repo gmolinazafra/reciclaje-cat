@@ -136,6 +136,26 @@
       </div>
     </div>
 
+    <!-- Inputs manuales de tratamiento -->
+    <div class="rounded-xl bg-white ring-1 ring-gray-200 p-5">
+      <div class="font-medium text-gray-800 mb-1">📋 Tratamiento del resto de la masa</div>
+      <p class="text-xs text-gray-500 mb-4">Introduce los kg destinados a cada flujo de tratamiento. El porcentaje se calcula automáticamente sobre la masa total procesada (vehículos × peso medio).</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">♻️ Reciclaje (Kg)</label>
+          <input id="input-reciclaje" type="number" min="0" value="0" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">🔥 Valorización (Kg)</label>
+          <input id="input-valorizacion" type="number" min="0" value="0" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">🏭 Fragmentación (Kg)</label>
+          <input id="input-fragmentacion" type="number" min="0" value="0" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+      </div>
+    </div>
+
     <div class="grid md:grid-cols-2 gap-4">
       <label id="drop-pesos" class="block cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-emerald-400 hover:bg-emerald-50/30 p-6 text-center transition">
         <input id="file-pesos" type="file" accept=".csv,text/csv" class="hidden" />
@@ -333,28 +353,79 @@ function crossData(pesosRows, ventasRows, vfuCount, vfuAvgKg) {
   dictionary.sort((a,b) => b.keywords.length - a.keywords.length);
 
   const ventasHeader = findHeaderRow(ventasRows, {
-    articulo: ["ARTICULO","Articulo","Artículo"],
+    articulo: ["ARTICULO","Articulo","Artículo","metadatos","Metadatos","METADATOS"],
     cantidad: ["CANTIDAD","Cantidad","Qty","Uds"]
   });
-  if (!ventasHeader) throw new Error("No se encontraron las columnas 'ARTICULO' y 'CANTIDAD' en el CSV de ventas");
+  // Si no encuentra CANTIDAD, intentamos con solo ARTICULO/metadatos
+  // y asumimos cantidad = 1 por línea (típico en exports detallados línea-a-línea)
+  let ventasHeaderUsed = ventasHeader;
+  let cantidadOptional = false;
+  if (!ventasHeader) {
+    const fallback = findHeaderRow(ventasRows, {
+      articulo: ["ARTICULO","Articulo","Artículo","metadatos","Metadatos","METADATOS"]
+    });
+    if (!fallback) throw new Error("No se encontró la columna 'Artículo' (o 'metadatos') en el CSV de ventas");
+    ventasHeaderUsed = fallback;
+    cantidadOptional = true;
+  }
+
+  // Detección OPCIONAL de la columna de código de vehículo.
+  // Si está presente, las líneas cuyo código termina en "C" o "R" (mayúsculas)
+  // se descartan totalmente: son ventas pertenecientes a otro CAT.
+  let codeColIdx = -1;
+  {
+    const norm = ventasRows[ventasHeaderUsed.headerIdx].map(c => normalize(c));
+    const variants = ["CODIGO VEHICULO","COD VEHICULO","COD_VEHICULO","CODIGOVEHICULO","COD VEH"];
+    for (const v of variants) {
+      const i = norm.indexOf(normalize(v));
+      if (i !== -1) { codeColIdx = i; break; }
+    }
+  }
+
+  // Detección OPCIONAL de columna de peso directo (pesostock).
+  // Si está presente, se prefiere sobre el cruce con el diccionario para
+  // esa línea concreta (más preciso, peso real registrado en la venta).
+  let pesoStockIdx = -1;
+  {
+    const norm = ventasRows[ventasHeaderUsed.headerIdx].map(c => normalize(c));
+    const variants = ["PESOSTOCK","PESO STOCK","PESO_STOCK","PESO"];
+    for (const v of variants) {
+      const i = norm.indexOf(normalize(v));
+      if (i !== -1) { pesoStockIdx = i; break; }
+    }
+  }
 
   const matchAgg = new Map();
   const discards = new Map();
-  let totalLines = 0, matchedLines = 0, blacklistedLines = 0;
+  let totalLines = 0, matchedLines = 0, blacklistedLines = 0, otherCatLines = 0;
 
   // Pre-procesamos la blacklist a keywords una sola vez
   const blacklistKw = BLACKLIST_PATTERNS.map(p => keywords(p)).filter(kw => kw.length > 0);
 
-  for (let i = ventasHeader.headerIdx + 1; i < ventasRows.length; i++) {
+  for (let i = ventasHeaderUsed.headerIdx + 1; i < ventasRows.length; i++) {
     const row = ventasRows[i];
-    const saleNameRaw = row[ventasHeader.map.articulo];
+
+    // === FILTRO 1: vehículos de otro CAT (códigos terminados en C o R) ===
+    if (codeColIdx !== -1) {
+      const code = (row[codeColIdx] || "").trim();
+      if (code && /[CR]$/.test(code)) {  // termina exactamente en C o R MAYÚSCULA
+        otherCatLines++;
+        continue;
+      }
+    }
+
+    const saleNameRaw = row[ventasHeaderUsed.map.articulo];
     if (!saleNameRaw || !saleNameRaw.trim()) continue;
-    const qty = parseNumber(row[ventasHeader.map.cantidad]) || 1;
+
+    // Cantidad: si no hay columna, asumimos 1 por línea
+    const qty = cantidadOptional
+      ? 1
+      : (parseNumber(row[ventasHeaderUsed.map.cantidad]) || 1);
     if (qty <= 0) continue;
 
     const saleWords = new Set(normalize(saleNameRaw).split(" "));
 
-    // ¿Está en la blacklist? → se ignora completamente (ni cruce ni auditoría)
+    // === FILTRO 2: blacklist (portes, formas de pago, etc.) ===
     const isBlacklisted = blacklistKw.some(kw => kw.every(k => saleWords.has(k)));
     if (isBlacklisted) {
       blacklistedLines += qty;
@@ -362,16 +433,36 @@ function crossData(pesosRows, ventasRows, vfuCount, vfuAvgKg) {
     }
 
     totalLines++;
+
+    // Peso directo del CSV si está disponible (más preciso)
+    let directWeight = 0;
+    if (pesoStockIdx !== -1) {
+      directWeight = parseNumber(row[pesoStockIdx]);
+    }
+
+    // Buscar match en el diccionario (para obtener nombre genérico)
     let match = null;
     for (const item of dictionary) {
       if (item.keywords.every(k => saleWords.has(k))) { match = item; break; }
     }
+
     if (match) {
       matchedLines++;
+      // Si hay peso directo en el CSV, prevalece sobre el del diccionario
+      const w = directWeight > 0 ? directWeight : match.weight;
       const agg = matchAgg.get(match.name) || { dictName: match.name, dictWeight: match.weight, units: 0, weight: 0 };
       agg.units += qty;
-      agg.weight += qty * match.weight;
+      agg.weight += qty * w;
       matchAgg.set(match.name, agg);
+    } else if (directWeight > 0) {
+      // No matchea con el diccionario pero el CSV trae peso → la línea cuenta
+      // como reutilización efectiva, agrupada bajo un nombre genérico extraído.
+      matchedLines++;
+      const genericName = saleNameRaw.split("|")[1]?.trim() || saleNameRaw.trim().substring(0,40);
+      const agg = matchAgg.get(genericName) || { dictName: genericName, dictWeight: directWeight, units: 0, weight: 0 };
+      agg.units += qty;
+      agg.weight += qty * directWeight;
+      matchAgg.set(genericName, agg);
     } else {
       discards.set(saleNameRaw.trim(), (discards.get(saleNameRaw.trim()) || 0) + qty);
     }
@@ -391,7 +482,7 @@ function crossData(pesosRows, ventasRows, vfuCount, vfuAvgKg) {
     landfillSaved: totalRecovered * FACTOR_VERTEDERO_M3_KG,
     rawMaterialSaved: totalRecovered * FACTOR_MATPRIMA_KG_KG,
     discardsList,
-    totalLines, matchedLines, blacklistedLines,
+    totalLines, matchedLines, blacklistedLines, otherCatLines,
     discardedLines: totalLines - matchedLines,
     dictSize: dictionary.length
   };
@@ -484,8 +575,14 @@ $("btn-analyze").addEventListener("click", async () => {
     const ventasRows = parseCSV(ventasText);
     const vfu = Number($("input-vfu").value) || 0;
     const avg = Number($("input-avg").value) || 0;
+    const manual = {
+      reciclaje:     Number($("input-reciclaje").value) || 0,
+      valorizacion:  Number($("input-valorizacion").value) || 0,
+      fragmentacion: Number($("input-fragmentacion").value) || 0,
+    };
+    saveManualInputs(vfu, avg, manual);
     const result = crossData(pesosRows, ventasRows, vfu, avg);
-    renderDashboard(result, vfu, avg);
+    renderDashboard(result, vfu, avg, manual);
   } catch (e) {
     showError(e.message || "Error inesperado al procesar los archivos.");
     $("btn-analyze").disabled = false;
@@ -493,8 +590,37 @@ $("btn-analyze").addEventListener("click", async () => {
   }
 });
 
+/* ---------- Persistencia en localStorage ---------- */
+const STORAGE_KEY = "reciclacat-analytics-inputs";
+
+function loadManualInputs() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.vfu) $("input-vfu").value = d.vfu;
+    if (d.avg) $("input-avg").value = d.avg;
+    if (d.reciclaje != null) $("input-reciclaje").value = d.reciclaje;
+    if (d.valorizacion != null) $("input-valorizacion").value = d.valorizacion;
+    if (d.fragmentacion != null) $("input-fragmentacion").value = d.fragmentacion;
+  } catch {}
+}
+function saveManualInputs(vfu, avg, manual) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ vfu, avg, ...manual }));
+  } catch {}
+}
+loadManualInputs();
+
 /* ---------- Render dashboard ---------- */
-function renderDashboard(r, vfu, avg) {
+function renderDashboard(r, vfu, avg, manual) {
+  const totalFleet = vfu * avg || 1; // evita div/0
+  const pctReuse  = (r.totalRecovered / totalFleet) * 100;
+  const pctRecic  = (manual.reciclaje     / totalFleet) * 100;
+  const pctValor  = (manual.valorizacion  / totalFleet) * 100;
+  const pctFragm  = (manual.fragmentacion / totalFleet) * 100;
+  const pctTotal  = pctReuse + pctRecic + pctValor + pctFragm;
+
   const units = r.matches.reduce((s,m) => s + m.units, 0);
   const conclusion = `El tratamiento de ${fmt(vfu)} vehículos al final de su vida útil ha permitido reintroducir en el mercado ${fmt(units)} componentes funcionales, rescatando ${fmt(r.totalRecovered)} kg de materiales que de otro modo habrían sido procesados como chatarra. Esto representa una tasa de reutilización del ${r.reusePct.toFixed(2)}% sobre la masa total procesada, evitando la emisión de ${fmt(r.co2Saved)} kg de CO₂, conservando ${fmt(r.waterSaved)} litros de agua, ahorrando ${fmt(r.energySaved)} kWh de energía industrial y evitando la extracción de ${fmt(r.rawMaterialSaved)} kg de materias primas vírgenes frente a la fabricación de piezas equivalentes nuevas.`;
 
@@ -565,7 +691,7 @@ function renderDashboard(r, vfu, avg) {
       </svg>
       <div class="space-y-2 text-sm">
         <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-emerald-500"></span><span class="text-gray-700">Reutilización (${pct.toFixed(1)}%)</span></div>
-        <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-gray-200"></span><span class="text-gray-700">Reciclaje / chatarra (${(100-pct).toFixed(1)}%)</span></div>
+        <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-gray-300"></span><span class="text-gray-700">Otros tratamientos (${(100-pct).toFixed(1)}%)</span></div>
       </div>
     </div>`;
 
@@ -611,19 +737,36 @@ function renderDashboard(r, vfu, avg) {
       <p class="mt-1 text-gray-600">${fmt(vfu)} vehículos · ${fmt(avg)} kg/ud · masa total procesada: ${fmt(r.totalFleetMass)} kg</p>
     </div>
 
-    <!-- Fila 1: KPIs principales -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 print-break-inside-avoid">
-      ${kpi("⚖️","Masa recuperada", fmt(r.totalRecovered) + " kg", fmt(r.matchedLines) + " líneas con match","emerald")}
-      ${kpi("📊","Tasa de reutilización", r.reusePct.toFixed(2) + "%", "sobre masa total VFU","teal")}
-      ${kpi("🌱","CO₂ evitado", fmt(r.co2Saved) + " kg", `${FACTOR_CO2_PER_KG} kg CO₂eq/kg reutilizado`,"sky")}
-      ${kpi("💧","Agua conservada", fmt(r.waterSaved) + " L", `${FACTOR_AGUA_L_PER_KG} L/kg reutilizado`,"amber")}
+    <!-- Bloque A: Destino de la masa procesada -->
+    <div class="space-y-2 print-break-inside-avoid">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">Destino de la masa procesada</h2>
+        <span class="text-xs ${pctTotal > 100.5 ? 'text-red-600 font-semibold' : 'text-gray-500'}">
+          Suma de los 4 indicadores: ${pctTotal.toFixed(2)}% ${pctTotal > 100.5 ? '⚠ revisa los datos introducidos' : ''}
+        </span>
+      </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        ${kpi("♻️","Reutilización", fmt(r.totalRecovered) + " kg", `${pctReuse.toFixed(2)}% sobre masa total VFU`,"emerald")}
+        ${kpi("🔄","Reciclaje", fmt(manual.reciclaje) + " kg", `${pctRecic.toFixed(2)}% sobre masa total VFU`,"teal")}
+        ${kpi("🔥","Valorización", fmt(manual.valorizacion) + " kg", `${pctValor.toFixed(2)}% sobre masa total VFU`,"amber")}
+        ${kpi("🏭","Fragmentación", fmt(manual.fragmentacion) + " kg", `${pctFragm.toFixed(2)}% sobre masa total VFU`,"stone")}
+      </div>
     </div>
 
-    <!-- Fila 2: impacto material y energético -->
-    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 print-break-inside-avoid">
-      ${kpi("⚡","Energía ahorrada", fmt(r.energySaved) + " kWh", `${FACTOR_ENERGIA_KWH_KG} kWh/kg reutilizado`,"yellow")}
-      ${kpi("🗑️","Vertedero evitado", fmt(r.landfillSaved, 1) + " m³", "espacio de residuos no generados","stone")}
-      ${kpi("⛏️","Materias primas conservadas", fmt(r.rawMaterialSaved) + " kg", "mineral, caucho y plástico no extraídos","orange")}
+    <!-- Bloque B: Impacto ambiental (derivado de la reutilización) -->
+    <div class="space-y-2 print-break-inside-avoid">
+      <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">Impacto ambiental evitado por la reutilización</h2>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        ${kpi("🌱","CO₂ evitado", fmt(r.co2Saved) + " kg", `${FACTOR_CO2_PER_KG} kg CO₂eq/kg reutilizado`,"sky")}
+        ${kpi("💧","Agua conservada", fmt(r.waterSaved) + " L", `${FACTOR_AGUA_L_PER_KG} L/kg reutilizado`,"sky")}
+        ${kpi("⚡","Energía ahorrada", fmt(r.energySaved) + " kWh", `${FACTOR_ENERGIA_KWH_KG} kWh/kg reutilizado`,"yellow")}
+        ${kpi("⛏️","Mat. primas conservadas", fmt(r.rawMaterialSaved) + " kg", `${FACTOR_MATPRIMA_KG_KG} kg/kg reutilizado`,"orange")}
+      </div>
+    </div>
+
+    <!-- Vertedero evitado: bloque destacado más pequeño -->
+    <div class="grid lg:grid-cols-3 gap-4 print-break-inside-avoid">
+      ${kpi("🗑️","Vertedero evitado", fmt(r.landfillSaved, 1) + " m³", "espacio de residuos no generados (densidad 1.200 kg/m³)","stone")}
     </div>
 
     <div class="grid lg:grid-cols-3 gap-6 print-break-inside-avoid">
@@ -652,7 +795,7 @@ function renderDashboard(r, vfu, avg) {
         </div>
         <div>
           <div class="font-semibold text-gray-900">Filtrado previo</div>
-          <p>Antes del cruce se descartan líneas que no corresponden a piezas físicas: gastos de envío, formas de pago, autorizaciones administrativas y servicios de traslado. En este informe se han filtrado <strong>${fmt(r.blacklistedLines)} líneas</strong> por este motivo.</p>
+          <p>Antes del cruce se descartan líneas que no corresponden a piezas físicas: gastos de envío, formas de pago, autorizaciones administrativas y servicios de traslado. En este informe se han filtrado <strong>${fmt(r.blacklistedLines)} líneas</strong> por este motivo.${r.otherCatLines > 0 ? ` Adicionalmente se han excluido <strong>${fmt(r.otherCatLines)} líneas</strong> cuyo código de vehículo termina en "C" o "R", al pertenecer a otro Centro Autorizado de Tratamiento.` : ""}</p>
         </div>
         <div>
           <div class="font-semibold text-gray-900">Factores de impacto ambiental</div>
@@ -723,7 +866,7 @@ function renderDashboard(r, vfu, avg) {
         <span class="text-sm text-gray-500">${fmt(r.discardedLines)} de ${fmt(r.totalLines)} líneas ignoradas</span>
       </div>
       ${auditHtml}
-      <div class="mt-3 text-xs text-gray-500">Diccionario cargado: ${fmt(r.dictSize)} artículos · Cobertura del cruce: ${r.totalLines ? ((r.matchedLines / r.totalLines) * 100).toFixed(1) : 0}%${r.blacklistedLines > 0 ? ` · ${fmt(r.blacklistedLines)} líneas filtradas por lista negra (portes, forma de pago, etc.)` : ""}</div>
+      <div class="mt-3 text-xs text-gray-500">Diccionario cargado: ${fmt(r.dictSize)} artículos · Cobertura del cruce: ${r.totalLines ? ((r.matchedLines / r.totalLines) * 100).toFixed(1) : 0}%${r.blacklistedLines > 0 ? ` · ${fmt(r.blacklistedLines)} líneas filtradas por lista negra (portes, forma de pago, etc.)` : ""}${r.otherCatLines > 0 ? ` · 🚫 ${fmt(r.otherCatLines)} líneas excluidas por pertenecer a otro CAT (códigos terminados en C/R)` : ""}</div>
     </div>
   `;
 
