@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trazabilidad de vehículos, residuos y economía circular</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+  /* --------- Estilos para exportar a PDF (window.print()) --------- */
+  @media print {
+    /* Tamaño de página A4 con márgenes razonables */
+    @page {
+      size: A4;
+      margin: 14mm 12mm;
+    }
+
+    /* Fondo blanco siempre, sin gradientes residuales */
+    html, body {
+      background: white !important;
+      background-image: none !important;
+      font-size: 10.5pt;
+    }
+
+    /* Ocultar elementos no relevantes en el informe */
+    .no-print { display: none !important; }
+
+    /* Header y main sin sombras ni anchos restrictivos */
+    header {
+      box-shadow: none !important;
+      border-bottom: 1px solid #d1d5db !important;
+      page-break-after: avoid;
+      background: white !important;
+    }
+    main { max-width: 100% !important; padding: 0 !important; }
+
+    /* Que los bloques importantes no se partan a mitad de página */
+    .print-break-inside-avoid,
+    .rounded-2xl {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* Forzar impresión de colores SOLO en elementos específicos
+       (no usamos selector universal *, que arrastra el fondo del body) */
+    .rounded-2xl,
+    .bg-emerald-50, .bg-emerald-100, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700,
+    .bg-teal-500, .bg-teal-600, .bg-teal-700,
+    .bg-sky-500, .bg-sky-600,
+    .bg-amber-500, .bg-amber-600,
+    .bg-yellow-400, .bg-yellow-500,
+    .bg-stone-500, .bg-stone-600,
+    .bg-orange-500, .bg-orange-600,
+    .bg-gradient-to-r, .bg-gradient-to-br,
+    .conclusion-block, .conclusion-block * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+
+    /* Cuadro de conclusión: SOLO el cuadro, sin desbordarse al body.
+       Usamos una clase específica en vez de la utility de Tailwind. */
+    .conclusion-block {
+      background: #047857 !important;
+      color: white !important;
+      page-break-inside: avoid;
+    }
+    .conclusion-block * { color: white !important; }
+
+    /* Sombras y bordes sutiles */
+    .ring-1 { box-shadow: inset 0 0 0 1px #d1d5db !important; }
+    .shadow-sm { box-shadow: none !important; }
+
+    /* Hipervínculos */
+    a { color: inherit !important; text-decoration: none !important; }
+
+    /* Mostrar elementos marcados como print-only */
+    .print-only { display: block !important; }
+
+    /* Logo en el header impreso */
+    header img { height: 40px !important; width: auto !important; }
+
+    /* Tablas */
+    table { border-collapse: collapse !important; width: 100% !important; }
+    th, td { border: 1px solid #e5e7eb !important; }
+
+    /* Tipografía más densa para que entre todo */
+    h1, h2 { page-break-after: avoid; }
+    h2 { margin-top: 0 !important; }
+
+    /* Las tarjetas KPI más compactas en impresión */
+    .grid { gap: 0.4rem !important; }
+  }
+
+  /* En pantalla, ocultar lo que sólo es para impresión */
+  .print-only { display: none; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-emerald-50/30 text-gray-900 min-h-screen">
+
+<!-- =============== HEADER =============== -->
+<header id="header" class="bg-white ring-1 ring-gray-200 no-print">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <img src="data:image/png;base64,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+vPOO2+Z4G6YKDC+tfb222+fnp6Oosg519fX9653vWtuBFepVB555JEsy+a4psw8H3ydG5y3t7e//OUvb1jZRb0vQQaQRdzexgxzvXhrrYh47++8886LLrqoWCwun3PPPvtsEcnzXERuuOGG3479kyR57Wtf+8gjj4hImqbM/NBDD83tcOaZZ9ZqNeec916O18Luwqa+/OUvzx3nC1/4Qtip/M5t7gH+5kthZsfsmC2Lg2P2m0OAIHrbt2+/+OKLG+JvjImiKE7iqJDEhThKoiiJ4iSOkjhK4jiJ4yQuFAtxHF988cUNEt56661a6ziOtdazI8xpSZLER59NkqTxfRRFQZDjOP7iF78oIoEfr7322vBlYIhbbrmlQWk+XvPee+9HR0fXrVunlCoUCgBw2WWXNfY7t7M72uzR5ha0eV8uZGJmz2KFrbAXYcdccw6Ou9Cwn1/96le9vb1BXYa2fOY944wzGudy8803h0HmacbjNmOMMSbQ/t577w0UnZiY2Lx5MyJqrRGxu7t7//794XCPu69wRldffXUYnIja29u3b9/eYP9Gz4V8eSyWXYKJWdh779k75qrnCesG6vUd1bpe2l8OivvAgQOXX3750NCQMSZsDwA2b9583nnntXe0swgiHIVMEJ7veLjcbtiwoaEHg3FTSllrzzzzzNe85jVZlj0P4saja+DZQaanp7ds2bJz584gdtbaj33sY/fff39QtZ/61Kfe8IY3BPs0Ojp63XXXfelLX1rUGi+a1P3Xf/3X0JOZP/CBD2zevLmRbV/UlpxQ2Pg8x13AAZa9L3tvAVgQlY4iNV8C5tEw8MLb3va2wCaB8U866aQ77rhjenr6hLRhUEG33XZbUOgA8O53v3uZj09NTb3//e8PlAs+2H333Rekiplf97rXNaTKGPPAAw8E+Via/b33l156adBgiLh+/fqxsbEgOsvc0TF7svfsPTvx3gs74brzg1m+o549mda32voOn+1le8D7I/7YRrhx+r/+9a+jKCKiwBfnnHPOoUOHGrbhuC1oxoYNmEuAK6+80lqbpukSz4YWpnvFK14BAFEUAcA//uM/BmssIlu3bi2VSuH0AeDCCy8Mkx7rgMKA3/72twPZwlPf+MY3Gj81OGauKfbeh400BpnbnHPCHM7E5rnNrbV2xtpDabq7Uttez7al2TPW72Y56PmQzwe9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" alt="CAT AN-0199" class="h-12 w-auto object-contain" />
+      <div>
+        <div class="font-bold text-base leading-tight">Trazabilidad de vehículos, residuos y economía circular</div>
+        <div class="text-xs text-gray-500">CAT AN-0199 · Centro Autorizado de Tratamiento de VFU</div>
+      </div>
+    </div>
+    <div id="header-actions" class="hidden flex gap-2">
+      <button onclick="goBack()" class="px-4 py-2 rounded-lg ring-1 ring-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium">← Volver</button>
+      <button onclick="exportarPDF()" class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm font-medium">📄 Exportar PDF</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-6 py-8">
+
+  <!-- =============== VISTA 1: CONFIGURACIÓN =============== -->
+  <section id="view-config" class="space-y-6">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight">Análisis de tasa de reutilización</h1>
+      <p class="mt-2 text-gray-600 max-w-2xl">Cruza el diccionario de pesos con tus ventas reales para descubrir qué porcentaje de la masa de los vehículos tratados vuelve al mercado como piezas reutilizadas.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="rounded-xl bg-white ring-1 ring-gray-200 p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">🚗 Vehículos procesados (VFU)</label>
+        <input id="input-vfu" type="number" min="1" value="450" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+      </div>
+      <div class="rounded-xl bg-white ring-1 ring-gray-200 p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">⚖️ Peso medio estimado (Kg)</label>
+        <input id="input-avg" type="number" min="1" value="900" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+      </div>
+    </div>
+
+    <!-- Inputs manuales de tratamiento -->
+    <div class="rounded-xl bg-white ring-1 ring-gray-200 p-5">
+      <div class="font-medium text-gray-800 mb-1">📋 Tratamiento del resto de la masa</div>
+      <p class="text-xs text-gray-500 mb-4">Introduce los kg destinados a cada flujo de tratamiento. El porcentaje se calcula automáticamente sobre la masa total procesada (vehículos × peso medio).</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">♻️ Reciclaje (Kg)</label>
+          <input id="input-reciclaje" type="number" min="0" value="0" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">🔥 Valorización (Kg)</label>
+          <input id="input-valorizacion" type="number" min="0" value="0" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">🏭 Fragmentación (Kg)</label>
+          <input id="input-fragmentacion" type="number" min="0" value="0" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <label id="drop-pesos" class="block cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-emerald-400 hover:bg-emerald-50/30 p-6 text-center transition">
+        <input id="file-pesos" type="file" accept=".csv,text/csv" class="hidden" />
+        <div class="text-3xl mb-2" data-icon>📘</div>
+        <div class="font-semibold text-gray-800">Diccionario de pesos (PEsos.csv)</div>
+        <div class="mt-1 text-xs text-gray-500" data-hint>Arrastra el archivo o haz clic para seleccionarlo</div>
+      </label>
+      <label id="drop-ventas" class="block cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-emerald-400 hover:bg-emerald-50/30 p-6 text-center transition">
+        <input id="file-ventas" type="file" accept=".csv,text/csv" class="hidden" />
+        <div class="text-3xl mb-2" data-icon>📊</div>
+        <div class="font-semibold text-gray-800">Registro de ventas (Consulta_Ventas.csv)</div>
+        <div class="mt-1 text-xs text-gray-500" data-hint>Arrastra el archivo o haz clic para seleccionarlo</div>
+      </label>
+    </div>
+
+    <div id="error-box" class="hidden rounded-lg bg-red-50 ring-1 ring-red-200 p-4 text-red-800 text-sm"></div>
+
+    <div class="flex justify-end">
+      <button id="btn-analyze" disabled class="px-6 py-3 rounded-lg bg-emerald-600 text-white font-semibold shadow-sm hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition">
+        Analizar datos y cruzar →
+      </button>
+    </div>
+
+    <div class="rounded-lg bg-emerald-50/60 ring-1 ring-emerald-200 p-4 text-sm text-emerald-900">
+      <div class="font-semibold mb-1">¿Cómo funciona el cruce?</div>
+      <p>El motor extrae las palabras clave de cada artículo del diccionario (ignorando acentos y palabras vacías como "DE", "LA", "DEL"…) y busca esas palabras dentro del nombre completo de la pieza vendida. Por ejemplo, <em>"FARO DERECHO"</em> hará match con <em>"FARO DELANTERO DERECHO SEAT IBIZA"</em>. Las ventas que no cruzan (portes, mano de obra, etc.) se contabilizan aparte en la sección de auditoría.</p>
+    </div>
+  </section>
+
+  <!-- =============== VISTA 2: DASHBOARD =============== -->
+  <section id="view-dashboard" class="hidden space-y-6"></section>
+
+</main>
+
+<footer class="max-w-6xl mx-auto px-6 py-6 text-center text-xs text-gray-400 no-print">
+  CAT AN-0199 · Trazabilidad CRVNET · Procesamiento local de datos · Ningún archivo se sube a internet
+</footer>
+
+<script>
+/* ============================================================
+   Lógica completa de Trazabilidad CRVNET — vanilla JS
+   ============================================================ */
+
+/* ---------- Factores ambientales ----------
+   Valores CONSERVADORES aplicados a la masa de piezas REUTILIZADAS
+   (no a la chatarra que va a fundición). Cada factor está dimensionado
+   para que sea defendible frente a una auditoría externa.
+
+   - CO2: 3 kg CO2eq por kg de pieza reutilizada (estudios estiman
+     ~3.800 kg CO2 evitados por VFU desmontado; NCBI PMC8651122, 2021).
+   - Agua: 4 L por kg. En línea con la huella hídrica directa del
+     procesado de acero en horno eléctrico (4-6 L/kg). Aplicado a
+     piezas reutilizadas, que ni siquiera pasan por refundición.
+   - Energía: 2 kWh por kg. Representa solo la energía industrial de
+     fabricación de la pieza (estampación, ensamblaje, tratamientos),
+     sin incluir la energía embebida en la materia prima. La energía
+     embebida TOTAL sería ~6,9 kWh/kg (25 MJ/kg, NCBI PMC8651122).
+   - Vertedero: densidad media de chatarra de automoción ~1,2 t/m³.
+   - Materias primas: 1,8 kg de materia prima virgen evitada por kg
+     de pieza reutilizada (mix VFU acero+aluminio+plástico+caucho).
+*/
+const FACTOR_CO2_PER_KG       = 3;      // kg CO2eq / kg reutilizado
+const FACTOR_AGUA_L_PER_KG    = 4;      // L agua / kg reutilizado
+const FACTOR_ENERGIA_KWH_KG   = 2;      // kWh / kg reutilizado
+const FACTOR_VERTEDERO_M3_KG  = 1/1200; // m³ vertedero evitado / kg (densidad 1.200 kg/m³)
+const FACTOR_MATPRIMA_KG_KG   = 1.8;    // kg materia prima virgen evitada / kg pieza
+
+/* ---------- Lista negra: conceptos a IGNORAR totalmente ---------- */
+/* Estas líneas no entran ni en el cruce ni en la auditoría de descartes.
+   Se compara por palabras clave (todas presentes), no por texto literal,
+   así que aguanta variaciones de mayúsculas, espacios o sufijos. */
+const BLACKLIST_PATTERNS = [
+  "FORMA DE PAGO",
+  "Nº CUENTA",
+  "NUMERO DE CUENTA",
+  "GASTOS DE ENVIO",
+  "PORTES",
+  "TRANSPORTE",
+  "MANO DE OBRA",
+  "IBAN",
+  "BBVA",
+  "AUTORIZACION",        // "Nº AUTORIZACIÓN 2025000169"
+  "SERVICIO DE TRASLADO",
+  "TRASLADO ITV",
+  "DESCUENTO",
+  "REDONDEO",
+];
+
+/* ---------- Utilidades de normalización ---------- */
+const STOP_WORDS = new Set(["DE","DEL","LA","EL","LOS","LAS","Y","O","A","EN","PARA","CON","POR","UN","UNA","UNO","AL","SU","SUS","SE","ES","MM","CM"]);
+
+function normalize(str) {
+  if (str == null) return "";
+  return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase()
+    .replace(/[^A-Z0-9\s/\-]/g," ").replace(/[\-/]/g," ").replace(/\s+/g," ").trim();
+}
+
+function keywords(str){
+  return normalize(str).split(" ").filter(w => w.length > 1 && !STOP_WORDS.has(w) && !/^\d+$/.test(w));
+}
+
+function parseNumber(raw) {
+  if (raw == null) return 0;
+  let s = String(raw).trim();
+  if (!s) return 0;
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  if (lastComma !== -1 && lastDot !== -1) {
+    if (lastComma > lastDot) s = s.replace(/\./g,"").replace(",",".");
+    else s = s.replace(/,/g,"");
+  } else if (lastComma !== -1) {
+    s = s.replace(",",".");
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+/* ---------- Parser CSV ---------- */
+function detectDelimiter(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim()).slice(0, 5);
+  let semi = 0, comma = 0;
+  for (const l of lines) {
+    semi += (l.match(/;/g) || []).length;
+    comma += (l.match(/,/g) || []).length;
+  }
+  return semi >= comma ? ";" : ",";
+}
+
+function splitCSVLine(line, delim) {
+  const out = []; let cur = ""; let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === delim && !inQuotes) {
+      out.push(cur); cur = "";
+    } else cur += ch;
+  }
+  out.push(cur);
+  return out.map(c => c.trim());
+}
+
+function parseCSV(text) {
+  const delim = detectDelimiter(text);
+  const rows = []; let cur = ""; let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      cur += ch;
+      if (inQuotes && text[i+1] === '"') { cur += text[++i]; }
+      else inQuotes = !inQuotes;
+    } else if ((ch === "\n" || ch === "\r") && !inQuotes) {
+      if (cur.length) { rows.push(cur); cur = ""; }
+      if (ch === "\r" && text[i+1] === "\n") i++;
+    } else cur += ch;
+  }
+  if (cur.length) rows.push(cur);
+  return rows.map(r => splitCSVLine(r, delim)).filter(arr => arr.some(c => c && c.length > 0));
+}
+
+function findHeaderRow(rows, required) {
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const norm = rows[i].map(c => normalize(c));
+    const map = {}; let ok = true;
+    for (const key of Object.keys(required)) {
+      const variants = required[key];
+      const found = variants.map(v => norm.indexOf(normalize(v))).find(idx => idx !== -1);
+      if (found == null || found === -1) { ok = false; break; }
+      map[key] = found;
+    }
+    if (ok) return { headerIdx: i, map };
+  }
+  return null;
+}
+
+/* ---------- Cruce ---------- */
+function crossData(pesosRows, ventasRows, vfuCount, vfuAvgKg) {
+  const pesosHeader = findHeaderRow(pesosRows, {
+    articulo: ["Articulo","Artículo","ARTICULO","Nombre"],
+    peso: ["Peso articulo","Peso artículo","Peso","PESO ARTICULO"]
+  });
+  if (!pesosHeader) throw new Error("No se encontraron las columnas 'Artículo' y 'Peso artículo' en PEsos.csv");
+
+  const dictionary = [];
+  for (let i = pesosHeader.headerIdx + 1; i < pesosRows.length; i++) {
+    const row = pesosRows[i];
+    const name = row[pesosHeader.map.articulo];
+    const weight = parseNumber(row[pesosHeader.map.peso]);
+    if (!name || !name.trim() || weight <= 0) continue;
+    const kw = keywords(name);
+    if (kw.length === 0) continue;
+    dictionary.push({ name: name.trim(), weight, keywords: kw });
+  }
+  dictionary.sort((a,b) => b.keywords.length - a.keywords.length);
+
+  const ventasHeader = findHeaderRow(ventasRows, {
+    articulo: ["ARTICULO","Articulo","Artículo","metadatos","Metadatos","METADATOS"],
+    cantidad: ["CANTIDAD","Cantidad","Qty","Uds"]
+  });
+  // Si no encuentra CANTIDAD, intentamos con solo ARTICULO/metadatos
+  // y asumimos cantidad = 1 por línea (típico en exports detallados línea-a-línea)
+  let ventasHeaderUsed = ventasHeader;
+  let cantidadOptional = false;
+  if (!ventasHeader) {
+    const fallback = findHeaderRow(ventasRows, {
+      articulo: ["ARTICULO","Articulo","Artículo","metadatos","Metadatos","METADATOS"]
+    });
+    if (!fallback) throw new Error("No se encontró la columna 'Artículo' (o 'metadatos') en el CSV de ventas");
+    ventasHeaderUsed = fallback;
+    cantidadOptional = true;
+  }
+
+  // Detección OPCIONAL de la columna de código de vehículo.
+  // Si está presente, las líneas cuyo código termina en "C" o "R" (mayúsculas)
+  // se descartan totalmente: son ventas pertenecientes a otro CAT.
+  let codeColIdx = -1;
+  {
+    const norm = ventasRows[ventasHeaderUsed.headerIdx].map(c => normalize(c));
+    const variants = ["CODIGO VEHICULO","COD VEHICULO","COD_VEHICULO","CODIGOVEHICULO","COD VEH"];
+    for (const v of variants) {
+      const i = norm.indexOf(normalize(v));
+      if (i !== -1) { codeColIdx = i; break; }
+    }
+  }
+
+  // Detección OPCIONAL de columna de peso directo (pesostock).
+  // Si está presente, se prefiere sobre el cruce con el diccionario para
+  // esa línea concreta (más preciso, peso real registrado en la venta).
+  let pesoStockIdx = -1;
+  {
+    const norm = ventasRows[ventasHeaderUsed.headerIdx].map(c => normalize(c));
+    const variants = ["PESOSTOCK","PESO STOCK","PESO_STOCK","PESO"];
+    for (const v of variants) {
+      const i = norm.indexOf(normalize(v));
+      if (i !== -1) { pesoStockIdx = i; break; }
+    }
+  }
+
+  const matchAgg = new Map();
+  const discards = new Map();
+  let totalLines = 0, matchedLines = 0, blacklistedLines = 0, otherCatLines = 0;
+
+  // Pre-procesamos la blacklist a keywords una sola vez
+  const blacklistKw = BLACKLIST_PATTERNS.map(p => keywords(p)).filter(kw => kw.length > 0);
+
+  for (let i = ventasHeaderUsed.headerIdx + 1; i < ventasRows.length; i++) {
+    const row = ventasRows[i];
+
+    // === FILTRO 1: vehículos de otro CAT (códigos terminados en C o R) ===
+    if (codeColIdx !== -1) {
+      const code = (row[codeColIdx] || "").trim();
+      if (code && /[CR]$/.test(code)) {  // termina exactamente en C o R MAYÚSCULA
+        otherCatLines++;
+        continue;
+      }
+    }
+
+    const saleNameRaw = row[ventasHeaderUsed.map.articulo];
+    if (!saleNameRaw || !saleNameRaw.trim()) continue;
+
+    // Cantidad: si no hay columna, asumimos 1 por línea
+    const qty = cantidadOptional
+      ? 1
+      : (parseNumber(row[ventasHeaderUsed.map.cantidad]) || 1);
+    if (qty <= 0) continue;
+
+    const saleWords = new Set(normalize(saleNameRaw).split(" "));
+
+    // === FILTRO 2: blacklist (portes, formas de pago, etc.) ===
+    const isBlacklisted = blacklistKw.some(kw => kw.every(k => saleWords.has(k)));
+    if (isBlacklisted) {
+      blacklistedLines += qty;
+      continue;
+    }
+
+    totalLines++;
+
+    // Peso directo del CSV si está disponible (más preciso)
+    let directWeight = 0;
+    if (pesoStockIdx !== -1) {
+      directWeight = parseNumber(row[pesoStockIdx]);
+    }
+
+    // Buscar match en el diccionario (para obtener nombre genérico)
+    let match = null;
+    for (const item of dictionary) {
+      if (item.keywords.every(k => saleWords.has(k))) { match = item; break; }
+    }
+
+    if (match) {
+      matchedLines++;
+      // Si hay peso directo en el CSV, prevalece sobre el del diccionario
+      const w = directWeight > 0 ? directWeight : match.weight;
+      const agg = matchAgg.get(match.name) || { dictName: match.name, dictWeight: match.weight, units: 0, weight: 0 };
+      agg.units += qty;
+      agg.weight += qty * w;
+      matchAgg.set(match.name, agg);
+    } else if (directWeight > 0) {
+      // No matchea con el diccionario pero el CSV trae peso → la línea cuenta
+      // como reutilización efectiva, agrupada bajo un nombre genérico extraído.
+      matchedLines++;
+      const genericName = saleNameRaw.split("|")[1]?.trim() || saleNameRaw.trim().substring(0,40);
+      const agg = matchAgg.get(genericName) || { dictName: genericName, dictWeight: directWeight, units: 0, weight: 0 };
+      agg.units += qty;
+      agg.weight += qty * directWeight;
+      matchAgg.set(genericName, agg);
+    } else {
+      discards.set(saleNameRaw.trim(), (discards.get(saleNameRaw.trim()) || 0) + qty);
+    }
+  }
+
+  const matches = Array.from(matchAgg.values()).sort((a,b) => b.weight - a.weight);
+  const totalRecovered = matches.reduce((s,m) => s + m.weight, 0);
+  const totalFleetMass = vfuCount * vfuAvgKg;
+  const reusePct = totalFleetMass > 0 ? (totalRecovered / totalFleetMass) * 100 : 0;
+  const discardsList = Array.from(discards.entries()).map(([name,units]) => ({name,units})).sort((a,b) => b.units - a.units);
+
+  return {
+    matches, totalRecovered, totalFleetMass, reusePct,
+    co2Saved: totalRecovered * FACTOR_CO2_PER_KG,
+    waterSaved: totalRecovered * FACTOR_AGUA_L_PER_KG,
+    energySaved: totalRecovered * FACTOR_ENERGIA_KWH_KG,
+    landfillSaved: totalRecovered * FACTOR_VERTEDERO_M3_KG,
+    rawMaterialSaved: totalRecovered * FACTOR_MATPRIMA_KG_KG,
+    discardsList,
+    totalLines, matchedLines, blacklistedLines, otherCatLines,
+    discardedLines: totalLines - matchedLines,
+    dictSize: dictionary.length
+  };
+}
+
+/* ---------- Estado UI ---------- */
+const state = { pesosFile: null, ventasFile: null };
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n, dec = 0) => Number(n).toLocaleString("es-ES", { maximumFractionDigits: dec });
+
+/* Lee el archivo detectando automáticamente si es UTF-8 o Windows-1252/ISO-8859.
+   Los CSV exportados por ERPs en España suelen venir en Windows-1252. */
+function readFile(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const buf = fr.result;
+      // Primer intento: UTF-8 estricto (falla si hay bytes inválidos)
+      try {
+        const utf8 = new TextDecoder("utf-8", { fatal: true }).decode(buf);
+        resolve(utf8);
+      } catch {
+        // Si falla, es Windows-1252 (típico de Excel en español)
+        const win = new TextDecoder("windows-1252").decode(buf);
+        resolve(win);
+      }
+    };
+    fr.onerror = () => reject(new Error("No se pudo leer el archivo"));
+    fr.readAsArrayBuffer(file);
+  });
+}
+
+function updateDropZone(dropId, file) {
+  const zone = $(dropId);
+  const icon = zone.querySelector('[data-icon]');
+  const hint = zone.querySelector('[data-hint]');
+  if (file) {
+    zone.classList.remove("border-gray-300","bg-gray-50");
+    zone.classList.add("border-emerald-500","bg-emerald-50/60");
+    icon.textContent = "✅";
+    hint.textContent = file.name;
+    hint.classList.remove("text-gray-500");
+    hint.classList.add("text-emerald-700","break-all");
+  }
+  $("btn-analyze").disabled = !(state.pesosFile && state.ventasFile);
+}
+
+function showError(msg) {
+  const box = $("error-box");
+  if (!msg) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  box.textContent = "⚠️ " + msg;
+}
+
+/* ---------- Listeners de drop/upload ---------- */
+function setupDrop(dropId, fileId, key) {
+  const zone = $(dropId);
+  const input = $(fileId);
+  input.addEventListener("change", (e) => {
+    const f = e.target.files?.[0];
+    if (f) { state[key] = f; updateDropZone(dropId, f); }
+  });
+  zone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    zone.classList.add("border-emerald-600","bg-emerald-50");
+  });
+  zone.addEventListener("dragleave", () => {
+    if (!state[key]) {
+      zone.classList.remove("border-emerald-600","bg-emerald-50");
+    }
+  });
+  zone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const f = e.dataTransfer.files?.[0];
+    if (f) { state[key] = f; updateDropZone(dropId, f); }
+  });
+}
+setupDrop("drop-pesos", "file-pesos", "pesosFile");
+setupDrop("drop-ventas", "file-ventas", "ventasFile");
+
+/* ---------- Analizar ---------- */
+$("btn-analyze").addEventListener("click", async () => {
+  showError("");
+  $("btn-analyze").disabled = true;
+  $("btn-analyze").textContent = "Procesando…";
+  try {
+    const [pesosText, ventasText] = await Promise.all([readFile(state.pesosFile), readFile(state.ventasFile)]);
+    const pesosRows = parseCSV(pesosText);
+    const ventasRows = parseCSV(ventasText);
+    const vfu = Number($("input-vfu").value) || 0;
+    const avg = Number($("input-avg").value) || 0;
+    const manual = {
+      reciclaje:     Number($("input-reciclaje").value) || 0,
+      valorizacion:  Number($("input-valorizacion").value) || 0,
+      fragmentacion: Number($("input-fragmentacion").value) || 0,
+    };
+    saveManualInputs(vfu, avg, manual);
+    const result = crossData(pesosRows, ventasRows, vfu, avg);
+    renderDashboard(result, vfu, avg, manual);
+  } catch (e) {
+    showError(e.message || "Error inesperado al procesar los archivos.");
+    $("btn-analyze").disabled = false;
+    $("btn-analyze").textContent = "Analizar datos y cruzar →";
+  }
+});
+
+/* ---------- Persistencia en localStorage ---------- */
+const STORAGE_KEY = "reciclacat-crvnet5-inputs";
+
+function loadManualInputs() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.vfu) $("input-vfu").value = d.vfu;
+    if (d.avg) $("input-avg").value = d.avg;
+    if (d.reciclaje != null) $("input-reciclaje").value = d.reciclaje;
+    if (d.valorizacion != null) $("input-valorizacion").value = d.valorizacion;
+    if (d.fragmentacion != null) $("input-fragmentacion").value = d.fragmentacion;
+  } catch {}
+}
+function saveManualInputs(vfu, avg, manual) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ vfu, avg, ...manual }));
+  } catch {}
+}
+loadManualInputs();
+
+/* ---------- Render dashboard ---------- */
+function renderDashboard(r, vfu, avg, manual) {
+  const totalFleet = vfu * avg || 1; // evita div/0
+  const pctReuse  = (r.totalRecovered / totalFleet) * 100;
+  const pctRecic  = (manual.reciclaje     / totalFleet) * 100;
+  const pctValor  = (manual.valorizacion  / totalFleet) * 100;
+  const pctFragm  = (manual.fragmentacion / totalFleet) * 100;
+  const pctTotal  = pctReuse + pctRecic + pctValor + pctFragm;
+
+  const units = r.matches.reduce((s,m) => s + m.units, 0);
+  const conclusion = `El tratamiento de ${fmt(vfu)} vehículos al final de su vida útil ha permitido reintroducir en el mercado ${fmt(units)} componentes funcionales, rescatando ${fmt(r.totalRecovered)} kg de materiales que de otro modo habrían sido procesados como chatarra. Esto representa una tasa de reutilización del ${r.reusePct.toFixed(2)}% sobre la masa total procesada, evitando la emisión de ${fmt(r.co2Saved)} kg de CO₂, conservando ${fmt(r.waterSaved)} litros de agua, ahorrando ${fmt(r.energySaved)} kWh de energía industrial y evitando la extracción de ${fmt(r.rawMaterialSaved)} kg de materias primas vírgenes frente a la fabricación de piezas equivalentes nuevas.`;
+
+  const tones = {
+    emerald: "from-emerald-500 to-emerald-600",
+    teal:    "from-teal-500 to-teal-600",
+    sky:     "from-sky-500 to-sky-600",
+    amber:   "from-amber-500 to-amber-600",
+    yellow:  "from-yellow-400 to-yellow-500",
+    stone:   "from-stone-500 to-stone-600",
+    orange:  "from-orange-500 to-orange-600"
+  };
+  const kpi = (icon, label, value, sub, tone) => `
+    <div class="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 overflow-hidden">
+      <div class="h-1 bg-gradient-to-r ${tones[tone]}"></div>
+      <div class="p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-2xl">${icon}</span>
+          <span class="text-xs uppercase tracking-wider text-gray-500">${label}</span>
+        </div>
+        <div class="mt-3 text-3xl font-bold text-gray-900">${value}</div>
+        ${sub ? `<div class="mt-1 text-xs text-gray-500">${sub}</div>` : ""}
+      </div>
+    </div>`;
+
+  const top = r.matches.slice(0,5);
+  const maxW = top[0]?.weight || 1;
+  const rankingHtml = top.length === 0
+    ? `<div class="text-sm text-gray-500 italic">Sin coincidencias.</div>`
+    : top.map((m,i) => {
+        const w = (m.weight / maxW) * 100;
+        return `
+          <div class="relative rounded-lg ring-1 ring-gray-200 bg-white overflow-hidden">
+            <div class="absolute inset-y-0 left-0 bg-emerald-100" style="width:${w}%"></div>
+            <div class="relative flex items-center justify-between px-4 py-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="flex-shrink-0 w-7 h-7 rounded-full bg-emerald-600 text-white text-sm font-bold flex items-center justify-center">${i+1}</span>
+                <div class="min-w-0">
+                  <div class="font-medium text-gray-900 truncate">${m.dictName}</div>
+                  <div class="text-xs text-gray-500">${fmt(m.units)} uds · ${fmt(m.dictWeight,2)} kg/ud</div>
+                </div>
+              </div>
+              <div class="flex-shrink-0 text-right pl-3">
+                <div class="font-bold text-emerald-700">${fmt(m.weight,1)} kg</div>
+              </div>
+            </div>
+          </div>`;
+      }).join("");
+
+  const pct = Math.max(0, Math.min(100, r.reusePct));
+  const R = 70, C = 2 * Math.PI * R, dash = (pct/100) * C;
+  const pieHtml = `
+    <div class="flex items-center gap-6">
+      <svg width="180" height="180" viewBox="0 0 180 180" style="transform:rotate(-90deg)">
+        <circle cx="90" cy="90" r="${R}" fill="none" stroke="#e5e7eb" stroke-width="22"/>
+        <circle cx="90" cy="90" r="${R}" fill="none" stroke="url(#grad)" stroke-width="22"
+          stroke-dasharray="${dash} ${C - dash}" stroke-linecap="butt"/>
+        <defs>
+          <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#10b981"/>
+            <stop offset="100%" stop-color="#059669"/>
+          </linearGradient>
+        </defs>
+        <text x="90" y="90" text-anchor="middle" dominant-baseline="middle"
+              transform="rotate(90 90 90)" font-size="22" font-weight="700" fill="#065f46">
+          ${pct.toFixed(1)}%
+        </text>
+      </svg>
+      <div class="space-y-2 text-sm">
+        <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-emerald-500"></span><span class="text-gray-700">Reutilización (${pct.toFixed(1)}%)</span></div>
+        <div class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-sm bg-gray-300"></span><span class="text-gray-700">Otros tratamientos (${(100-pct).toFixed(1)}%)</span></div>
+      </div>
+    </div>`;
+
+  const auditHtml = r.discardsList.length === 0
+    ? `<p class="text-sm text-gray-500 italic">No hay descartes: todas las ventas cruzaron con el diccionario.</p>`
+    : `<p class="text-sm text-gray-600 mb-3">Verifica que los siguientes artículos son realmente portes, mano de obra o conceptos no físicos (no piezas mal nombradas):</p>
+       <div class="overflow-hidden rounded-lg ring-1 ring-gray-200">
+         <table class="w-full text-sm">
+           <thead class="bg-gray-50 text-gray-600">
+             <tr><th class="text-left px-4 py-2 font-medium">Artículo descartado</th><th class="text-right px-4 py-2 font-medium w-24">Uds</th></tr>
+           </thead>
+           <tbody>
+             ${r.discardsList.slice(0,10).map(d => `
+               <tr class="border-t border-gray-100">
+                 <td class="px-4 py-2 text-gray-800">${d.name}</td>
+                 <td class="px-4 py-2 text-right font-medium">${fmt(d.units)}</td>
+               </tr>`).join("")}
+           </tbody>
+         </table>
+       </div>`;
+
+  // Bloque de cabecera SOLO visible al imprimir: portada del informe
+  const today = new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" });
+  const printHeader = `
+    <div class="print-only print-break-inside-avoid" style="margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid #047857;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <img src="${document.querySelector('header img')?.src || ''}" style="height:48px; width:auto; object-fit:contain;" />
+        <div style="flex:1;">
+          <div style="font-size:15pt; font-weight:700; color:#065f46; line-height:1.15;">Trazabilidad de vehículos, residuos y economía circular</div>
+          <div style="font-size:9pt; color:#6b7280; margin-top:2px;">CAT AN-0199 · Centro Autorizado de Tratamiento de VFU</div>
+        </div>
+        <div style="text-align:right; font-size:9pt; color:#6b7280;">
+          <div><strong>Fecha:</strong> ${today}</div>
+          <div><strong>Vehículos:</strong> ${fmt(vfu)} · <strong>Peso medio:</strong> ${fmt(avg)} kg</div>
+        </div>
+      </div>
+    </div>`;
+
+  $("view-dashboard").innerHTML = `
+    ${printHeader}
+    <div class="no-print">
+      <h1 class="text-3xl font-bold tracking-tight">Dashboard de resultados</h1>
+      <p class="mt-1 text-gray-600">${fmt(vfu)} vehículos · ${fmt(avg)} kg/ud · masa total procesada: ${fmt(r.totalFleetMass)} kg</p>
+    </div>
+
+    <!-- Bloque A: Destino de la masa procesada -->
+    <div class="space-y-2 print-break-inside-avoid">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">Destino de la masa procesada</h2>
+        <span class="text-xs ${pctTotal > 100.5 ? 'text-red-600 font-semibold' : 'text-gray-500'}">
+          Suma de los 4 indicadores: ${pctTotal.toFixed(2)}% ${pctTotal > 100.5 ? '⚠ revisa los datos introducidos' : ''}
+        </span>
+      </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        ${kpi("♻️","Reutilización", fmt(r.totalRecovered) + " kg", `${pctReuse.toFixed(2)}% sobre masa total VFU`,"emerald")}
+        ${kpi("🔄","Reciclaje", fmt(manual.reciclaje) + " kg", `${pctRecic.toFixed(2)}% sobre masa total VFU`,"teal")}
+        ${kpi("🔥","Valorización", fmt(manual.valorizacion) + " kg", `${pctValor.toFixed(2)}% sobre masa total VFU`,"amber")}
+        ${kpi("🏭","Fragmentación", fmt(manual.fragmentacion) + " kg", `${pctFragm.toFixed(2)}% sobre masa total VFU`,"stone")}
+      </div>
+    </div>
+
+    <!-- Bloque B: Impacto ambiental (derivado de la reutilización) -->
+    <div class="space-y-2 print-break-inside-avoid">
+      <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">Impacto ambiental evitado por la reutilización</h2>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        ${kpi("🌱","CO₂ evitado", fmt(r.co2Saved) + " kg", `${FACTOR_CO2_PER_KG} kg CO₂eq/kg reutilizado`,"sky")}
+        ${kpi("💧","Agua conservada", fmt(r.waterSaved) + " L", `${FACTOR_AGUA_L_PER_KG} L/kg reutilizado`,"sky")}
+        ${kpi("⚡","Energía ahorrada", fmt(r.energySaved) + " kWh", `${FACTOR_ENERGIA_KWH_KG} kWh/kg reutilizado`,"yellow")}
+        ${kpi("⛏️","Mat. primas conservadas", fmt(r.rawMaterialSaved) + " kg", `${FACTOR_MATPRIMA_KG_KG} kg/kg reutilizado`,"orange")}
+      </div>
+    </div>
+
+    <!-- Vertedero evitado: bloque destacado más pequeño -->
+    <div class="grid lg:grid-cols-3 gap-4 print-break-inside-avoid">
+      ${kpi("🗑️","Vertedero evitado", fmt(r.landfillSaved, 1) + " m³", "espacio de residuos no generados (densidad 1.200 kg/m³)","stone")}
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6 print-break-inside-avoid">
+      <div class="lg:col-span-2 rounded-2xl bg-white ring-1 ring-gray-200 p-6">
+        <h2 class="text-lg font-semibold mb-4">🏆 Top 5 piezas recuperadas</h2>
+        <div class="space-y-3">${rankingHtml}</div>
+      </div>
+      <div class="rounded-2xl bg-white ring-1 ring-gray-200 p-6">
+        <h2 class="text-lg font-semibold mb-4">Proporción</h2>
+        ${pieHtml}
+      </div>
+    </div>
+
+    <div class="conclusion-block rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-6 print-break-inside-avoid">
+      <h2 class="text-lg font-semibold mb-2">📝 Conclusión</h2>
+      <p class="text-emerald-50 leading-relaxed">${conclusion}</p>
+    </div>
+
+    <!-- Metodología: visible tanto en pantalla como en PDF -->
+    <div class="rounded-2xl bg-white ring-1 ring-gray-200 p-6 print-break-inside-avoid">
+      <h2 class="text-lg font-semibold mb-3">📐 Metodología y fuentes</h2>
+      <div class="text-sm text-gray-700 leading-relaxed space-y-3">
+        <div>
+          <div class="font-semibold text-gray-900">Cruce de datos</div>
+          <p>Se cruza el catálogo interno de pesos (${fmt(r.dictSize)} artículos genéricos) con el registro de ventas del periodo. El algoritmo extrae las palabras clave de cada pieza del diccionario (ignorando acentos, mayúsculas y partículas vacías como "DE", "LA", "DEL") y las busca dentro del nombre completo de la pieza vendida. Cuando todas las palabras clave coinciden, se considera reutilización efectiva y se multiplica el peso unitario por las unidades vendidas.</p>
+        </div>
+        <div>
+          <div class="font-semibold text-gray-900">Filtrado previo</div>
+          <p>Antes del cruce se descartan líneas que no corresponden a piezas físicas: gastos de envío, formas de pago, autorizaciones administrativas y servicios de traslado. En este informe se han filtrado <strong>${fmt(r.blacklistedLines)} líneas</strong> por este motivo.${r.otherCatLines > 0 ? ` Adicionalmente se han excluido <strong>${fmt(r.otherCatLines)} líneas</strong> cuyo código de vehículo termina en "C" o "R", al pertenecer a otro Centro Autorizado de Tratamiento.` : ""}</p>
+        </div>
+        <div>
+          <div class="font-semibold text-gray-900">Factores de impacto ambiental</div>
+          <table class="mt-2 w-full text-xs border border-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="text-left px-3 py-2 font-semibold">Indicador</th>
+                <th class="text-left px-3 py-2 font-semibold">Factor aplicado</th>
+                <th class="text-left px-3 py-2 font-semibold">Cálculo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-t border-gray-200">
+                <td class="px-3 py-2">Masa recuperada</td>
+                <td class="px-3 py-2">—</td>
+                <td class="px-3 py-2">Σ (peso unitario × unidades vendidas) por cada pieza con match</td>
+              </tr>
+              <tr class="border-t border-gray-200">
+                <td class="px-3 py-2">Tasa de reutilización</td>
+                <td class="px-3 py-2">—</td>
+                <td class="px-3 py-2">Masa recuperada ÷ (vehículos × peso medio) × 100</td>
+              </tr>
+              <tr class="border-t border-gray-200">
+                <td class="px-3 py-2">CO₂ evitado</td>
+                <td class="px-3 py-2">${FACTOR_CO2_PER_KG} kg CO₂eq / kg reutilizado</td>
+                <td class="px-3 py-2">${fmt(r.totalRecovered)} kg × ${FACTOR_CO2_PER_KG} = ${fmt(r.co2Saved)} kg CO₂</td>
+              </tr>
+              <tr class="border-t border-gray-200">
+                <td class="px-3 py-2">Agua conservada</td>
+                <td class="px-3 py-2">${FACTOR_AGUA_L_PER_KG} L / kg reutilizado</td>
+                <td class="px-3 py-2">${fmt(r.totalRecovered)} kg × ${FACTOR_AGUA_L_PER_KG} = ${fmt(r.waterSaved)} L</td>
+              </tr>
+              <tr class="border-t border-gray-200">
+                <td class="px-3 py-2">Energía ahorrada</td>
+                <td class="px-3 py-2">${FACTOR_ENERGIA_KWH_KG} kWh / kg reutilizado</td>
+                <td class="px-3 py-2">${fmt(r.totalRecovered)} kg × ${FACTOR_ENERGIA_KWH_KG} = ${fmt(r.energySaved)} kWh</td>
+              </tr>
+              <tr class="border-t border-gray-200">
+                <td class="px-3 py-2">Vertedero evitado</td>
+                <td class="px-3 py-2">densidad media chatarra: 1.200 kg/m³</td>
+                <td class="px-3 py-2">${fmt(r.totalRecovered)} kg ÷ 1.200 = ${fmt(r.landfillSaved, 1)} m³</td>
+              </tr>
+              <tr class="border-t border-gray-200">
+                <td class="px-3 py-2">Materias primas conservadas</td>
+                <td class="px-3 py-2">${FACTOR_MATPRIMA_KG_KG} kg materia virgen / kg pieza</td>
+                <td class="px-3 py-2">${fmt(r.totalRecovered)} kg × ${FACTOR_MATPRIMA_KG_KG} = ${fmt(r.rawMaterialSaved)} kg</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="text-xs text-gray-500 border-t border-gray-200 pt-3">
+          <div class="font-semibold text-gray-700 mb-1">Referencias</div>
+          <ul class="list-disc list-inside space-y-1">
+            <li>Energía embebida total en aceros y aluminios de automoción: 25-28 MJ/kg (~7 kWh/kg). Sato, F.E.K. et al., <em>Assessment of end-of-life vehicle recycling</em>, NCBI PMC8651122, 2021. <strong>En este informe se aplica únicamente ${FACTOR_ENERGIA_KWH_KG} kWh/kg</strong>, valor conservador que refleja solo la fase de fabricación industrial (estampación, ensamblaje, tratamientos), excluyendo la energía de extracción y transformación de materias primas.</li>
+            <li>Ahorro de emisiones por remanufactura de componentes de VFU: ~3.800 kg CO₂eq por vehículo desmontado para reutilización frente a reciclaje convencional. Misma referencia.</li>
+            <li>Factor hídrico: ${FACTOR_AGUA_L_PER_KG} L/kg, en línea con la huella hídrica directa del procesado de acero en horno eléctrico (4-6 L/kg). Aplicado a piezas reutilizadas, que ni siquiera pasan por refundición, este valor es deliberadamente conservador.</li>
+            <li>Densidad de chatarra de automoción mixta: ~1.200 kg/m³, según datos de fragmentación de VFU (Eurostat / ANGED).</li>
+            <li>Materias primas conservadas: ratio medio ponderado para mix típico de un VFU (acero ~70%, aluminio ~8%, plásticos ~12%, resto). Considera ~1,6 kg mineral de hierro+carbón por kg de acero, ~4 kg de bauxita por kg de aluminio y ~2 kg de crudo por kg de plástico.</li>
+            <li>Análisis realizado sobre datos del ERP del centro autorizado. Las piezas vendidas a gestores autorizados de residuos (chatarra) no se contabilizan como reutilización.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="no-print rounded-2xl bg-white ring-1 ring-gray-200 p-6">
+      <div class="flex items-baseline justify-between mb-4">
+        <h2 class="text-lg font-semibold">🔍 Auditoría de descartes</h2>
+        <span class="text-sm text-gray-500">${fmt(r.discardedLines)} de ${fmt(r.totalLines)} líneas ignoradas</span>
+      </div>
+      ${auditHtml}
+      <div class="mt-3 text-xs text-gray-500">Diccionario cargado: ${fmt(r.dictSize)} artículos · Cobertura del cruce: ${r.totalLines ? ((r.matchedLines / r.totalLines) * 100).toFixed(1) : 0}%${r.blacklistedLines > 0 ? ` · ${fmt(r.blacklistedLines)} líneas filtradas por lista negra (portes, forma de pago, etc.)` : ""}${r.otherCatLines > 0 ? ` · 🚫 ${fmt(r.otherCatLines)} líneas excluidas por pertenecer a otro CAT (códigos terminados en C/R)` : ""}</div>
+    </div>
+  `;
+
+  $("view-config").classList.add("hidden");
+  $("view-dashboard").classList.remove("hidden");
+  $("header-actions").classList.remove("hidden");
+  $("header-actions").classList.add("flex");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* Exporta el informe a PDF cambiando temporalmente el título de la pestaña
+   para que el navegador lo use como nombre de fichero por defecto. */
+function exportarPDF() {
+  const original = document.title;
+  const fecha = new Date().toISOString().slice(0,10); // 2026-05-12
+  document.title = `CRVNET_Trazabilidad_${fecha}`;
+  // Pequeño delay para que el cambio de title se propague antes del print
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { document.title = original; }, 500);
+  }, 50);
+}
+
+function goBack() {
+  $("view-dashboard").classList.add("hidden");
+  $("view-config").classList.remove("hidden");
+  $("header-actions").classList.add("hidden");
+  $("header-actions").classList.remove("flex");
+  $("btn-analyze").disabled = false;
+  $("btn-analyze").textContent = "Analizar datos y cruzar →";
+}
+</script>
+</body>
+</html>
