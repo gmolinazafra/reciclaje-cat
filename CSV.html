@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enriquecedor de Datos CSV + Excel</title>
+    
+    <!-- Tailwind CSS para los estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome para los iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React y ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel para compilar JSX en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Librerías de procesamiento de datos: SheetJS y PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+    
+    <!-- Contenedor principal donde React dibujará la aplicación -->
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function App() {
+            // Archivos y Datos
+            const [csvFile, setCsvFile] = useState(null);
+            const [csvData, setCsvData] = useState([]);
+            const [csvHeaders, setCsvHeaders] = useState([]);
+            
+            const [excelFile, setExcelFile] = useState(null);
+            const [excelData, setExcelData] = useState([]);
+            const [excelHeaders, setExcelHeaders] = useState([]);
+            
+            // Configuración de cruce
+            const [keyColumnCsv, setKeyColumnCsv] = useState('');
+            const [keyColumnExcel, setKeyColumnExcel] = useState('');
+            
+            // Resultado
+            const [mergedData, setMergedData] = useState([]);
+            const [isMerging, setIsMerging] = useState(false);
+            const [stats, setStats] = useState({ updatedCells: 0, newColumns: 0, matchedRows: 0 });
+
+            // Manejar subida de CSV
+            const handleCsvUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setCsvFile(file);
+                
+                window.Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        setCsvData(results.data);
+                        if (results.meta.fields) {
+                            setCsvHeaders(results.meta.fields);
+                            setKeyColumnCsv(results.meta.fields[0]);
+                        }
+                    }
+                });
+            };
+
+            // Manejar subida de Excel
+            const handleExcelUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setExcelFile(file);
+                
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const bstr = evt.target.result;
+                    const wb = window.XLSX.read(bstr, { type: 'binary' });
+                    const wsname = wb.SheetNames[0]; 
+                    const ws = wb.Sheets[wsname];
+                    const data = window.XLSX.utils.sheet_to_json(ws);
+                    
+                    setExcelData(data);
+                    if (data.length > 0) {
+                        const headers = Object.keys(data[0]);
+                        setExcelHeaders(headers);
+                        setKeyColumnExcel(headers[0]); 
+                    }
+                };
+                reader.readAsBinaryString(file);
+            };
+
+            // Lógica principal de combinación
+            const handleMerge = () => {
+                setIsMerging(true);
+                setTimeout(() => {
+                    let updatedCellsCount = 0;
+                    let matchedRowsCount = 0;
+                    let newColsSet = new Set();
+
+                    // Crear diccionario del Excel para búsqueda rápida
+                    const excelDict = {};
+                    excelData.forEach(row => {
+                        const key = row[keyColumnExcel];
+                        if (key !== undefined && key !== null) {
+                            excelDict[key.toString().trim()] = row;
+                        }
+                    });
+
+                    // Procesar CSV
+                    const newMergedData = csvData.map(csvRow => {
+                        const rowKeyRaw = csvRow[keyColumnCsv];
+                        if (rowKeyRaw === undefined || rowKeyRaw === null) return { ...csvRow };
+                        
+                        const rowKey = rowKeyRaw.toString().trim();
+                        const matchingExcelRow = excelDict[rowKey];
+                        
+                        if (matchingExcelRow) {
+                            matchedRowsCount++;
+                            const mergedRow = { ...csvRow };
+                            
+                            Object.keys(matchingExcelRow).forEach(excelCol => {
+                                if (excelCol === keyColumnExcel) return;
+
+                                const excelRawVal = matchingExcelRow[excelCol];
+                                
+                                if (excelRawVal === undefined || excelRawVal === null) return;
+                                
+                                const excelValStr = excelRawVal.toString().trim();
+                                if (excelValStr === '') return;
+
+                                // Ignorar fechas nulas
+                                const isFakeDate = 
+                                    excelValStr.startsWith('01/01/0001') || 
+                                    excelValStr.startsWith('1/1/0001') || 
+                                    excelValStr.startsWith('0001-01-01') || 
+                                    excelValStr.startsWith('01/01/1900') || 
+                                    excelValStr.startsWith('1/1/1900');
+                                    
+                                if (isFakeDate) return;
+
+                                const csvHasColumn = csvHeaders.includes(excelCol);
+                                const csvCellIsEmpty = !mergedRow[excelCol] || mergedRow[excelCol].toString().trim() === '';
+
+                                if (!csvHasColumn) {
+                                    mergedRow[excelCol] = excelRawVal;
+                                    newColsSet.add(excelCol);
+                                    updatedCellsCount++;
+                                } else if (csvCellIsEmpty) {
+                                    mergedRow[excelCol] = excelRawVal;
+                                    updatedCellsCount++;
+                                }
+                            });
+                            return mergedRow;
+                        }
+                        return { ...csvRow };
+                    });
+
+                    setStats({
+                        updatedCells: updatedCellsCount,
+                        newColumns: newColsSet.size,
+                        matchedRows: matchedRowsCount
+                    });
+                    setMergedData(newMergedData);
+                    setIsMerging(false);
+                }, 500); 
+            };
+
+            // Descargar CSV
+            const handleDownloadCSV = () => {
+                if (mergedData.length === 0) return;
+                const csv = window.Papa.unparse(mergedData);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'datos_completados.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // Descargar Excel
+            const handleDownloadExcel = () => {
+                if (mergedData.length === 0) return;
+                const ws = window.XLSX.utils.json_to_sheet(mergedData);
+                const wb = window.XLSX.utils.book_new();
+                window.XLSX.utils.book_append_sheet(wb, ws, "Datos Enriquecidos");
+                window.XLSX.writeFile(wb, "datos_completados.xlsx");
+            };
+
+            const handleReset = () => {
+                setCsvFile(null); setCsvData([]); setCsvHeaders([]);
+                setExcelFile(null); setExcelData([]); setExcelHeaders([]);
+                setMergedData([]); setStats({ updatedCells: 0, newColumns: 0, matchedRows: 0 });
+            };
+
+            const isReadyToMerge = csvData.length > 0 && excelData.length > 0 && keyColumnCsv && keyColumnExcel;
+            const isCompleted = mergedData.length > 0;
+
+            return (
+                <div className="min-h-screen p-4 md:p-8">
+                    <div className="max-w-5xl mx-auto space-y-6">
+                        
+                        {/* Header */}
+                        <div className="bg-white rounded-2xl shadow-sm p-6 flex items-center justify-between border border-gray-100">
+                            <div>
+                                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
+                                    <i className="fa-solid fa-gear text-blue-500"></i>
+                                    Enriquecedor de Datos CSV
+                                </h1>
+                                <p className="text-gray-500 mt-1">Completa los datos faltantes en tu CSV utilizando información de un Excel.</p>
+                            </div>
+                            {isCompleted && (
+                                <button onClick={handleReset} className="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
+                                    <i className="fa-solid fa-arrows-rotate"></i> Empezar de nuevo
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {/* Tarjeta CSV */}
+                            <div className={`bg-white rounded-2xl shadow-sm border ${csvFile ? 'border-blue-200 ring-2 ring-blue-50' : 'border-gray-200'} p-6 transition-all`}>
+                                <div className="flex items-center gap-3 mb-4 text-blue-600">
+                                    <i className="fa-solid fa-file-csv text-2xl"></i>
+                                    <h2 className="text-lg font-semibold text-gray-800">1. Sube tu archivo CSV</h2>
+                                </div>
+                                <p className="text-sm text-gray-500 mb-6">El archivo original que tiene datos vacíos o columnas faltantes.</p>
+                                
+                                {!csvFile ? (
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <i className="fa-solid fa-cloud-arrow-up text-4xl mb-2 text-gray-400"></i>
+                                            <p className="text-sm text-gray-500 font-medium">Click para seleccionar CSV</p>
+                                        </div>
+                                        <input type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
+                                    </label>
+                                ) : (
+                                    <div className="bg-blue-50 rounded-xl p-4 flex items-start justify-between">
+                                        <div>
+                                            <p className="font-medium text-blue-900 flex items-center gap-2">
+                                                <i className="fa-solid fa-circle-check text-blue-500"></i> {csvFile.name}
+                                            </p>
+                                            <p className="text-xs text-blue-600 mt-1">{csvData.length} filas detectadas</p>
+                                        </div>
+                                        <button onClick={() => { setCsvFile(null); setCsvData([]); setMergedData([]); }} className="text-xs text-blue-600 hover:text-blue-800 underline">Cambiar</button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Tarjeta Excel */}
+                            <div className={`bg-white rounded-2xl shadow-sm border ${excelFile ? 'border-green-200 ring-2 ring-green-50' : 'border-gray-200'} p-6 transition-all`}>
+                                <div className="flex items-center gap-3 mb-4 text-green-600">
+                                    <i className="fa-solid fa-file-excel text-2xl"></i>
+                                    <h2 className="text-lg font-semibold text-gray-800">2. Sube el Excel Fuente</h2>
+                                </div>
+                                <p className="text-sm text-gray-500 mb-6">El archivo con la información completa que usaremos para rellenar.</p>
+
+                                {!excelFile ? (
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <i className="fa-solid fa-cloud-arrow-up text-4xl mb-2 text-gray-400"></i>
+                                            <p className="text-sm text-gray-500 font-medium">Click para seleccionar Excel (.xlsx/.xls)</p>
+                                        </div>
+                                        <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleExcelUpload} />
+                                    </label>
+                                ) : (
+                                    <div className="bg-green-50 rounded-xl p-4 flex items-start justify-between">
+                                        <div>
+                                            <p className="font-medium text-green-900 flex items-center gap-2">
+                                                <i className="fa-solid fa-circle-check text-green-500"></i> {excelFile.name}
+                                            </p>
+                                            <p className="text-xs text-green-600 mt-1">{excelData.length} filas detectadas</p>
+                                        </div>
+                                        <button onClick={() => { setExcelFile(null); setExcelData([]); setMergedData([]); }} className="text-xs text-green-600 hover:text-green-800 underline">Cambiar</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Configuración de Cruce */}
+                        {csvData.length > 0 && excelData.length > 0 && !isCompleted && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-indigo-100 p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <h2 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                    3. Configurar la relación
+                                </h2>
+                                <p className="text-sm text-gray-500 mb-6">Selecciona qué columna identifica la misma fila en ambos archivos (ej: "ID", "Email", "DNI").</p>
+                                
+                                <div className="flex flex-col md:flex-row items-center gap-4">
+                                    <div className="w-full md:w-2/5">
+                                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Columna identificadora en CSV</label>
+                                        <select 
+                                            className="w-full border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 bg-gray-50"
+                                            value={keyColumnCsv}
+                                            onChange={(e) => setKeyColumnCsv(e.target.value)}
+                                        >
+                                            {csvHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div className="hidden md:flex justify-center w-1/5">
+                                        <div className="bg-indigo-50 p-3 rounded-full text-indigo-400">
+                                            <i className="fa-solid fa-gear text-xl animate-spin"></i>
+                                        </div>
+                                    </div>
+
+                                    <div className="w-full md:w-2/5">
+                                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Columna identificadora en Excel</label>
+                                        <select 
+                                            className="w-full border border-gray-300 rounded-lg shadow-sm focus:border-green-500 focus:ring-green-500 p-3 bg-gray-50"
+                                            value={keyColumnExcel}
+                                            onChange={(e) => setKeyColumnExcel(e.target.value)}
+                                        >
+                                            {excelHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 flex justify-end">
+                                    <button
+                                        onClick={handleMerge}
+                                        disabled={!isReadyToMerge || isMerging}
+                                        className={`flex items-center gap-2 px-8 py-3 rounded-xl text-white font-medium shadow-md transition-all ${
+                                            isReadyToMerge && !isMerging ? 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-0.5' : 'bg-gray-300 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {isMerging ? 'Procesando datos...' : 'Completar Datos'} <i className="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Resultados */}
+                        {isCompleted && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-emerald-200 p-6 animate-in fade-in zoom-in duration-500">
+                                <div className="text-center mb-8">
+                                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mb-4">
+                                        <i className="fa-solid fa-circle-check text-4xl"></i>
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-gray-800">¡Proceso Completado!</h2>
+                                    <p className="text-gray-500 mt-2">El archivo ha sido enriquecido con éxito.</p>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4 mb-8">
+                                    <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
+                                        <p className="text-3xl font-bold text-indigo-600">{stats.matchedRows}</p>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Filas cruzadas</p>
+                                    </div>
+                                    <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
+                                        <p className="text-3xl font-bold text-emerald-600">{stats.updatedCells}</p>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Datos rellenados</p>
+                                    </div>
+                                    <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
+                                        <p className="text-3xl font-bold text-blue-600">{stats.newColumns}</p>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Nuevas columnas</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                                    <button
+                                        onClick={handleDownloadCSV}
+                                        className="flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
+                                    >
+                                        <i className="fa-solid fa-download"></i>
+                                        Descargar CSV
+                                    </button>
+                                    <button
+                                        onClick={handleDownloadExcel}
+                                        className="flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
+                                    >
+                                        <i className="fa-solid fa-file-excel"></i>
+                                        Descargar Excel
+                                    </button>
+                                </div>
+                                
+                                <div className="mt-6 flex items-start gap-3 bg-blue-50 text-blue-800 text-sm p-4 rounded-lg">
+                                    <i className="fa-solid fa-circle-exclamation text-lg shrink-0 mt-0.5"></i>
+                                    <p>
+                                        <strong>Nota:</strong> Solo se han sobrescrito las celdas que estaban vacías en el CSV original y se han añadido las columnas del Excel que no existían. Los datos que ya tenías en tu CSV se han mantenido intactos.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // Renderizar la aplicación en el DOM
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
