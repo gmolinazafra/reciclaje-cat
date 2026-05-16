@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 440" width="680" height="440">
+  <g transform="translate(340 160)">
+    <g>
+      <path d="M -22 -94 L 30 -94 C 41 -94 48 -88 54 -78 L 86 -23 L 104 -34 L 96 16 L 47 4 L 65 -7 L 38 -54 C 36 -58 33 -60 28 -60 L -22 -60 Z" fill="#3a9d3a"/>
+      <path d="M 128 30 L 102 75 C 96 85 88 88 77 87 L -18 87 L -18 108 L -54 74 L -18 40 L -18 61 L 65 61 C 70 61 73 58 75 54 L 102 7 L 120 18 Z" fill="#1f9e7a"/>
+      <path d="M -52 86 L -78 41 C -84 31 -83 22 -77 13 L -46 -41 L -64 -52 L -14 -64 L 0 -26 L -18 -37 L -45 10 C -47 14 -47 17 -45 21 L -18 68 L -36 79 Z" fill="#157a4a"/>
+    </g>
+    <g transform="translate(8 4)">
+      <path d="M -58 22 C -58 12 -52 6 -42 4 L -30 -16 C -24 -26 -14 -32 0 -32 L 26 -32 C 38 -32 46 -26 54 -14 L 60 -4 C 68 -2 72 4 72 14 L 72 22 C 72 28 68 30 62 30 L 54 30 A 13 13 0 0 1 28 30 L -8 30 A 13 13 0 0 1 -34 30 L -50 30 C -56 30 -58 26 -58 22 Z" fill="#ffffff" stroke="#14392a" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M -24 -14 L -16 4 L 30 4 L 24 -14 C 20 -22 14 -24 8 -24 L -8 -24 C -16 -24 -21 -21 -24 -14 Z" fill="#c0dd97" opacity="0.55"/>
+      <circle cx="-21" cy="30" r="11" fill="#14392a"/>
+      <circle cx="-21" cy="30" r="4.5" fill="#ffffff"/>
+      <circle cx="41" cy="30" r="11" fill="#14392a"/>
+      <circle cx="41" cy="30" r="4.5" fill="#ffffff"/>
+    </g>
+  </g>
+  <g transform="translate(340 340)" text-anchor="middle">
+    <text x="-2" y="0" font-family="Archivo Black, Arial Black, sans-serif" font-size="62" font-weight="900">
+      <tspan fill="#c0392b">Red</tspan><tspan fill="#14392a">Desguace</tspan>
+    </text>
+    <text x="0" y="38" font-family="Archivo, Arial, sans-serif" font-size="20" font-weight="600" fill="#2d6a30" letter-spacing="3">TU ESCAPARATE DE RECAMBIOS</text>
+  </g>
+</svg>
