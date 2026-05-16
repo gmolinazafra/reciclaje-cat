@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -28,8 +28,8 @@
 
     <div class="max-w-5xl mx-auto px-4 py-8">
         <header class="text-center mb-10">
-            <!-- El logo se cargará desde la carpeta 'imagenes' de tu repositorio -->
-            <img src="imagenes/logoreddesguaces.svg" alt="Red Desguace" class="h-32 mx-auto mb-4 object-contain">
+            <!-- El logo se cargará desde la carpeta 'imagenes' de tu repositorio. Aumentado a h-48 -->
+            <img src="imagenes/logoreddesguaces.svg" alt="Red Desguace" class="h-48 mx-auto mb-4 object-contain">
             <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-2 uppercase">Ventanilla Única</h1>
             <p class="text-slate-600 text-lg">Sistema de división y auditoría de facturación internacional.</p>
         </header>
@@ -48,7 +48,7 @@
                         Arrastra aquí tu CSV de facturación
                     </div>
                     <p class="text-sm text-slate-400 max-w-md mx-auto italic">
-                        Nota: Se filtrará España y se normalizarán Portugal y Francia.
+                        Nota: Se filtrará España, se normalizarán Portugal/Francia y se excluirán operaciones con IVA 0%.
                     </p>
                 </div>
             </div>
@@ -83,7 +83,7 @@
                 <div id="auditReport" class="w-full bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left overflow-hidden">
                     <h5 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        Informe de Auditoría
+                        Resumen de Auditoría
                     </h5>
                     <div class="overflow-x-auto">
                         <table class="min-w-full text-sm text-left">
@@ -92,8 +92,8 @@
                                     <th class="px-4 py-3">País de Destino</th>
                                     <th class="px-4 py-3 text-right">Registros</th>
                                     <th class="px-4 py-3 text-right">Base Imp. (Sin IVA)</th>
+                                    <th class="px-4 py-3 text-right">Importe IVA</th>
                                     <th class="px-4 py-3 text-right text-indigo-700 font-bold">Total Facturado</th>
-                                    <th class="px-4 py-3">Agrupaciones Detectadas</th>
                                 </tr>
                             </thead>
                             <tbody id="auditTableBody" class="divide-y divide-slate-200 bg-white"></tbody>
@@ -102,8 +102,8 @@
                                     <td class="px-4 py-4 uppercase">Totales Exportados</td>
                                     <td class="px-4 py-4 text-right" id="grandTotalRows">0</td>
                                     <td class="px-4 py-4 text-right" id="grandTotalSinIva">0,00 €</td>
+                                    <td class="px-4 py-4 text-right" id="grandTotalIva">0,00 €</td>
                                     <td class="px-4 py-4 text-right text-indigo-700" id="grandTotalConIva">0,00 €</td>
-                                    <td></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -113,7 +113,7 @@
                 <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
                     <button id="downloadBtn" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-12 rounded-xl shadow-lg transition-all hover:scale-105 flex items-center justify-center gap-2 uppercase tracking-wide">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                        Descargar ZIP (Países + Auditoría)
+                        Descargar ZIP (Países + Auditoría Detallada)
                     </button>
                     <button onclick="location.reload()" class="text-sm text-slate-400 hover:text-indigo-600 underline font-medium">Cargar otro archivo</button>
                 </div>
@@ -133,11 +133,11 @@
         const progressBar = document.getElementById('progressBar');
         const statusMsg = document.getElementById('statusMsg');
         
-        // Columnas a conservar en el Excel final
+        // Columnas a conservar en el Excel final.
         const REQUIRED_COLUMNS = [
             'TIPO_OPERACION', 'NUM_OPERACION', 'FECHA_OPERACION', 'DNI', 
             'RAZON_SOCIAL', 'IMPORTE_IVA', 'IMPORTE_TOTAL_SIN_IVA', 
-            'IMPORTE_CON_IVA', 'PAIS', 'TIPO_IVA'
+            'IMPORTE_CON_IVA', 'PAIS', 'TIPO_IVA', 'PORC_IVA' 
         ];
 
         // Mapeo solicitado para normalizar
@@ -150,6 +150,7 @@
 
         let parsedData = null;
         let generatedZip = null;
+        let columnMapping = {};
 
         // Limpieza de importes para que el sumatorio sea real
         function parseAmount(val) {
@@ -186,12 +187,42 @@
                 complete: function(results) {
                     parsedData = results;
                     countryColSelect.innerHTML = '';
-                    results.meta.fields.forEach(f => {
+                    
+                    columnMapping = {};
+                    const csvFields = results.meta.fields;
+                    
+                    REQUIRED_COLUMNS.forEach(reqCol => {
+                        const normalizedReqCol = reqCol.toLowerCase().replace(/_/g, '');
+                        const match = csvFields.find(csvCol => csvCol.toLowerCase().replace(/[\s_]/g, '') === normalizedReqCol);
+                        if (match) {
+                            columnMapping[reqCol] = match;
+                        }
+                    });
+
+                    if(!columnMapping['IMPORTE_CON_IVA']) {
+                         const matchConIva = csvFields.find(csvCol => csvCol.toLowerCase().includes('con') && csvCol.toLowerCase().includes('iva'));
+                         if(matchConIva) columnMapping['IMPORTE_CON_IVA'] = matchConIva;
+                    }
+                    if(!columnMapping['IMPORTE_TOTAL_SIN_IVA']) {
+                         const matchSinIva = csvFields.find(csvCol => csvCol.toLowerCase().includes('sin') && csvCol.toLowerCase().includes('iva'));
+                         if(matchSinIva) columnMapping['IMPORTE_TOTAL_SIN_IVA'] = matchSinIva;
+                    }
+                    if(!columnMapping['PORC_IVA']) {
+                         const matchPorcIva = csvFields.find(csvCol => csvCol.toLowerCase().includes('porc') && csvCol.toLowerCase().includes('iva'));
+                         if(matchPorcIva) columnMapping['PORC_IVA'] = matchPorcIva;
+                    }
+
+                    csvFields.forEach(f => {
                         const o = document.createElement('option');
                         o.value = f; o.textContent = f;
-                        if (f.toLowerCase().includes('pais')) o.selected = true;
+                        if (f.toLowerCase().replace(/[\s_]/g, '').includes('pais')) {
+                             o.selected = true;
+                        } else if (columnMapping['PAIS'] === f) {
+                             o.selected = true;
+                        }
                         countryColSelect.appendChild(o);
                     });
+                    
                     configSection.classList.remove('hidden');
                     successSection.classList.add('hidden');
                     statusSection.classList.add('hidden');
@@ -207,45 +238,97 @@
             
             setTimeout(async () => {
                 const groups = {};
-                const audit = {};
-                const mappingLog = {};
-                let gRows = 0, gSin = 0, gCon = 0;
+                const auditSummary = {};
+                let allAuditRows = [];   // Registros Aceptados
+                let discardedRows = [];  // Registros Descartados y su motivo
+                
+                let gRows = 0, gSin = 0, gIva = 0, gCon = 0;
 
                 parsedData.data.forEach(row => {
+                    // Extraer los datos de la fila para guardarlos si se descartan
+                    const extractedRow = {};
+                    REQUIRED_COLUMNS.forEach(colName => {
+                        const csvColName = columnMapping[colName];
+                        extractedRow[colName] = csvColName ? (row[csvColName] || "") : "";
+                    });
+
+                    let isDiscarded = false;
+                    let discardReason = "";
+
+                    // 1. FILTRO DE IVA
+                    const colNamePorcIva = columnMapping['PORC_IVA'] || columnMapping['TIPO_IVA'];
+                    if (colNamePorcIva) {
+                        const porcIvaValue = parseAmount(row[colNamePorcIva]);
+                        if (porcIvaValue === 0) {
+                            isDiscarded = true;
+                            discardReason = "Porcentaje de IVA es 0%";
+                        }
+                    }
+
                     const originalCountry = (row[countryKey] || 'Otros').toString().trim();
                     const lowerCountry = originalCountry.toLowerCase();
                     
-                    // Excluir si contiene números (ej. teléfonos) o está vacío
-                    if (/\d/.test(originalCountry) || originalCountry === '') return;
+                    // 2. FILTRO DE CARACTERES EXTRAÑOS O TELÉFONOS
+                    if (!isDiscarded && (/\d/.test(originalCountry) || originalCountry === '')) {
+                        isDiscarded = true;
+                        discardReason = "País inválido (vacío o contiene números)";
+                    }
 
-                    // Excluir España, cubriendo también errores de codificación como "espaa"
-                    const isSpain = EXCLUDED_COUNTRIES.includes(lowerCountry) || /^espa.*a$/.test(lowerCountry);
-                    if (isSpain) return;
+                    // 3. FILTRO DE ESPAÑA
+                    if (!isDiscarded) {
+                        const isSpain = EXCLUDED_COUNTRIES.includes(lowerCountry) || /^espa.*a$/.test(lowerCountry);
+                        if (isSpain) {
+                            isDiscarded = true;
+                            discardReason = "Operación nacional (España)";
+                        }
+                    }
+
+                    // REGISTRAR DESCARTE Y SALTAR AL SIGUIENTE
+                    if (isDiscarded) {
+                        // Añadimos el motivo al principio de la fila para el reporte
+                        discardedRows.push({
+                            'MOTIVO_DESCARTE': discardReason,
+                            ...extractedRow,
+                            'PAIS_ORIGINAL': originalCountry
+                        });
+                        return; // No procesar más esta fila
+                    }
+
+                    // SI LLEGA AQUÍ, EL REGISTRO ES VÁLIDO
 
                     // Normalizar Portugal y Francia
                     let finalName = COUNTRY_MAP[lowerCountry] || (originalCountry.charAt(0).toUpperCase() + originalCountry.slice(1).toLowerCase());
-                    
-                    if (finalName !== originalCountry) {
-                        if (!mappingLog[finalName]) mappingLog[finalName] = new Set();
-                        mappingLog[finalName].add(originalCountry);
-                    }
 
                     if (!groups[finalName]) {
                         groups[finalName] = [];
-                        audit[finalName] = { rows: 0, sin: 0, con: 0 };
+                        auditSummary[finalName] = { rows: 0, sin: 0, iva: 0, con: 0 };
                     }
 
-                    const filtered = {};
-                    REQUIRED_COLUMNS.forEach(c => filtered[c] = row[c] || "");
-                    groups[finalName].push(filtered);
-
-                    const base = parseAmount(row['IMPORTE_TOTAL_SIN_IVA']);
-                    const total = parseAmount(row['IMPORTE_CON_IVA']);
+                    // Eliminar PORC_IVA de la exportación si se desea
+                    const filteredRow = { ...extractedRow };
+                    delete filteredRow['PORC_IVA'];
                     
-                    audit[finalName].rows++;
-                    audit[finalName].sin += base;
-                    audit[finalName].con += total;
-                    gRows++; gSin += base; gCon += total;
+                    groups[finalName].push(filteredRow);
+                    
+                    // Añadir la fila a la auditoría de aceptados
+                    const auditRow = { ...filteredRow, 'PAIS_DETECTADO': finalName };
+                    allAuditRows.push(auditRow);
+
+                    // Calcular importes
+                    const colNameSinIva = columnMapping['IMPORTE_TOTAL_SIN_IVA'];
+                    const colNameIva = columnMapping['IMPORTE_IVA'];
+                    const colNameConIva = columnMapping['IMPORTE_CON_IVA'];
+
+                    const base = colNameSinIva ? parseAmount(row[colNameSinIva]) : 0;
+                    const importeIva = colNameIva ? parseAmount(row[colNameIva]) : 0;
+                    const total = colNameConIva ? parseAmount(row[colNameConIva]) : 0;
+                    
+                    auditSummary[finalName].rows++;
+                    auditSummary[finalName].sin += base;
+                    auditSummary[finalName].iva += importeIva;
+                    auditSummary[finalName].con += total;
+                    
+                    gRows++; gSin += base; gIva += importeIva; gCon += total;
                 });
 
                 const zip = new JSZip();
@@ -253,37 +336,26 @@
                 const tbody = document.getElementById('auditTableBody');
                 tbody.innerHTML = '';
 
-                const auditExportData = []; // Array para guardar datos y exportar a Excel
-
+                // 1. Generar los archivos por país
                 for (let i = 0; i < countries.length; i++) {
                     const cName = countries[i];
                     statusMsg.textContent = `Preparando Excel de ${cName}...`;
                     
-                    const ws = XLSX.utils.json_to_sheet(groups[cName]);
+                    const columnsToExport = REQUIRED_COLUMNS.filter(c => c !== 'PORC_IVA');
+                    const ws = XLSX.utils.json_to_sheet(groups[cName], {header: columnsToExport});
                     const wb = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(wb, ws, "Datos");
                     const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
                     zip.file(`${cName}.xlsx`, buf);
 
-                    const aliases = mappingLog[cName] ? Array.from(mappingLog[cName]).join(', ') : '-';
-                    
-                    // Rellenar datos para el archivo Excel de auditoría
-                    auditExportData.push({
-                        'País de Destino': cName,
-                        'Registros': audit[cName].rows,
-                        'Base Imp. (Sin IVA)': audit[cName].sin,
-                        'Total Facturado': audit[cName].con,
-                        'Agrupaciones Detectadas': aliases
-                    });
-
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 transition-colors";
                     tr.innerHTML = `
                         <td class="px-4 py-3 font-semibold">${cName}</td>
-                        <td class="px-4 py-3 text-right">${audit[cName].rows}</td>
-                        <td class="px-4 py-3 text-right">${formatEuro(audit[cName].sin)}</td>
-                        <td class="px-4 py-3 text-right font-bold text-indigo-700">${formatEuro(audit[cName].con)}</td>
-                        <td class="px-4 py-3 text-xs text-slate-400 italic">${aliases}</td>
+                        <td class="px-4 py-3 text-right">${auditSummary[cName].rows}</td>
+                        <td class="px-4 py-3 text-right">${formatEuro(auditSummary[cName].sin)}</td>
+                        <td class="px-4 py-3 text-right">${formatEuro(auditSummary[cName].iva)}</td>
+                        <td class="px-4 py-3 text-right font-bold text-indigo-700">${formatEuro(auditSummary[cName].con)}</td>
                     `;
                     tbody.appendChild(tr);
                     progressBar.style.width = `${((i+1)/countries.length)*100}%`;
@@ -292,24 +364,55 @@
 
                 document.getElementById('grandTotalRows').textContent = gRows;
                 document.getElementById('grandTotalSinIva').textContent = formatEuro(gSin);
+                document.getElementById('grandTotalIva').textContent = formatEuro(gIva);
                 document.getElementById('grandTotalConIva').textContent = formatEuro(gCon);
 
-                // Añadir la fila final de sumas al exportable de auditoría
-                auditExportData.push({
-                    'País de Destino': 'TOTALES EXPORTADOS',
+                // 2. Generar el Excel de la Auditoría DETALLADA
+                statusMsg.textContent = "Generando informe de auditoría detallado...";
+                
+                const auditWb = XLSX.utils.book_new();
+                
+                // HOJA 1: Resumen
+                const summaryData = countries.map(c => ({
+                    'País de Destino': c,
+                    'Registros': auditSummary[c].rows,
+                    'Base Imp. (Sin IVA)': auditSummary[c].sin,
+                    'Importe IVA': auditSummary[c].iva,
+                    'Total Facturado': auditSummary[c].con
+                }));
+                summaryData.push({
+                    'País de Destino': 'TOTAL',
                     'Registros': gRows,
                     'Base Imp. (Sin IVA)': gSin,
-                    'Total Facturado': gCon,
-                    'Agrupaciones Detectadas': ''
+                    'Importe IVA': gIva,
+                    'Total Facturado': gCon
                 });
+                const summaryWs = XLSX.utils.json_to_sheet(summaryData);
+                XLSX.utils.book_append_sheet(auditWb, summaryWs, "Resumen Exportado");
 
-                // Generar el Excel de la Auditoría y añadirlo al ZIP
-                statusMsg.textContent = "Generando informe de auditoría...";
-                const auditWs = XLSX.utils.json_to_sheet(auditExportData);
-                const auditWb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(auditWb, auditWs, "Auditoría");
+                // HOJA 2: Registros Aceptados
+                const columnsForDetailedAudit = REQUIRED_COLUMNS.filter(c => c !== 'PORC_IVA');
+                columnsForDetailedAudit.push('PAIS_DETECTADO');
+                const detailedWs = XLSX.utils.json_to_sheet(allAuditRows, {header: columnsForDetailedAudit});
+                XLSX.utils.book_append_sheet(auditWb, detailedWs, "Registros Aceptados");
+
+                // HOJA 3: Registros Descartados
+                const columnsForDiscarded = ['MOTIVO_DESCARTE', ...REQUIRED_COLUMNS, 'PAIS_ORIGINAL'];
+                // Si no hay descartados, creamos una hoja vacía con un mensaje
+                if (discardedRows.length === 0) {
+                    discardedRows = [{'MOTIVO_DESCARTE': 'No hubo ningún registro descartado en este archivo.'}];
+                }
+                const discardedWs = XLSX.utils.json_to_sheet(discardedRows, {header: columnsForDiscarded});
+                
+                // Darle un poco de estilo al ancho de columna del motivo para que se lea bien
+                if(discardedWs['!cols']) discardedWs['!cols'] = [{wch: 35}]; 
+                else discardedWs['!cols'] = [{wch: 35}];
+
+                XLSX.utils.book_append_sheet(auditWb, discardedWs, "Registros Descartados");
+
+
                 const auditBuf = XLSX.write(auditWb, { bookType: 'xlsx', type: 'array' });
-                zip.file("Informe_Auditoria_VentanillaUnica.xlsx", auditBuf);
+                zip.file("Informe_Auditoria_Detallada.xlsx", auditBuf);
 
                 generatedZip = await zip.generateAsync({type:"blob"});
                 statusSection.classList.add('hidden');
