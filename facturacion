@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desglose Global y Auditoría - Red Desguace</title>
+    <!-- Dependencias externas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .drop-zone--over { border-color: #0ea5e9; background-color: #f0f9ff; }
+        .animate-bounce-in {
+            animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-900">
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <header class="text-center mb-10">
+            <img src="imagenes/logoreddesguaces.svg" alt="Red Desguace" class="w-full max-w-xs sm:max-w-sm md:max-w-md h-auto mx-auto mb-8 object-contain">
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-2 uppercase text-sky-900">Desglose Mensual V2</h1>
+            <p class="text-slate-600 text-lg">Cruce inteligente de Maestros y Clientes con detección de IVA Distinto.</p>
+        </header>
+
+        <main class="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Cliente File -->
+                <div id="dropZoneClients" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center transition-all cursor-pointer hover:border-emerald-400 group bg-slate-50/50">
+                    <input type="file" id="clientsFile" class="hidden" accept=".csv, .xlsx, .xls">
+                    <div class="space-y-3">
+                        <div class="bg-white w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-sm group-hover:scale-110 transition-transform">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        </div>
+                        <div class="text-slate-600 font-medium">1. Lista de Clientes</div>
+                        <p class="text-xs text-slate-400">Para obtener los grupos</p>
+                        <div id="clientsStatus" class="text-xs font-bold text-emerald-600 hidden mt-2 py-1 px-3 bg-emerald-100 rounded-full inline-block">¡Cargado!</div>
+                    </div>
+                </div>
+
+                <!-- Maestro File -->
+                <div id="dropZoneBilling" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center transition-all cursor-pointer hover:border-sky-400 group bg-slate-50/50">
+                    <input type="file" id="billingFile" class="hidden" accept=".csv, .xlsx, .xls">
+                    <div class="space-y-3">
+                        <div class="bg-white w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-sm group-hover:scale-110 transition-transform">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </div>
+                        <div class="text-slate-600 font-medium">2. Facturación (Maestro)</div>
+                        <p class="text-xs text-slate-400">Archivo con ventas y fechas</p>
+                        <div id="billingStatus" class="text-xs font-bold text-sky-600 hidden mt-2 py-1 px-3 bg-sky-100 rounded-full inline-block">¡Cargado!</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="configSection" class="hidden mt-8 space-y-6 animate-in fade-in duration-500">
+                <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Clientes Mapping -->
+                        <div class="space-y-4">
+                            <h3 class="font-bold text-slate-800 border-b pb-1">Columnas en Clientes</h3>
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase">DNI / NIF</label>
+                                <select id="clientsIdCol" class="w-full text-sm rounded border-slate-300 p-2"></select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Código Cliente</label>
+                                <select id="clientsCodeCol" class="w-full text-sm rounded border-slate-300 p-2"></select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Grupo Cliente</label>
+                                <select id="clientsGroupCol" class="w-full text-sm rounded border-slate-300 p-2"></select>
+                            </div>
+                        </div>
+
+                        <!-- Facturación Mapping -->
+                        <div class="space-y-4">
+                            <h3 class="font-bold text-slate-800 border-b pb-1">Columnas en Facturación</h3>
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase">DNI / NIF</label>
+                                <select id="billingIdCol" class="w-full text-sm rounded border-slate-300 p-2"></select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Código Cliente</label>
+                                <select id="billingCodeCol" class="w-full text-sm rounded border-slate-300 p-2"></select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Fecha Factura</label>
+                                <select id="dateCol" class="w-full text-sm rounded border-slate-300 p-2"></select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Importe Total</label>
+                                <select id="totalCol" class="w-full text-sm rounded border-slate-300 p-2"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-4">
+                        <button id="processBtn" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-10 rounded-lg shadow-lg transition-all uppercase text-sm tracking-widest">
+                            Procesar Todo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="statusSection" class="hidden mt-8 text-center space-y-4">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600 mx-auto"></div>
+                <span id="statusMsg" class="text-slate-700 font-medium italic">Cruzando datos maestros...</span>
+                <div class="w-full bg-slate-200 rounded-full h-2 max-w-md mx-auto">
+                    <div id="progressBar" class="bg-sky-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="successSection" class="hidden mt-8 space-y-6 animate-bounce-in">
+                <!-- Estadísticas Rápidas -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-slate-900 text-white p-5 rounded-xl shadow-lg">
+                        <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Global Facturado</div>
+                        <div class="text-2xl font-bold mt-1" id="uiGlobalConIva">0,00 €</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow border border-slate-200">
+                        <div class="text-xs font-bold text-slate-500 uppercase tracking-widest">Excluido (IVA Distinto)</div>
+                        <div class="text-2xl font-bold mt-1 text-slate-700" id="uiVuConIva">0,00 €</div>
+                    </div>
+                    <div class="bg-sky-600 text-white p-5 rounded-xl shadow-lg">
+                        <div class="text-xs font-bold text-sky-200 uppercase tracking-widest">Total en Carpetas</div>
+                        <div class="text-2xl font-bold mt-1" id="uiDesgloseConIva">0,00 €</div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Resultados -->
+                <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
+                    <div class="p-4 bg-slate-50 border-b font-bold text-slate-700 flex justify-between items-center">
+                        <span>Desglose por Mes y Grupo</span>
+                        <button id="downloadBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2 rounded-full flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13 8V2H7v6H2l8 8 8-8h-5zM1 18h18v2H1v-2z" /></svg>
+                            DESCARGAR ZIP
+                        </button>
+                    </div>
+                    <div class="max-h-96 overflow-y-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-100 text-slate-500 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 border-b">Mes</th>
+                                    <th class="px-6 py-3 border-b">Grupo</th>
+                                    <th class="px-6 py-3 border-b text-right">Facturas</th>
+                                    <th class="px-6 py-3 border-b text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button onclick="location.reload()" class="text-slate-400 hover:text-sky-600 text-sm font-medium underline">Cargar otros archivos</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const dropZoneClients = document.getElementById('dropZoneClients');
+        const clientsFileInput = document.getElementById('clientsFile');
+        const dropZoneBilling = document.getElementById('dropZoneBilling');
+        const billingFileInput = document.getElementById('billingFile');
+        
+        const configSection = document.getElementById('configSection');
+        const clientsIdColSelect = document.getElementById('clientsIdCol');
+        const clientsCodeColSelect = document.getElementById('clientsCodeCol');
+        const clientsGroupColSelect = document.getElementById('clientsGroupCol');
+        
+        const billingIdColSelect = document.getElementById('billingIdCol');
+        const billingCodeColSelect = document.getElementById('billingCodeCol');
+        const dateColSelect = document.getElementById('dateCol');
+        const totalColSelect = document.getElementById('totalCol');
+        
+        const processBtn = document.getElementById('processBtn');
+        const statusSection = document.getElementById('statusSection');
+        const successSection = document.getElementById('successSection');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        let clientsData = null;
+        let billingData = null;
+        let generatedZip = null;
+
+        // Normalización avanzada de DNI/CIF y Códigos
+        function normalizeId(id) {
+            if (id === null || id === undefined) return '';
+            // Eliminar espacios, puntos, guiones y pasar a mayúsculas
+            let s = String(id).toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+            // Quitar ceros a la izquierda (muy importante para códigos de cliente)
+            return s.replace(/^0+/, '') || '0';
+        }
+
+        // Extracción robusta de Fecha (soporte para números serie Excel)
+        function getMonthYear(val) {
+            if (!val) return 'Sin_Fecha';
+            
+            // Si SheetJS lo dio como Date
+            if (val instanceof Date) {
+                if (isNaN(val.getTime())) return 'Fecha_Invalida';
+                return `${val.getFullYear()}-${String(val.getMonth() + 1).padStart(2, '0')}`;
+            }
+
+            // Si es número (Excel Serial)
+            let num = parseFloat(val);
+            if (!isNaN(num)) {
+                // Rango coherente entre 1980 (29221) y 2050 (54789)
+                if (num > 25000 && num < 60000) {
+                    try {
+                        const date = XLSX.SSF.parse_date_code(num);
+                        return `${date.y}-${String(date.m).padStart(2, '0')}`;
+                    } catch(e) {}
+                }
+            }
+
+            // Si es texto
+            let str = String(val).trim();
+            // Buscar patrones tipo DD/MM/YYYY
+            let parts = str.match(/(\d{1,4})[-/.](\d{1,2})[-/.](\d{1,4})/);
+            if (parts) {
+                let d1 = parts[1], d2 = parts[2], d3 = parts[3];
+                if (d1.length === 4) return `${d1}-${String(d2).padStart(2, '0')}`; // YYYY-MM-DD
+                if (d3.length === 4) return `${d3}-${String(d2).padStart(2, '0')}`; // DD-MM-YYYY
+                if (d3.length === 2) return `20${d3}-${String(d2).padStart(2, '0')}`; // DD-MM-YY
+            }
+
+            return 'Fecha_No_Reconocida';
+        }
+
+        function parseAmount(val) {
+            if (val === null || val === undefined) return 0;
+            let str = val.toString().trim().replace(/[^\d.,-]/g, '');
+            if (str.includes('.') && str.includes(',')) {
+                str = str.replace(/\./g, '').replace(',', '.');
+            } else if (str.includes(',')) {
+                str = str.replace(',', '.');
+            }
+            const n = parseFloat(str);
+            return isNaN(n) ? 0 : n;
+        }
+
+        const formatEuro = (n) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
+
+        function readAnyFile(file, callback) {
+            const fileName = file.name.toLowerCase();
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                // cellDates true para que Excel serial se convierta a objeto Date si es posible
+                const workbook = XLSX.read(data, {type: 'array', cellDates: true});
+                const ws = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(ws, {defval: ""});
+                if(json.length > 0) callback(json, Object.keys(json[0]));
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Drag & Drop
+        dropZoneClients.onclick = () => clientsFileInput.click();
+        clientsFileInput.onchange = (e) => {
+            if (e.target.files.length) {
+                readAnyFile(e.target.files[0], (data, fields) => {
+                    clientsData = { data, fields };
+                    populateSelects(clientsIdColSelect, fields, ['nif', 'dni', 'cif']);
+                    populateSelects(clientsCodeColSelect, fields, ['codigo', 'cod']);
+                    populateSelects(clientsGroupColSelect, fields, ['grupo']);
+                    document.getElementById('clientsStatus').classList.remove('hidden');
+                    if (billingData) configSection.classList.remove('hidden');
+                });
+            }
+        };
+
+        dropZoneBilling.onclick = () => billingFileInput.click();
+        billingFileInput.onchange = (e) => {
+            if (e.target.files.length) {
+                readAnyFile(e.target.files[0], (data, fields) => {
+                    billingData = { data, fields };
+                    populateSelects(billingIdColSelect, fields, ['dni', 'nif', 'cif']);
+                    populateSelects(billingCodeColSelect, fields, ['cliente', 'cod']);
+                    populateSelects(dateColSelect, fields, ['fecha']);
+                    populateSelects(totalColSelect, fields, ['total', 'importe']);
+                    document.getElementById('billingStatus').classList.remove('hidden');
+                    if (clientsData) configSection.classList.remove('hidden');
+                });
+            }
+        };
+
+        function populateSelects(select, fields, keywords) {
+            select.innerHTML = '<option value="">-- Ignorar --</option>';
+            fields.forEach(f => {
+                const opt = new Option(f, f);
+                keywords.forEach(k => {
+                    if (f.toLowerCase().includes(k)) opt.selected = true;
+                });
+                select.add(opt);
+            });
+        }
+
+        processBtn.onclick = () => {
+            configSection.classList.add('hidden');
+            statusSection.classList.remove('hidden');
+
+            setTimeout(async () => {
+                // 1. Mapa de Clientes (con doble indexación: DNI y Código)
+                const dniMap = {};
+                const codeMap = {};
+                const cDni = clientsIdColSelect.value;
+                const cCode = clientsCodeColSelect.value;
+                const cGrp = clientsGroupColSelect.value;
+
+                clientsData.data.forEach(row => {
+                    const group = String(row[cGrp] || '').trim() || 'GRUPO DEFECTO';
+                    const dni = normalizeId(row[cDni]);
+                    const code = normalizeId(row[cCode]);
+                    if (dni) dniMap[dni] = group;
+                    if (code) codeMap[code] = group;
+                });
+
+                // 2. Procesar Maestro
+                const bDni = billingIdColSelect.value;
+                const bCode = billingCodeColSelect.value;
+                const bDate = dateColSelect.value;
+                const bTotal = totalColSelect.value;
+
+                const breakdown = {};
+                const summary = {};
+                let excludedRows = [];
+                let acceptedRows = [];
+                let totalG = 0, totalE = 0, totalA = 0;
+
+                billingData.data.forEach(row => {
+                    if (!row[bDate] && !row[bTotal]) return;
+
+                    // Identificar Cliente (Prioridad DNI -> Fallback Código)
+                    const dniKey = normalizeId(row[bDni]);
+                    const codeKey = normalizeId(row[bCode]);
+                    let group = 'Cliente No Encontrado';
+
+                    if (dniKey && dniMap[dniKey]) group = dniMap[dniKey];
+                    else if (codeKey && codeMap[codeKey]) group = codeMap[codeKey];
+
+                    const total = parseAmount(row[bTotal]);
+                    totalG += total;
+
+                    const dateKey = getMonthYear(row[bDate]);
+                    const isIvaDistinto = group.toUpperCase().includes('IVA PORCENTAJE DISTINTO') || group.toUpperCase().includes('IVA DISTINTO');
+
+                    const cleanRow = { ...row, 'GRUPO_CALCULADO': group, 'MES_CALCULADO': dateKey };
+
+                    if (isIvaDistinto) {
+                        totalE += total;
+                        excludedRows.push(cleanRow);
+                    } else {
+                        totalA += total;
+                        acceptedRows.push(cleanRow);
+                        
+                        const groupDir = group.replace(/[<>:"/\\|?*]/g, '_');
+                        if (!breakdown[dateKey]) breakdown[dateKey] = {};
+                        if (!breakdown[dateKey][groupDir]) breakdown[dateKey][groupDir] = [];
+                        breakdown[dateKey][groupDir].push(cleanRow);
+
+                        const sKey = `${dateKey}|${groupDir}`;
+                        if (!summary[sKey]) summary[sKey] = { m: dateKey, g: groupDir, r: 0, t: 0 };
+                        summary[sKey].r++;
+                        summary[sKey].t += total;
+                    }
+                });
+
+                // 3. UI y ZIP
+                const zip = new JSZip();
+                const tbody = document.getElementById('auditTableBody');
+                tbody.innerHTML = '';
+
+                // Ordenar Meses
+                const months = Object.keys(breakdown).sort();
+                for (const m of months) {
+                    const mFolder = zip.folder(m);
+                    for (const g in breakdown[m]) {
+                        const ws = XLSX.utils.json_to_sheet(breakdown[m][g]);
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, "Datos");
+                        mFolder.file(`${g}.xlsx`, XLSX.write(wb, {bookType: 'xlsx', type: 'array'}));
+
+                        const s = summary[`${m}|${g}`];
+                        const tr = tbody.insertRow();
+                        tr.innerHTML = `<td class="px-6 py-3">${m}</td><td class="px-6 py-3 font-medium text-sky-700">${g}</td><td class="px-6 py-3 text-right">${s.r}</td><td class="px-6 py-3 text-right font-bold">${formatEuro(s.t)}</td>`;
+                    }
+                }
+
+                // Auditoría Excel
+                const auditWb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(auditWb, XLSX.utils.json_to_sheet([
+                    { Concepto: 'TOTAL GLOBAL MAESTRO', Total: totalG },
+                    { Concepto: 'Total Carpetas', Total: totalA },
+                    { Concepto: 'Total Excluido (IVA Distinto)', Total: totalE }
+                ]), "Resumen");
+                XLSX.utils.book_append_sheet(auditWb, XLSX.utils.json_to_sheet(acceptedRows), "Aceptados");
+                XLSX.utils.book_append_sheet(auditWb, XLSX.utils.json_to_sheet(excludedRows), "Excluidos_Iva_Distinto");
+                zip.file("Auditoria_Global.xlsx", XLSX.write(auditWb, {bookType: 'xlsx', type: 'array'}));
+
+                document.getElementById('uiGlobalConIva').innerText = formatEuro(totalG);
+                document.getElementById('uiVuConIva').innerText = formatEuro(totalE);
+                document.getElementById('uiDesgloseConIva').innerText = formatEuro(totalA);
+
+                generatedZip = await zip.generateAsync({type: "blob"});
+                statusSection.classList.add('hidden');
+                successSection.classList.remove('hidden');
+            }, 500);
+        };
+
+        downloadBtn.onclick = () => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(generatedZip);
+            a.download = `Desglose_V2_${new Date().toISOString().slice(0,10)}.zip`;
+            a.click();
+        };
+    </script>
+</body>
+</html>
