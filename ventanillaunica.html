@@ -1,0 +1,330 @@
+
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventanilla Única - Exportador de Facturación</title>
+    <!-- Dependencias externas: Tailwind para diseño, PapaParse para CSV, JSZip para comprimir y SheetJS para Excel -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .drop-zone--over { border-color: #4f46e5; background-color: #f5f3ff; }
+        .animate-bounce-in {
+            animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-900">
+
+    <div class="max-w-5xl mx-auto px-4 py-8">
+        <header class="text-center mb-10">
+            <!-- El logo se cargará desde la carpeta 'imagenes' de tu repositorio -->
+            <img src="imagenes/logoreddesguaces.svg" alt="Red Desguace" class="h-32 mx-auto mb-4 object-contain">
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-2 uppercase">Ventanilla Única</h1>
+            <p class="text-slate-600 text-lg">Sistema de división y auditoría de facturación internacional.</p>
+        </header>
+
+        <main class="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+            <!-- Zona de Arrastre -->
+            <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center transition-all cursor-pointer hover:border-indigo-400 group bg-slate-50/50">
+                <input type="file" id="csvFile" class="hidden" accept=".csv">
+                <div class="space-y-4">
+                    <div class="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-sm group-hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <div class="text-slate-600 text-lg font-medium">
+                        Arrastra aquí tu CSV de facturación
+                    </div>
+                    <p class="text-sm text-slate-400 max-w-md mx-auto italic">
+                        Nota: Se filtrará España y se normalizarán Portugal y Francia.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Selección de Columna -->
+            <div id="configSection" class="hidden mt-8 space-y-6 animate-in fade-in duration-500">
+                <div class="flex flex-col md:flex-row gap-6 items-end bg-slate-50 p-6 rounded-xl border border-slate-200">
+                    <div class="flex-grow">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Identificar columna de PAÍS</label>
+                        <select id="countryCol" class="w-full rounded-lg border-slate-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2.5 bg-white border"></select>
+                    </div>
+                    <button id="processBtn" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg transition-all shadow-md flex items-center justify-center gap-2 uppercase tracking-wide">
+                        Procesar y Auditar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progreso -->
+            <div id="statusSection" class="hidden mt-8 text-center space-y-4">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                <span id="statusMsg" class="text-slate-700 font-medium">Dividiendo archivos...</span>
+                <div class="w-full bg-slate-200 rounded-full h-2">
+                    <div id="progressBar" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Informe y Descarga -->
+            <div id="successSection" class="hidden mt-8 space-y-6 animate-bounce-in">
+                <div class="bg-emerald-50 text-emerald-700 p-4 rounded-xl text-center font-medium border border-emerald-200 mb-2 shadow-sm">
+                    ¡Procesamiento completado! Se ha generado tu ZIP con las facturas por país y el reporte de auditoría.
+                </div>
+                <div id="auditReport" class="w-full bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left overflow-hidden">
+                    <h5 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Informe de Auditoría
+                    </h5>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-left">
+                            <thead class="text-xs text-slate-500 uppercase bg-slate-100 border-b">
+                                <tr>
+                                    <th class="px-4 py-3">País de Destino</th>
+                                    <th class="px-4 py-3 text-right">Registros</th>
+                                    <th class="px-4 py-3 text-right">Base Imp. (Sin IVA)</th>
+                                    <th class="px-4 py-3 text-right text-indigo-700 font-bold">Total Facturado</th>
+                                    <th class="px-4 py-3">Agrupaciones Detectadas</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody" class="divide-y divide-slate-200 bg-white"></tbody>
+                            <tfoot class="font-bold text-slate-800 bg-slate-100">
+                                <tr>
+                                    <td class="px-4 py-4 uppercase">Totales Exportados</td>
+                                    <td class="px-4 py-4 text-right" id="grandTotalRows">0</td>
+                                    <td class="px-4 py-4 text-right" id="grandTotalSinIva">0,00 €</td>
+                                    <td class="px-4 py-4 text-right text-indigo-700" id="grandTotalConIva">0,00 €</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <button id="downloadBtn" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-12 rounded-xl shadow-lg transition-all hover:scale-105 flex items-center justify-center gap-2 uppercase tracking-wide">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                        Descargar ZIP (Países + Auditoría)
+                    </button>
+                    <button onclick="location.reload()" class="text-sm text-slate-400 hover:text-indigo-600 underline font-medium">Cargar otro archivo</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('csvFile');
+        const configSection = document.getElementById('configSection');
+        const countryColSelect = document.getElementById('countryCol');
+        const processBtn = document.getElementById('processBtn');
+        const statusSection = document.getElementById('statusSection');
+        const successSection = document.getElementById('successSection');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const progressBar = document.getElementById('progressBar');
+        const statusMsg = document.getElementById('statusMsg');
+        
+        // Columnas a conservar en el Excel final
+        const REQUIRED_COLUMNS = [
+            'TIPO_OPERACION', 'NUM_OPERACION', 'FECHA_OPERACION', 'DNI', 
+            'RAZON_SOCIAL', 'IMPORTE_IVA', 'IMPORTE_TOTAL_SIN_IVA', 
+            'IMPORTE_CON_IVA', 'PAIS', 'TIPO_IVA'
+        ];
+
+        // Mapeo solicitado para normalizar
+        const COUNTRY_MAP = {
+            'pt': 'Portugal', 'portugal': 'Portugal', 'PORTUGAL': 'Portugal',
+            'fr': 'Francia', 'francia': 'Francia', 'france': 'Francia', 'FR': 'Francia'
+        };
+
+        const EXCLUDED_COUNTRIES = ['es', 'españa', 'espana', 'spain'];
+
+        let parsedData = null;
+        let generatedZip = null;
+
+        // Limpieza de importes para que el sumatorio sea real
+        function parseAmount(val) {
+            if (!val) return 0;
+            let str = val.toString().trim().replace(/[^\d.,-]/g, '');
+            if (str.includes('.') && str.includes(',')) {
+                str = str.replace(/\./g, '').replace(',', '.');
+            } else if (str.includes(',')) {
+                str = str.replace(',', '.');
+            }
+            const n = parseFloat(str);
+            return isNaN(n) ? 0 : n;
+        }
+
+        const formatEuro = (n) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
+
+        // Eventos básicos de carga
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drop-zone--over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drop-zone--over'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drop-zone--over');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            Papa.parse(file, {
+                header: true, skipEmptyLines: true,
+                complete: function(results) {
+                    parsedData = results;
+                    countryColSelect.innerHTML = '';
+                    results.meta.fields.forEach(f => {
+                        const o = document.createElement('option');
+                        o.value = f; o.textContent = f;
+                        if (f.toLowerCase().includes('pais')) o.selected = true;
+                        countryColSelect.appendChild(o);
+                    });
+                    configSection.classList.remove('hidden');
+                    successSection.classList.add('hidden');
+                    statusSection.classList.add('hidden');
+                }
+            });
+        }
+
+        // Lógica de procesamiento y creación de archivos
+        processBtn.addEventListener('click', async () => {
+            const countryKey = countryColSelect.value;
+            configSection.classList.add('hidden');
+            statusSection.classList.remove('hidden');
+            
+            setTimeout(async () => {
+                const groups = {};
+                const audit = {};
+                const mappingLog = {};
+                let gRows = 0, gSin = 0, gCon = 0;
+
+                parsedData.data.forEach(row => {
+                    const originalCountry = (row[countryKey] || 'Otros').toString().trim();
+                    const lowerCountry = originalCountry.toLowerCase();
+                    
+                    // Excluir si contiene números (ej. teléfonos) o está vacío
+                    if (/\d/.test(originalCountry) || originalCountry === '') return;
+
+                    // Excluir España, cubriendo también errores de codificación como "espaa"
+                    const isSpain = EXCLUDED_COUNTRIES.includes(lowerCountry) || /^espa.*a$/.test(lowerCountry);
+                    if (isSpain) return;
+
+                    // Normalizar Portugal y Francia
+                    let finalName = COUNTRY_MAP[lowerCountry] || (originalCountry.charAt(0).toUpperCase() + originalCountry.slice(1).toLowerCase());
+                    
+                    if (finalName !== originalCountry) {
+                        if (!mappingLog[finalName]) mappingLog[finalName] = new Set();
+                        mappingLog[finalName].add(originalCountry);
+                    }
+
+                    if (!groups[finalName]) {
+                        groups[finalName] = [];
+                        audit[finalName] = { rows: 0, sin: 0, con: 0 };
+                    }
+
+                    const filtered = {};
+                    REQUIRED_COLUMNS.forEach(c => filtered[c] = row[c] || "");
+                    groups[finalName].push(filtered);
+
+                    const base = parseAmount(row['IMPORTE_TOTAL_SIN_IVA']);
+                    const total = parseAmount(row['IMPORTE_CON_IVA']);
+                    
+                    audit[finalName].rows++;
+                    audit[finalName].sin += base;
+                    audit[finalName].con += total;
+                    gRows++; gSin += base; gCon += total;
+                });
+
+                const zip = new JSZip();
+                const countries = Object.keys(groups);
+                const tbody = document.getElementById('auditTableBody');
+                tbody.innerHTML = '';
+
+                const auditExportData = []; // Array para guardar datos y exportar a Excel
+
+                for (let i = 0; i < countries.length; i++) {
+                    const cName = countries[i];
+                    statusMsg.textContent = `Preparando Excel de ${cName}...`;
+                    
+                    const ws = XLSX.utils.json_to_sheet(groups[cName]);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Datos");
+                    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                    zip.file(`${cName}.xlsx`, buf);
+
+                    const aliases = mappingLog[cName] ? Array.from(mappingLog[cName]).join(', ') : '-';
+                    
+                    // Rellenar datos para el archivo Excel de auditoría
+                    auditExportData.push({
+                        'País de Destino': cName,
+                        'Registros': audit[cName].rows,
+                        'Base Imp. (Sin IVA)': audit[cName].sin,
+                        'Total Facturado': audit[cName].con,
+                        'Agrupaciones Detectadas': aliases
+                    });
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-colors";
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-semibold">${cName}</td>
+                        <td class="px-4 py-3 text-right">${audit[cName].rows}</td>
+                        <td class="px-4 py-3 text-right">${formatEuro(audit[cName].sin)}</td>
+                        <td class="px-4 py-3 text-right font-bold text-indigo-700">${formatEuro(audit[cName].con)}</td>
+                        <td class="px-4 py-3 text-xs text-slate-400 italic">${aliases}</td>
+                    `;
+                    tbody.appendChild(tr);
+                    progressBar.style.width = `${((i+1)/countries.length)*100}%`;
+                    await new Promise(r => setTimeout(r, 20));
+                }
+
+                document.getElementById('grandTotalRows').textContent = gRows;
+                document.getElementById('grandTotalSinIva').textContent = formatEuro(gSin);
+                document.getElementById('grandTotalConIva').textContent = formatEuro(gCon);
+
+                // Añadir la fila final de sumas al exportable de auditoría
+                auditExportData.push({
+                    'País de Destino': 'TOTALES EXPORTADOS',
+                    'Registros': gRows,
+                    'Base Imp. (Sin IVA)': gSin,
+                    'Total Facturado': gCon,
+                    'Agrupaciones Detectadas': ''
+                });
+
+                // Generar el Excel de la Auditoría y añadirlo al ZIP
+                statusMsg.textContent = "Generando informe de auditoría...";
+                const auditWs = XLSX.utils.json_to_sheet(auditExportData);
+                const auditWb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(auditWb, auditWs, "Auditoría");
+                const auditBuf = XLSX.write(auditWb, { bookType: 'xlsx', type: 'array' });
+                zip.file("Informe_Auditoria_VentanillaUnica.xlsx", auditBuf);
+
+                generatedZip = await zip.generateAsync({type:"blob"});
+                statusSection.classList.add('hidden');
+                successSection.classList.remove('hidden');
+            }, 100);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (!generatedZip) return;
+            const url = URL.createObjectURL(generatedZip);
+            const a = document.createElement('a');
+            a.href = url; a.download = `VentanillaUnica_${new Date().toISOString().slice(0,10)}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
