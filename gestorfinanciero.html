@@ -1,1004 +1,796 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gestor Financiero Inteligente</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gestor Financiero</title>
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-  <!-- FontAwesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Spline+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root{
+    --ink:#10221c;
+    --paper:#f4f1ea;
+    --card:#ffffff;
+    --line:#e3ddcf;
+    --pos:#0f7a52;
+    --pos-soft:#e3f3ec;
+    --neg:#c0392b;
+    --neg-soft:#fbe9e6;
+    --accent:#caa64b;
+    --muted:#6f7670;
+  }
 
-  <!-- SheetJS -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  *{box-sizing:border-box;}
 
-  <style>
-    body{
-      background:#f3f4f6;
-      font-family: Inter, sans-serif;
-    }
+  body{
+    background:
+      radial-gradient(900px 500px at 85% -8%, #ece6d6 0%, transparent 60%),
+      radial-gradient(700px 500px at -5% 105%, #e7efe8 0%, transparent 55%),
+      var(--paper);
+    font-family:"Spline Sans",system-ui,sans-serif;
+    color:var(--ink);
+    margin:0;
+    min-height:100vh;
+  }
 
-    .tab-active{
-      background:#111827;
-      color:white;
-    }
+  h1,h2,.display{
+    font-family:"Fraunces",Georgia,serif;
+    letter-spacing:-.01em;
+  }
 
-    .card-shadow{
-      box-shadow:0 10px 25px rgba(0,0,0,0.08);
-    }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:22px;
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 18px 40px -28px rgba(16,34,28,.45);
+  }
 
-    input[type="number"]::-webkit-inner-spin-button{
-      opacity:1;
-    }
+  .tab{
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--muted);
+    transition:all .18s ease;
+  }
+  .tab:hover{ color:var(--ink); }
+  .tab-active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
 
-    @media print {
+  .field{
+    background:#fbfaf6;
+    border:1px solid var(--line);
+    border-radius:13px;
+    transition:border-color .15s ease, box-shadow .15s ease;
+    color:var(--ink);
+  }
+  .field:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(202,166,75,.18);
+  }
 
-      body{
-        background:white !important;
-      }
+  .btn{
+    border-radius:14px;
+    font-weight:600;
+    transition:transform .12s ease, background .15s ease, opacity .15s;
+  }
+  .btn:active{ transform:translateY(1px); }
 
-      #dashboard-container{
-        display:none !important;
-      }
+  .row-anim{ animation:slidein .25s ease; }
+  @keyframes slidein{
+    from{ opacity:0; transform:translateY(-6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
 
-      #pdf-report-template{
-        display:block !important;
-      }
+  .stat-rule{
+    height:3px; width:42px; border-radius:99px;
+  }
 
-      @page{
-        size:A4;
-        margin:15mm;
-      }
+  ::-webkit-scrollbar{ height:8px; width:8px; }
+  ::-webkit-scrollbar-thumb{ background:#d8d2c2; border-radius:99px; }
 
-      .print-section{
-        page-break-inside: avoid;
-      }
-    }
+  @media print{
+    body{ background:#fff !important; }
+    #app{ display:none !important; }
+    #pdfReport{ display:block !important; }
+    @page{ size:A4; margin:15mm; }
+    .pbi{ page-break-inside:avoid; }
+  }
+  #pdfReport{
+    display:none;
+    max-width:760px;
+    margin:auto;
+    color:#111;
+    font-family:Arial,Helvetica,sans-serif;
+  }
 
-    #pdf-report-template{
-      display:none;
-      width:100%;
-      max-width:760px;
-      margin:auto;
-      color:#111;
-      font-family:Arial,sans-serif;
-    }
-  </style>
+  .toast{
+    position:fixed; left:50%; bottom:26px;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:var(--paper);
+    padding:12px 22px; border-radius:14px;
+    font-weight:600; font-size:14px;
+    opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:60;
+    box-shadow:0 18px 40px -20px rgba(0,0,0,.5);
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
 </head>
 
-<body class="min-h-screen">
+<body>
 
-<div id="dashboard-container" class="max-w-7xl mx-auto p-4 md:p-8">
+<div id="app" class="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
 
   <!-- HEADER -->
-  <div class="bg-white rounded-3xl p-6 card-shadow mb-6">
-
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-
+  <header class="card p-6 md:p-7 mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
       <div>
-        <h1 class="text-3xl font-black text-gray-800">
-          <i class="fa-solid fa-chart-line mr-2 text-emerald-600"></i>
-          Gestor Financiero Inteligente
+        <div class="flex items-center gap-2 text-[12px] font-semibold tracking-[.22em] uppercase" style="color:var(--accent)">
+          <span class="stat-rule" style="background:var(--accent)"></span>
+          Finanzas
+        </div>
+        <h1 class="text-[34px] md:text-[42px] leading-none mt-3 font-bold">
+          Gestor&nbsp;Financiero
         </h1>
-
-        <p class="text-gray-500 mt-2">
+        <p class="mt-3 text-[15px]" style="color:var(--muted)">
           Control mensual de ingresos, gastos y evolución histórica.
         </p>
       </div>
 
-      <div class="flex flex-wrap gap-4 items-end">
-
+      <div class="flex flex-wrap gap-3 items-end">
         <div>
-          <label class="text-sm font-semibold text-gray-600 block mb-1">
-            Periodo
-          </label>
-
-          <input
-            id="monthSelector"
-            type="month"
-            class="border rounded-xl px-4 py-2 bg-gray-50"
-          />
+          <label class="block text-[12px] font-semibold mb-1.5" style="color:var(--muted)">Periodo</label>
+          <input id="monthSelector" type="month" class="field px-4 py-2.5 text-sm"/>
         </div>
-
         <div>
-          <label class="text-sm font-semibold text-gray-600 block mb-1">
-            Divisa
-          </label>
-
-          <select
-            id="currencySelector"
-            class="border rounded-xl px-4 py-2 bg-gray-50"
-          >
+          <label class="block text-[12px] font-semibold mb-1.5" style="color:var(--muted)">Meses guardados</label>
+          <select id="savedMonths" class="field px-4 py-2.5 text-sm" style="min-width:210px">
+            <option value="">— Ir a un mes —</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[12px] font-semibold mb-1.5" style="color:var(--muted)">Divisa</label>
+          <select id="currencySelector" class="field px-4 py-2.5 text-sm">
             <option value="EUR">EUR (€)</option>
             <option value="USD">USD ($)</option>
             <option value="MXN">MXN ($)</option>
             <option value="GBP">GBP (£)</option>
           </select>
         </div>
-
-        <button
-          id="exportExcel"
-          class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-semibold transition"
-        >
-          <i class="fa-solid fa-file-excel mr-2"></i>
-          Excel
+        <button id="exportExcel" class="btn px-4 py-3 text-sm text-white" style="background:var(--pos)">
+          <i class="fa-solid fa-file-excel mr-2"></i>Excel
         </button>
-
-        <button
-          id="exportPDF"
-          class="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-2xl font-semibold transition"
-        >
-          <i class="fa-solid fa-file-pdf mr-2"></i>
-          PDF
+        <button id="exportPDF" class="btn px-4 py-3 text-sm text-white" style="background:var(--neg)">
+          <i class="fa-solid fa-file-pdf mr-2"></i>PDF
         </button>
-
+        <button id="importBtn" class="btn px-4 py-3 text-sm" style="background:#eee9da;color:var(--ink)">
+          <i class="fa-solid fa-file-import mr-2"></i>Importar
+        </button>
+        <input id="importFile" type="file" accept=".xlsx,.xls" class="hidden"/>
       </div>
     </div>
-  </div>
+  </header>
 
   <!-- TABS -->
-  <div class="flex gap-3 mb-6">
-
-    <button
-      id="tabRegistro"
-      class="tab-btn tab-active px-5 py-3 rounded-2xl font-bold"
-    >
-      <i class="fa-solid fa-wallet mr-2"></i>
-      Registro del Mes
+  <div class="flex flex-wrap gap-2.5 mb-6">
+    <button id="tabRegistro" class="tab tab-active btn px-5 py-3 text-sm">
+      <i class="fa-solid fa-wallet mr-2"></i>Registro del mes
     </button>
-
-    <button
-      id="tabHistorico"
-      class="tab-btn px-5 py-3 rounded-2xl bg-white card-shadow font-bold"
-    >
-      <i class="fa-solid fa-clock-rotate-left mr-2"></i>
-      Histórico Comparativo
+    <button id="tabHistorico" class="tab btn px-5 py-3 text-sm">
+      <i class="fa-solid fa-clock-rotate-left mr-2"></i>Histórico comparativo
     </button>
-
+    <div class="flex-1"></div>
+    <button id="dupBtn" class="tab btn px-4 py-3 text-sm" title="Copiar conceptos del mes anterior">
+      <i class="fa-solid fa-copy mr-2"></i>Duplicar mes anterior
+    </button>
+    <button id="clearMonthBtn" class="tab btn px-4 py-3 text-sm" style="color:var(--neg)">
+      <i class="fa-solid fa-eraser mr-2"></i>Vaciar mes
+    </button>
   </div>
 
-  <!-- TAB 1 -->
-  <div id="registroView">
+  <!-- ====== TAB 1 ====== -->
+  <section id="registroView">
 
-    <!-- RESUMEN -->
-    <div class="grid md:grid-cols-3 gap-5 mb-6">
-
-      <div class="bg-white rounded-3xl p-6 card-shadow">
-        <div class="text-gray-500 font-semibold mb-2">
-          Ingresos Totales
-        </div>
-
-        <div id="incomeTotal" class="text-3xl font-black text-emerald-600">
-          €0
-        </div>
+    <!-- KPIs -->
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="card p-5">
+        <div class="text-[13px] font-semibold mb-3" style="color:var(--muted)">Ingresos totales</div>
+        <div id="incomeTotal" class="display text-[28px] font-bold" style="color:var(--pos)">€0</div>
+        <div class="stat-rule mt-3" style="background:var(--pos)"></div>
       </div>
-
-      <div class="bg-white rounded-3xl p-6 card-shadow">
-        <div class="text-gray-500 font-semibold mb-2">
-          Gastos Totales
-        </div>
-
-        <div id="expenseTotal" class="text-3xl font-black text-red-600">
-          €0
-        </div>
+      <div class="card p-5">
+        <div class="text-[13px] font-semibold mb-3" style="color:var(--muted)">Gastos totales</div>
+        <div id="expenseTotal" class="display text-[28px] font-bold" style="color:var(--neg)">€0</div>
+        <div class="stat-rule mt-3" style="background:var(--neg)"></div>
       </div>
-
-      <div class="bg-white rounded-3xl p-6 card-shadow">
-        <div class="text-gray-500 font-semibold mb-2">
-          Resultado Neto
-        </div>
-
-        <div id="netTotal" class="text-3xl font-black text-blue-600">
-          €0
-        </div>
+      <div class="card p-5">
+        <div class="text-[13px] font-semibold mb-3" style="color:var(--muted)">Resultado neto</div>
+        <div id="netTotal" class="display text-[28px] font-bold">€0</div>
+        <div class="stat-rule mt-3" style="background:var(--accent)"></div>
       </div>
-
+      <div class="card p-5">
+        <div class="text-[13px] font-semibold mb-3" style="color:var(--muted)">Tasa de ahorro</div>
+        <div id="savingRate" class="display text-[28px] font-bold" style="color:var(--ink)">0%</div>
+        <div class="stat-rule mt-3" style="background:var(--ink)"></div>
+      </div>
     </div>
 
-    <!-- TABLAS -->
-    <div class="grid lg:grid-cols-2 gap-6">
-
+    <div class="grid lg:grid-cols-2 gap-5">
       <!-- INGRESOS -->
-      <div class="bg-white rounded-3xl p-6 card-shadow">
-
-        <div class="flex justify-between items-center mb-5">
-          <h2 class="text-2xl font-black text-emerald-700">
-            <i class="fa-solid fa-arrow-trend-up mr-2"></i>
-            Registro de Ventas
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-[21px] font-bold" style="color:var(--pos)">
+            <i class="fa-solid fa-arrow-trend-up mr-2"></i>Ingresos
           </h2>
+          <span id="incomeCount" class="text-[13px] font-semibold px-3 py-1 rounded-full" style="background:var(--pos-soft);color:var(--pos)">0</span>
         </div>
-
-        <div id="incomeRows" class="space-y-3"></div>
-
-        <button
-          id="addIncome"
-          class="mt-5 w-full bg-emerald-100 hover:bg-emerald-200 text-emerald-800 py-3 rounded-2xl font-bold transition"
-        >
-          <i class="fa-solid fa-plus mr-2"></i>
-          Añadir más Ventas
+        <div class="grid grid-cols-12 gap-2 px-1 mb-2 text-[12px] font-semibold" style="color:var(--muted)">
+          <div class="col-span-5">Concepto</div>
+          <div class="col-span-3">Categoría</div>
+          <div class="col-span-3 text-right">Importe</div>
+          <div class="col-span-1"></div>
+        </div>
+        <div id="incomeRows" class="space-y-2.5"></div>
+        <button id="addIncome" class="btn mt-4 w-full py-3 text-sm font-bold" style="background:var(--pos-soft);color:var(--pos)">
+          <i class="fa-solid fa-plus mr-2"></i>Añadir ingreso
         </button>
       </div>
 
       <!-- GASTOS -->
-      <div class="bg-white rounded-3xl p-6 card-shadow">
-
-        <div class="flex justify-between items-center mb-5">
-          <h2 class="text-2xl font-black text-red-700">
-            <i class="fa-solid fa-arrow-trend-down mr-2"></i>
-            Registro de Gastos
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-[21px] font-bold" style="color:var(--neg)">
+            <i class="fa-solid fa-arrow-trend-down mr-2"></i>Gastos
           </h2>
+          <span id="expenseCount" class="text-[13px] font-semibold px-3 py-1 rounded-full" style="background:var(--neg-soft);color:var(--neg)">0</span>
         </div>
-
-        <div id="expenseRows" class="space-y-3"></div>
-
-        <button
-          id="addExpense"
-          class="mt-5 w-full bg-red-100 hover:bg-red-200 text-red-800 py-3 rounded-2xl font-bold transition"
-        >
-          <i class="fa-solid fa-plus mr-2"></i>
-          Añadir más Gastos
+        <div class="grid grid-cols-12 gap-2 px-1 mb-2 text-[12px] font-semibold" style="color:var(--muted)">
+          <div class="col-span-5">Concepto</div>
+          <div class="col-span-3">Categoría</div>
+          <div class="col-span-3 text-right">Importe</div>
+          <div class="col-span-1"></div>
+        </div>
+        <div id="expenseRows" class="space-y-2.5"></div>
+        <button id="addExpense" class="btn mt-4 w-full py-3 text-sm font-bold" style="background:var(--neg-soft);color:var(--neg)">
+          <i class="fa-solid fa-plus mr-2"></i>Añadir gasto
         </button>
       </div>
     </div>
 
     <!-- GRAFICA -->
-    <div class="bg-white rounded-3xl p-6 card-shadow mt-6">
-
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-
-        <h2 class="text-2xl font-black text-gray-800">
-          <i class="fa-solid fa-chart-pie mr-2"></i>
-          Balance Visual
+    <div class="card p-6 mt-5">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
+        <h2 class="text-[21px] font-bold">
+          <i class="fa-solid fa-chart-pie mr-2" style="color:var(--accent)"></i>Balance visual
         </h2>
-
-        <div class="flex gap-3">
-          <button
-            id="barChartBtn"
-            class="bg-gray-900 text-white px-4 py-2 rounded-xl font-semibold"
-          >
-            Barras
-          </button>
-
-          <button
-            id="donutChartBtn"
-            class="bg-gray-200 px-4 py-2 rounded-xl font-semibold"
-          >
-            Donut
-          </button>
+        <div class="flex gap-2">
+          <button id="barChartBtn" class="tab tab-active btn px-4 py-2 text-sm">Barras</button>
+          <button id="donutChartBtn" class="tab btn px-4 py-2 text-sm">Donut</button>
         </div>
-
       </div>
+      <div style="position:relative;height:300px;">
+        <canvas id="financeChart"></canvas>
+      </div>
+    </div>
+  </section>
 
-      <canvas id="financeChart" height="100"></canvas>
+  <!-- ====== TAB 2 ====== -->
+  <section id="historicoView" class="hidden">
+    <div class="card p-6 mb-5">
+      <h2 class="text-[21px] font-bold mb-5">
+        <i class="fa-solid fa-chart-column mr-2" style="color:var(--accent)"></i>Evolución financiera
+      </h2>
+      <div style="position:relative;height:320px;">
+        <canvas id="historyChart"></canvas>
+      </div>
     </div>
 
-  </div>
-
-  <!-- TAB 2 -->
-  <div id="historicoView" class="hidden">
-
-    <div class="bg-white rounded-3xl p-6 card-shadow mb-6">
-
-      <h2 class="text-2xl font-black text-gray-800 mb-6">
-        <i class="fa-solid fa-chart-column mr-2"></i>
-        Evolución Financiera
+    <div class="card p-6 overflow-auto">
+      <h2 class="text-[21px] font-bold mb-5">
+        <i class="fa-solid fa-table mr-2" style="color:var(--accent)"></i>Histórico consolidado
       </h2>
-
-      <canvas id="historyChart" height="100"></canvas>
-    </div>
-
-    <div class="bg-white rounded-3xl p-6 card-shadow overflow-auto">
-
-      <h2 class="text-2xl font-black text-gray-800 mb-5">
-        <i class="fa-solid fa-table mr-2"></i>
-        Histórico Consolidado
-      </h2>
-
       <table class="w-full text-sm">
-
         <thead>
-          <tr class="border-b">
-            <th class="text-left py-3">Mes</th>
-            <th class="text-left py-3">Ingresos</th>
-            <th class="text-left py-3">Gastos</th>
-            <th class="text-left py-3">Margen</th>
+          <tr class="text-left" style="color:var(--muted)">
+            <th class="py-3 font-semibold">Mes</th>
+            <th class="py-3 font-semibold text-right">Ingresos</th>
+            <th class="py-3 font-semibold text-right">Gastos</th>
+            <th class="py-3 font-semibold text-right">Margen</th>
+            <th class="py-3 font-semibold text-right">Ahorro</th>
           </tr>
         </thead>
-
         <tbody id="historyTable"></tbody>
-
       </table>
+      <p id="historyEmpty" class="text-center py-8 text-sm hidden" style="color:var(--muted)">
+        Aún no hay datos registrados.
+      </p>
     </div>
-  </div>
+  </section>
 </div>
 
 <!-- PLANTILLA PDF -->
-<div id="pdf-report-template">
-
-  <div class="print-section" style="padding:20px;">
-
-    <h1 style="font-size:28px;font-weight:bold;margin-bottom:10px;">
-      Informe Financiero Mensual
-    </h1>
-
-    <p style="margin-bottom:20px;">
-      Periodo:
-      <span id="pdfMonth"></span>
-    </p>
-
-    <table
-      style="width:100%;border-collapse:collapse;margin-bottom:20px;"
-    >
+<div id="pdfReport">
+  <div class="pbi" style="padding:20px;">
+    <h1 style="font-size:26px;margin:0 0 6px;">Informe Financiero Mensual</h1>
+    <p style="margin:0 0 20px;color:#555;">Periodo: <span id="pdfMonth"></span></p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:22px;">
       <tr>
-        <td style="border:1px solid #ccc;padding:10px;">
-          <strong>Ingresos Totales</strong><br>
-          <span id="pdfIncome"></span>
-        </td>
-
-        <td style="border:1px solid #ccc;padding:10px;">
-          <strong>Gastos Totales</strong><br>
-          <span id="pdfExpense"></span>
-        </td>
-
-        <td style="border:1px solid #ccc;padding:10px;">
-          <strong>Resultado Neto</strong><br>
-          <span id="pdfNet"></span>
-        </td>
+        <td style="border:1px solid #ccc;padding:10px;"><strong>Ingresos</strong><br><span id="pdfIncome"></span></td>
+        <td style="border:1px solid #ccc;padding:10px;"><strong>Gastos</strong><br><span id="pdfExpense"></span></td>
+        <td style="border:1px solid #ccc;padding:10px;"><strong>Neto</strong><br><span id="pdfNet"></span></td>
       </tr>
     </table>
-
-    <div style="text-align:center;margin-bottom:20px;">
-      <img
-        id="pdfChartImage"
-        style="max-width:100%;height:auto;"
-      />
+    <div style="text-align:center;margin-bottom:22px;">
+      <img id="pdfChartImage" style="max-width:100%;height:auto;"/>
     </div>
-
-    <h2 style="margin-top:20px;">Detalle de Ingresos</h2>
-
-    <table
-      style="width:100%;border-collapse:collapse;margin-bottom:20px;"
-    >
-      <thead>
-        <tr>
-          <th style="border:1px solid #ccc;padding:8px;text-align:left;">
-            Concepto
-          </th>
-
-          <th style="border:1px solid #ccc;padding:8px;text-align:left;">
-            Importe
-          </th>
-        </tr>
-      </thead>
-
+    <h2 style="font-size:18px;">Detalle de Ingresos</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:22px;">
+      <thead><tr>
+        <th style="border:1px solid #ccc;padding:8px;text-align:left;">Concepto</th>
+        <th style="border:1px solid #ccc;padding:8px;text-align:left;">Categoría</th>
+        <th style="border:1px solid #ccc;padding:8px;text-align:right;">Importe</th>
+      </tr></thead>
       <tbody id="pdfIncomeTable"></tbody>
     </table>
-
-    <h2>Detalle de Gastos</h2>
-
-    <table
-      style="width:100%;border-collapse:collapse;"
-    >
-      <thead>
-        <tr>
-          <th style="border:1px solid #ccc;padding:8px;text-align:left;">
-            Concepto
-          </th>
-
-          <th style="border:1px solid #ccc;padding:8px;text-align:left;">
-            Importe
-          </th>
-        </tr>
-      </thead>
-
+    <h2 style="font-size:18px;">Detalle de Gastos</h2>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th style="border:1px solid #ccc;padding:8px;text-align:left;">Concepto</th>
+        <th style="border:1px solid #ccc;padding:8px;text-align:left;">Categoría</th>
+        <th style="border:1px solid #ccc;padding:8px;text-align:right;">Importe</th>
+      </tr></thead>
       <tbody id="pdfExpenseTable"></tbody>
     </table>
-
   </div>
 </div>
 
+<div id="toast" class="toast"></div>
+
 <script>
+"use strict";
 
-  /*********************************************************
-   * CONFIGURACIÓN GENERAL
-   *********************************************************/
+/* ============ CONFIG ============ */
+const STORAGE_KEY = "gestor_financiero_v2";
+const CATEGORIES = {
+  incomes:["Ventas","Servicios","Otros"],
+  expenses:["Proveedores","Personal","Local","Impuestos","Marketing","Otros"]
+};
 
-  const STORAGE_KEY = "gestor_financiero_inteligente";
+let financeChart=null, historyChart=null;
+let currentChartType="bar";
+let activeTab="registro";
 
-  let financeChart;
-  let historyChart;
+/* ============ ESTADO ============ */
+function loadData(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){ console.warn("No se pudo leer el almacenamiento:",e); }
+  return { currency:"EUR", months:{} };
+}
+const appData = loadData();
+if(!appData.months) appData.months={};
 
-  let currentChartType = "bar";
+const monthSelector=document.getElementById("monthSelector");
+const currencySelector=document.getElementById("currencySelector");
+const defaultMonth=new Date().toISOString().slice(0,7);
 
-  const defaultMonth = new Date().toISOString().slice(0,7);
+monthSelector.value=defaultMonth;
+currencySelector.value=appData.currency||"EUR";
 
-  const appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-    currency:"EUR",
-    months:{}
-  };
+function initMonth(month){
+  if(!appData.months[month]){
+    appData.months[month]={ incomes:[], expenses:[] };
+  }
+}
+initMonth(defaultMonth);
 
-  const monthSelector = document.getElementById("monthSelector");
-  const currencySelector = document.getElementById("currencySelector");
+function currentData(){ return appData.months[monthSelector.value]; }
 
-  monthSelector.value = defaultMonth;
-  currencySelector.value = appData.currency || "EUR";
-
-  /*********************************************************
-   * INICIALIZACIÓN
-   *********************************************************/
-
-  function initMonth(month){
-
-    if(!appData.months[month]){
-
-      appData.months[month] = {
-        incomes:[
-          {concept:"", amount:""}
-        ],
-        expenses:[
-          {concept:"", amount:""}
-        ]
-      };
+let saveTimer=null;
+function saveData(){
+  appData.currency=currencySelector.value;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(appData));
+    }catch(e){
+      toast("⚠ No se pudo guardar (almacenamiento lleno)");
     }
-  }
-
-  initMonth(defaultMonth);
-
-  /*********************************************************
-   * GUARDADO
-   *********************************************************/
-
-  function saveData(){
-
-    appData.currency = currencySelector.value;
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(appData)
-    );
-
-    renderTotals();
-    renderCharts();
-    renderHistory();
-  }
-
-  /*********************************************************
-   * FORMATEADOR
-   *********************************************************/
-
-  function formatCurrency(value){
-
-    return new Intl.NumberFormat(
-      "es-ES",
-      {
-        style:"currency",
-        currency:currencySelector.value
-      }
-    ).format(value || 0);
-  }
-
-  /*********************************************************
-   * FILAS
-   *********************************************************/
-
-  function createRow(type,index,row){
-
-    const wrapper = document.createElement("div");
-
-    wrapper.className =
-      "grid grid-cols-12 gap-3 items-center";
-
-    wrapper.innerHTML = `
-      <input
-        type="text"
-        placeholder="Concepto"
-        value="${row.concept}"
-        class="col-span-6 border rounded-xl px-4 py-3 bg-gray-50"
-      />
-
-      <input
-        type="number"
-        step="0.01"
-        placeholder="0.00"
-        value="${row.amount}"
-        class="col-span-4 border rounded-xl px-4 py-3 bg-gray-50"
-      />
-
-      <button
-        class="col-span-2 bg-gray-100 hover:bg-red-100 text-red-600 rounded-xl h-12"
-      >
-        <i class="fa-solid fa-trash"></i>
-      </button>
-    `;
-
-    const inputs = wrapper.querySelectorAll("input");
-    const deleteBtn = wrapper.querySelector("button");
-
-    inputs[0].addEventListener("input",e=>{
-
-      currentData()[type][index].concept = e.target.value;
-      saveData();
-    });
-
-    inputs[1].addEventListener("input",e=>{
-
-      currentData()[type][index].amount = parseFloat(e.target.value) || 0;
-      saveData();
-    });
-
-    deleteBtn.addEventListener("click",()=>{
-
-      currentData()[type].splice(index,1);
-
-      if(currentData()[type].length === 0){
-
-        currentData()[type].push({
-          concept:"",
-          amount:""
-        });
-      }
-
-      renderRows();
-      saveData();
-    });
-
-    return wrapper;
-  }
-
-  function renderRows(){
-
-    const incomeContainer =
-      document.getElementById("incomeRows");
-
-    const expenseContainer =
-      document.getElementById("expenseRows");
-
-    incomeContainer.innerHTML = "";
-    expenseContainer.innerHTML = "";
-
-    currentData().incomes.forEach((row,index)=>{
-
-      incomeContainer.appendChild(
-        createRow("incomes",index,row)
-      );
-    });
-
-    currentData().expenses.forEach((row,index)=>{
-
-      expenseContainer.appendChild(
-        createRow("expenses",index,row)
-      );
-    });
-  }
-
-  /*********************************************************
-   * DATOS ACTUALES
-   *********************************************************/
-
-  function currentData(){
-
-    return appData.months[monthSelector.value];
-  }
-
-  /*********************************************************
-   * TOTALES
-   *********************************************************/
-
-  function getIncomeTotal(){
-
-    return currentData()
-      .incomes
-      .reduce((acc,row)=>acc + (+row.amount || 0),0);
-  }
-
-  function getExpenseTotal(){
-
-    return currentData()
-      .expenses
-      .reduce((acc,row)=>acc + (+row.amount || 0),0);
-  }
-
-  function renderTotals(){
-
-    const income = getIncomeTotal();
-    const expense = getExpenseTotal();
-    const net = income - expense;
-
-    document.getElementById("incomeTotal")
-      .innerText = formatCurrency(income);
-
-    document.getElementById("expenseTotal")
-      .innerText = formatCurrency(expense);
-
-    document.getElementById("netTotal")
-      .innerText = formatCurrency(net);
-  }
-
-  /*********************************************************
-   * CHARTS
-   *********************************************************/
-
-  function renderCharts(){
-
-    const income = getIncomeTotal();
-    const expense = getExpenseTotal();
-
-    const ctx =
-      document.getElementById("financeChart");
-
-    if(financeChart){
-
-      financeChart.destroy();
-    }
-
-    financeChart = new Chart(ctx,{
-      type:currentChartType,
-      data:{
-        labels:["Ingresos","Gastos"],
-        datasets:[{
-          data:[income,expense],
-          borderWidth:2
-        }]
-      },
-      options:{
-        responsive:true,
-        plugins:{
-          legend:{
-            display:true
-          }
-        }
-      }
-    });
-  }
-
-  /*********************************************************
-   * HISTÓRICO
-   *********************************************************/
-
-  function renderHistory(){
-
-    const labels = [];
-    const incomes = [];
-    const expenses = [];
-    const margins = [];
-
-    const table =
-      document.getElementById("historyTable");
-
-    table.innerHTML = "";
-
-    Object.keys(appData.months)
-      .sort()
-      .forEach(month=>{
-
-        const data = appData.months[month];
-
-        const income =
-          data.incomes.reduce((a,b)=>a+(+b.amount||0),0);
-
-        const expense =
-          data.expenses.reduce((a,b)=>a+(+b.amount||0),0);
-
-        const margin = income - expense;
-
-        labels.push(month);
-        incomes.push(income);
-        expenses.push(expense);
-        margins.push(margin);
-
-        table.innerHTML += `
-          <tr class="border-b">
-            <td class="py-3">${month}</td>
-            <td>${formatCurrency(income)}</td>
-            <td>${formatCurrency(expense)}</td>
-            <td>${formatCurrency(margin)}</td>
-          </tr>
-        `;
-      });
-
-    const ctx =
-      document.getElementById("historyChart");
-
-    if(historyChart){
-
-      historyChart.destroy();
-    }
-
-    historyChart = new Chart(ctx,{
-      type:"bar",
-      data:{
-        labels,
-        datasets:[
-          {
-            label:"Ingresos",
-            data:incomes
-          },
-          {
-            label:"Gastos",
-            data:expenses
-          },
-          {
-            label:"Margen",
-            data:margins,
-            type:"line"
-          }
-        ]
-      },
-      options:{
-        responsive:true
-      }
-    });
-  }
-
-  /*********************************************************
-   * EXPORTAR EXCEL
-   *********************************************************/
-
-  function exportExcel(){
-
-    const wb = XLSX.utils.book_new();
-
-    const resumen = [];
-
-    Object.keys(appData.months)
-      .sort()
-      .forEach(month=>{
-
-        const data = appData.months[month];
-
-        const income =
-          data.incomes.reduce((a,b)=>a+(+b.amount||0),0);
-
-        const expense =
-          data.expenses.reduce((a,b)=>a+(+b.amount||0),0);
-
-        resumen.push({
-          Mes:month,
-          Ingresos:income,
-          Gastos:expense,
-          Margen:income-expense
-        });
-      });
-
-    const incomeDetail = [];
-    const expenseDetail = [];
-
-    Object.keys(appData.months).forEach(month=>{
-
-      appData.months[month]
-        .incomes
-        .forEach(item=>{
-
-          incomeDetail.push({
-            Mes:month,
-            Concepto:item.concept,
-            Importe:item.amount
-          });
-        });
-
-      appData.months[month]
-        .expenses
-        .forEach(item=>{
-
-          expenseDetail.push({
-            Mes:month,
-            Concepto:item.concept,
-            Importe:item.amount
-          });
-        });
-    });
-
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(resumen),
-      "Resumen General"
-    );
-
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(incomeDetail),
-      "Detalle de Ingresos"
-    );
-
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(expenseDetail),
-      "Detalle de Gastos"
-    );
-
-    XLSX.writeFile(
-      wb,
-      "gestor_financiero.xlsx"
-    );
-  }
-
-  /*********************************************************
-   * EXPORTAR PDF
-   *********************************************************/
-
-  function exportPDF(){
-
-    document.getElementById("pdfMonth")
-      .innerText = monthSelector.value;
-
-    document.getElementById("pdfIncome")
-      .innerText = formatCurrency(getIncomeTotal());
-
-    document.getElementById("pdfExpense")
-      .innerText = formatCurrency(getExpenseTotal());
-
-    document.getElementById("pdfNet")
-      .innerText = formatCurrency(
-        getIncomeTotal() - getExpenseTotal()
-      );
-
-    // Convertir chart a imagen Base64
-    const chartImage =
-      financeChart.toBase64Image();
-
-    document.getElementById("pdfChartImage")
-      .src = chartImage;
-
-    // Tablas PDF
-    const incomeTable =
-      document.getElementById("pdfIncomeTable");
-
-    const expenseTable =
-      document.getElementById("pdfExpenseTable");
-
-    incomeTable.innerHTML = "";
-    expenseTable.innerHTML = "";
-
-    currentData().incomes.forEach(item=>{
-
-      incomeTable.innerHTML += `
-        <tr>
-          <td style="border:1px solid #ccc;padding:8px;">
-            ${item.concept || "-"}
-          </td>
-
-          <td style="border:1px solid #ccc;padding:8px;">
-            ${formatCurrency(item.amount)}
-          </td>
-        </tr>
-      `;
-    });
-
-    currentData().expenses.forEach(item=>{
-
-      expenseTable.innerHTML += `
-        <tr>
-          <td style="border:1px solid #ccc;padding:8px;">
-            ${item.concept || "-"}
-          </td>
-
-          <td style="border:1px solid #ccc;padding:8px;">
-            ${formatCurrency(item.amount)}
-          </td>
-        </tr>
-      `;
-    });
-
-    setTimeout(()=>{
-
-      window.print();
-
-    },300);
-  }
-
-  /*********************************************************
-   * EVENTOS
-   *********************************************************/
-
-  document.getElementById("addIncome")
-    .addEventListener("click",()=>{
-
-      currentData().incomes.push({
-        concept:"",
-        amount:""
-      });
-
-      renderRows();
-      saveData();
-    });
-
-  document.getElementById("addExpense")
-    .addEventListener("click",()=>{
-
-      currentData().expenses.push({
-        concept:"",
-        amount:""
-      });
-
-      renderRows();
-      saveData();
-    });
-
-  monthSelector.addEventListener("change",()=>{
-
-    initMonth(monthSelector.value);
-
+    if(typeof refreshSavedMonths==="function") refreshSavedMonths();
+  },200);
+}
+
+/* ============ UTIL ============ */
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h=setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+function formatCurrency(value){
+  return new Intl.NumberFormat("es-ES",{
+    style:"currency",
+    currency:currencySelector.value
+  }).format(Number(value)||0);
+}
+
+const sum=arr=>arr.reduce((a,b)=>a+(Number(b.amount)||0),0);
+function getIncomeTotal(){ return sum(currentData().incomes); }
+function getExpenseTotal(){ return sum(currentData().expenses); }
+
+/* ============ FILAS ============
+   Clave del fix: NO se re-renderiza la lista en cada tecla.
+   Se actualiza el modelo en memoria + guardado diferido,
+   y solo se refrescan totales/gráfica. El input nunca pierde foco. */
+function createRow(type,index){
+  const row=currentData()[type][index];
+  const cats=CATEGORIES[type];
+
+  const wrapper=document.createElement("div");
+  wrapper.className="grid grid-cols-12 gap-2 items-center row-anim";
+
+  const concept=document.createElement("input");
+  concept.type="text";
+  concept.placeholder="Concepto";
+  concept.className="field col-span-5 px-3 py-2.5 text-sm";
+  concept.value=row.concept||"";
+
+  const cat=document.createElement("select");
+  cat.className="field col-span-3 px-2 py-2.5 text-sm";
+  cats.forEach(c=>{
+    const o=document.createElement("option");
+    o.value=c; o.textContent=c;
+    if((row.category||cats[0])===c) o.selected=true;
+    cat.appendChild(o);
+  });
+  if(!row.category) row.category=cats[0];
+
+  const amount=document.createElement("input");
+  amount.type="number";
+  amount.step="0.01";
+  amount.placeholder="0.00";
+  amount.className="field col-span-3 px-3 py-2.5 text-sm text-right";
+  amount.value=row.amount??"";
+
+  const del=document.createElement("button");
+  del.className="btn col-span-1 h-[42px] text-sm";
+  del.style.background="#f1ede0";
+  del.style.color="var(--neg)";
+  del.innerHTML='<i class="fa-solid fa-trash"></i>';
+
+  concept.addEventListener("input",e=>{
+    row.concept=e.target.value;
+    saveData();
+  });
+  cat.addEventListener("change",e=>{
+    row.category=e.target.value;
+    saveData();
+  });
+  amount.addEventListener("input",e=>{
+    row.amount=e.target.value===""?"":(parseFloat(e.target.value)||0);
+    refreshLight();
+    saveData();
+  });
+  del.addEventListener("click",()=>{
+    currentData()[type].splice(index,1);
     renderRows();
-    renderTotals();
-    renderCharts();
-    renderHistory();
-
+    refreshLight();
     saveData();
   });
 
-  currencySelector.addEventListener("change",()=>{
+  wrapper.append(concept,cat,amount,del);
+  return wrapper;
+}
 
-    saveData();
+function renderList(type,containerId){
+  const c=document.getElementById(containerId);
+  c.innerHTML="";
+  const list=currentData()[type];
+  if(list.length===0){
+    const empty=document.createElement("p");
+    empty.className="text-center py-6 text-sm";
+    empty.style.color="var(--muted)";
+    empty.textContent="Sin registros. Pulsa «Añadir» para empezar.";
+    c.appendChild(empty);
+    return;
+  }
+  list.forEach((_,i)=>c.appendChild(createRow(type,i)));
+}
+
+function renderRows(){
+  renderList("incomes","incomeRows");
+  renderList("expenses","expenseRows");
+}
+
+/* Refresca solo lo barato: totales + KPIs + gráfica del mes */
+function refreshLight(){
+  const inc=getIncomeTotal();
+  const exp=getExpenseTotal();
+  const net=inc-exp;
+  const rate=inc>0?Math.round((net/inc)*100):0;
+
+  document.getElementById("incomeTotal").textContent=formatCurrency(inc);
+  document.getElementById("expenseTotal").textContent=formatCurrency(exp);
+  const netEl=document.getElementById("netTotal");
+  netEl.textContent=formatCurrency(net);
+  netEl.style.color = net>=0?"var(--pos)":"var(--neg)";
+  document.getElementById("savingRate").textContent=rate+"%";
+
+  document.getElementById("incomeCount").textContent=currentData().incomes.length;
+  document.getElementById("expenseCount").textContent=currentData().expenses.length;
+
+  renderFinanceChart(inc,exp);
+}
+
+/* ============ CHARTS ============ */
+function renderFinanceChart(inc,exp){
+  if(activeTab!=="registro") return;
+  const ctx=document.getElementById("financeChart");
+  if(financeChart) financeChart.destroy();
+  financeChart=new Chart(ctx,{
+    type:currentChartType,
+    data:{
+      labels:["Ingresos","Gastos"],
+      datasets:[{
+        data:[inc,exp],
+        backgroundColor:["#0f7a52","#c0392b"],
+        borderRadius:currentChartType==="bar"?10:0,
+        borderWidth:0
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{ legend:{ display:currentChartType==="doughnut" } },
+      scales:currentChartType==="bar"
+        ?{ y:{ beginAtZero:true, grid:{color:"#eee9da"} }, x:{ grid:{display:false} } }
+        :{}
+    }
+  });
+}
+
+function monthsSorted(){ return Object.keys(appData.months).sort(); }
+
+/* Rellena el desplegable de meses guardados (descendente, con neto) */
+function refreshSavedMonths(){
+  const sel=document.getElementById("savedMonths");
+  const cur=monthSelector.value;
+  const months=monthsSorted().reverse();
+  sel.innerHTML='<option value="">— Ir a un mes —</option>';
+  months.forEach(m=>{
+    const d=appData.months[m];
+    const net=sum(d.incomes)-sum(d.expenses);
+    const empty=d.incomes.length===0 && d.expenses.length===0;
+    const o=document.createElement("option");
+    o.value=m;
+    o.textContent= empty ? `${m} · (vacío)` : `${m} · ${formatCurrency(net)} neto`;
+    if(m===cur) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+function renderHistory(){
+  if(activeTab!=="historico") return;
+  const labels=[],incomes=[],expenses=[],margins=[];
+  const tbody=document.getElementById("historyTable");
+  tbody.innerHTML="";
+  const months=monthsSorted();
+
+  document.getElementById("historyEmpty").classList.toggle("hidden",months.length>0);
+
+  months.forEach(m=>{
+    const d=appData.months[m];
+    const i=sum(d.incomes), e=sum(d.expenses), mg=i-e;
+    const r=i>0?Math.round((mg/i)*100):0;
+    labels.push(m); incomes.push(i); expenses.push(e); margins.push(mg);
+    const tr=document.createElement("tr");
+    tr.style.borderTop="1px solid var(--line)";
+    tr.innerHTML=`
+      <td class="py-3 font-semibold">${m}</td>
+      <td class="py-3 text-right" style="color:var(--pos)">${formatCurrency(i)}</td>
+      <td class="py-3 text-right" style="color:var(--neg)">${formatCurrency(e)}</td>
+      <td class="py-3 text-right font-semibold" style="color:${mg>=0?'var(--pos)':'var(--neg)'}">${formatCurrency(mg)}</td>
+      <td class="py-3 text-right">${r}%</td>`;
+    tbody.appendChild(tr);
   });
 
-  document.getElementById("barChartBtn")
-    .addEventListener("click",()=>{
-
-      currentChartType = "bar";
-
-      renderCharts();
-    });
-
-  document.getElementById("donutChartBtn")
-    .addEventListener("click",()=>{
-
-      currentChartType = "doughnut";
-
-      renderCharts();
-    });
-
-  document.getElementById("exportExcel")
-    .addEventListener("click",exportExcel);
-
-  document.getElementById("exportPDF")
-    .addEventListener("click",exportPDF);
-
-  // Tabs
-  const tabRegistro =
-    document.getElementById("tabRegistro");
-
-  const tabHistorico =
-    document.getElementById("tabHistorico");
-
-  tabRegistro.addEventListener("click",()=>{
-
-    document.getElementById("registroView")
-      .classList.remove("hidden");
-
-    document.getElementById("historicoView")
-      .classList.add("hidden");
-
-    tabRegistro.classList.add("tab-active");
-    tabHistorico.classList.remove("tab-active");
+  const ctx=document.getElementById("historyChart");
+  if(historyChart) historyChart.destroy();
+  historyChart=new Chart(ctx,{
+    data:{
+      labels,
+      datasets:[
+        {type:"bar",label:"Ingresos",data:incomes,backgroundColor:"#0f7a52",borderRadius:6},
+        {type:"bar",label:"Gastos",data:expenses,backgroundColor:"#c0392b",borderRadius:6},
+        {type:"line",label:"Margen",data:margins,borderColor:"#caa64b",backgroundColor:"#caa64b",tension:.3,borderWidth:3,pointRadius:4}
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{ legend:{ position:"bottom" } },
+      scales:{ y:{ beginAtZero:true, grid:{color:"#eee9da"} }, x:{ grid:{display:false} } }
+    }
   });
+}
 
-  tabHistorico.addEventListener("click",()=>{
-
-    document.getElementById("historicoView")
-      .classList.remove("hidden");
-
-    document.getElementById("registroView")
-      .classList.add("hidden");
-
-    tabHistorico.classList.add("tab-active");
-    tabRegistro.classList.remove("tab-active");
+/* ============ EXPORTAR EXCEL ============ */
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+  const resumen=[];
+  monthsSorted().forEach(m=>{
+    const d=appData.months[m];
+    const i=sum(d.incomes), e=sum(d.expenses);
+    resumen.push({Mes:m,Ingresos:i,Gastos:e,Margen:i-e});
   });
+  const incomeDetail=[],expenseDetail=[];
+  monthsSorted().forEach(m=>{
+    appData.months[m].incomes.forEach(it=>incomeDetail.push({Mes:m,Concepto:it.concept,Categoria:it.category,Importe:Number(it.amount)||0}));
+    appData.months[m].expenses.forEach(it=>expenseDetail.push({Mes:m,Concepto:it.concept,Categoria:it.category,Importe:Number(it.amount)||0}));
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(resumen),"Resumen");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(incomeDetail),"Ingresos");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(expenseDetail),"Gastos");
+  XLSX.writeFile(wb,"gestor_financiero.xlsx");
+  toast("Excel exportado");
+}
 
-  /*********************************************************
-   * ARRANQUE
-   *********************************************************/
+/* ============ IMPORTAR EXCEL ============
+   Lee hojas "Ingresos" y "Gastos" con columnas Mes/Concepto/Categoria/Importe */
+function importExcel(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"binary"});
+      let added=0;
+      [["Ingresos","incomes"],["Gastos","expenses"]].forEach(([sheet,key])=>{
+        if(!wb.Sheets[sheet]) return;
+        const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheet]);
+        rows.forEach(r=>{
+          const m=String(r.Mes||defaultMonth).slice(0,7);
+          initMonth(m);
+          appData.months[m][key].push({
+            concept:String(r.Concepto||""),
+            category:String(r.Categoria||CATEGORIES[key][0]),
+            amount:parseFloat(r.Importe)||0
+          });
+          added++;
+        });
+      });
+      saveData();
+      renderRows(); refreshLight(); renderHistory();
+      toast(added?`${added} registros importados`:"No se encontraron datos");
+    }catch(e){
+      toast("⚠ Archivo no válido");
+    }
+  };
+  reader.readAsBinaryString(file);
+}
 
-  renderRows();
-  renderTotals();
-  renderCharts();
+/* ============ EXPORTAR PDF ============ */
+function exportPDF(){
+  const inc=getIncomeTotal(), exp=getExpenseTotal();
+  document.getElementById("pdfMonth").textContent=monthSelector.value;
+  document.getElementById("pdfIncome").textContent=formatCurrency(inc);
+  document.getElementById("pdfExpense").textContent=formatCurrency(exp);
+  document.getElementById("pdfNet").textContent=formatCurrency(inc-exp);
+  if(financeChart){
+    document.getElementById("pdfChartImage").src=financeChart.toBase64Image();
+  }
+  const it=document.getElementById("pdfIncomeTable");
+  const et=document.getElementById("pdfExpenseTable");
+  const cell=v=>`<td style="border:1px solid #ccc;padding:8px;">${v}</td>`;
+  const cellR=v=>`<td style="border:1px solid #ccc;padding:8px;text-align:right;">${v}</td>`;
+  it.innerHTML=currentData().incomes.map(x=>`<tr>${cell(x.concept||"-")}${cell(x.category||"-")}${cellR(formatCurrency(x.amount))}</tr>`).join("");
+  et.innerHTML=currentData().expenses.map(x=>`<tr>${cell(x.concept||"-")}${cell(x.category||"-")}${cellR(formatCurrency(x.amount))}</tr>`).join("");
+  setTimeout(()=>window.print(),300);
+}
+
+/* ============ ACCIONES MES ============ */
+function duplicatePrevMonth(){
+  const months=monthsSorted();
+  const cur=monthSelector.value;
+  const prev=months.filter(m=>m<cur).pop();
+  if(!prev){ toast("No hay un mes anterior con datos"); return; }
+  const src=appData.months[prev];
+  currentData().incomes=src.incomes.map(x=>({concept:x.concept,category:x.category,amount:""}));
+  currentData().expenses=src.expenses.map(x=>({concept:x.concept,category:x.category,amount:""}));
+  renderRows(); refreshLight(); saveData();
+  toast(`Conceptos copiados de ${prev}`);
+}
+
+function clearMonth(){
+  if(!confirm("¿Vaciar todos los registros de "+monthSelector.value+"?")) return;
+  currentData().incomes=[];
+  currentData().expenses=[];
+  renderRows(); refreshLight(); saveData();
+  toast("Mes vaciado");
+}
+
+/* ============ EVENTOS ============ */
+document.getElementById("addIncome").addEventListener("click",()=>{
+  currentData().incomes.push({concept:"",category:CATEGORIES.incomes[0],amount:""});
+  renderRows(); refreshLight(); saveData();
+});
+document.getElementById("addExpense").addEventListener("click",()=>{
+  currentData().expenses.push({concept:"",category:CATEGORIES.expenses[0],amount:""});
+  renderRows(); refreshLight(); saveData();
+});
+
+monthSelector.addEventListener("change",()=>{
+  initMonth(monthSelector.value);
+  renderRows(); refreshLight(); renderHistory(); refreshSavedMonths(); saveData();
+});
+currencySelector.addEventListener("change",()=>{
+  refreshLight(); renderHistory(); refreshSavedMonths(); saveData();
+});
+
+document.getElementById("savedMonths").addEventListener("change",function(){
+  if(!this.value) return;
+  monthSelector.value=this.value;
+  initMonth(this.value);
+  renderRows(); refreshLight(); renderHistory(); refreshSavedMonths(); saveData();
+});
+
+document.getElementById("barChartBtn").addEventListener("click",function(){
+  currentChartType="bar";
+  this.classList.add("tab-active");
+  document.getElementById("donutChartBtn").classList.remove("tab-active");
+  renderFinanceChart(getIncomeTotal(),getExpenseTotal());
+});
+document.getElementById("donutChartBtn").addEventListener("click",function(){
+  currentChartType="doughnut";
+  this.classList.add("tab-active");
+  document.getElementById("barChartBtn").classList.remove("tab-active");
+  renderFinanceChart(getIncomeTotal(),getExpenseTotal());
+});
+
+document.getElementById("exportExcel").addEventListener("click",exportExcel);
+document.getElementById("exportPDF").addEventListener("click",exportPDF);
+document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change",e=>{
+  if(e.target.files[0]) importExcel(e.target.files[0]);
+  e.target.value="";
+});
+document.getElementById("dupBtn").addEventListener("click",duplicatePrevMonth);
+document.getElementById("clearMonthBtn").addEventListener("click",clearMonth);
+
+const tabR=document.getElementById("tabRegistro");
+const tabH=document.getElementById("tabHistorico");
+tabR.addEventListener("click",()=>{
+  activeTab="registro";
+  document.getElementById("registroView").classList.remove("hidden");
+  document.getElementById("historicoView").classList.add("hidden");
+  tabR.classList.add("tab-active"); tabH.classList.remove("tab-active");
+  refreshLight();
+});
+tabH.addEventListener("click",()=>{
+  activeTab="historico";
+  document.getElementById("historicoView").classList.remove("hidden");
+  document.getElementById("registroView").classList.add("hidden");
+  tabH.classList.add("tab-active"); tabR.classList.remove("tab-active");
   renderHistory();
-  saveData();
+});
 
+/* ============ ARRANQUE ============ */
+renderRows();
+refreshLight();
+refreshSavedMonths();
 </script>
 
 </body>
