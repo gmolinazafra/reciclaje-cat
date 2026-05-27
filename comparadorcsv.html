@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comparador de CSV - Piezas Faltantes</title>
-    <!-- Tailwind CSS para el diseño -->
+    <title>Utilidades de Inventario CSV y Excel</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PapaParse para procesar los CSV de forma robusta -->
+    <!-- PapaParse para procesar CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <!-- Lucide Icons para los iconos -->
+    <!-- SheetJS para exportar a Excel (.xlsx) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        /* Estilos personalizados para animaciones y scroll */
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -28,308 +29,579 @@
 
     <div class="max-w-5xl mx-auto space-y-6">
         
-        <!-- Cabecera -->
-        <header class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex items-center space-x-4">
-            <div class="bg-blue-100 text-blue-600 p-3 rounded-xl">
-                <i data-lucide="file-diff" class="w-8 h-8"></i>
+        <!-- Cabecera Principal -->
+        <header class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-md p-6 md:p-8 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="bg-white/10 p-3 rounded-xl">
+                    <i data-lucide="wrench" class="w-8 h-8 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold">Herramientas de Inventario CSV</h1>
+                    <p class="text-blue-100 text-sm md:text-base mt-1">Compara listas de piezas, audita precios y exporta a Excel en segundos.</p>
+                </div>
             </div>
-            <div>
-                <h1 class="text-2xl font-bold text-slate-900">Comparador de Inventario (CSV)</h1>
-                <p class="text-slate-500">Encuentra las piezas que han desaparecido entre dos listas.</p>
+            
+            <!-- Selector de Pestañas / Herramientas -->
+            <div class="flex bg-white/10 p-1.5 rounded-xl self-start md:self-center">
+                <button onclick="switchTab('compare')" id="btn-compare" class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-white text-blue-700 shadow-sm">
+                    <i data-lucide="file-diff" class="w-4 h-4 inline mr-1.5"></i>
+                    Comparar 2 CSVs
+                </button>
+                <button onclick="switchTab('zero')" id="btn-zero" class="px-4 py-2 rounded-lg font-medium text-sm transition-all text-white hover:bg-white/10">
+                    <i data-lucide="tag" class="w-4 h-4 inline mr-1.5"></i>
+                    Buscar Precios a 0
+                </button>
             </div>
         </header>
 
-        <!-- Zona de carga de archivos -->
-        <div class="grid md:grid-cols-2 gap-6">
-            <!-- Archivo 1 -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
-                <h2 class="text-lg font-semibold mb-2 flex items-center">
-                    <span class="bg-slate-100 text-slate-600 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">1</span>
-                    Archivo Original (Antiguo)
-                </h2>
-                <p class="text-sm text-slate-500 mb-4">Sube el CSV que contiene todas las piezas iniciales.</p>
-                
-                <div class="relative border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors flex-grow flex flex-col justify-center items-center group">
-                    <input type="file" id="file1" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(event, 1)">
-                    <i data-lucide="upload-cloud" class="w-10 h-10 text-slate-400 group-hover:text-blue-500 mb-2 transition-colors"></i>
-                    <p class="font-medium text-slate-700" id="file1-name">Haz clic o arrastra tu CSV aquí</p>
-                    <p class="text-xs text-slate-400 mt-1" id="file1-status">Sin archivo seleccionado</p>
-                </div>
-            </div>
-
-            <!-- Archivo 2 -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
-                <h2 class="text-lg font-semibold mb-2 flex items-center">
-                    <span class="bg-slate-100 text-slate-600 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">2</span>
-                    Archivo Actual (Nuevo)
-                </h2>
-                <p class="text-sm text-slate-500 mb-4">Sube el CSV actual para compararlo con el original.</p>
-                
-                <div class="relative border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors flex-grow flex flex-col justify-center items-center group">
-                    <input type="file" id="file2" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(event, 2)">
-                    <i data-lucide="upload-cloud" class="w-10 h-10 text-slate-400 group-hover:text-blue-500 mb-2 transition-colors"></i>
-                    <p class="font-medium text-slate-700" id="file2-name">Haz clic o arrastra tu CSV aquí</p>
-                    <p class="text-xs text-slate-400 mt-1" id="file2-status">Sin archivo seleccionado</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Configuración y Acción (Oculto hasta que se cargan ambos archivos) -->
-        <div id="config-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hidden fade-in">
-            <h2 class="text-lg font-semibold mb-4 flex items-center">
-                <span class="bg-slate-100 text-slate-600 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">3</span>
-                Configuración de la Comparación
-            </h2>
-            <div class="grid md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Identificador en Archivo Original</label>
-                    <select id="key1" class="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-                        <!-- Opciones dinámicas -->
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Identificador en Archivo Actual</label>
-                    <select id="key2" class="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-                        <!-- Opciones dinámicas -->
-                    </select>
-                </div>
-            </div>
-            <button onclick="compareFiles()" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl shadow-sm flex items-center justify-center transition-colors">
-                <i data-lucide="play" class="w-5 h-5 mr-2"></i>
-                Analizar y Encontrar Faltantes
-            </button>
-        </div>
-
-        <!-- Resultados -->
-        <div id="results-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hidden fade-in">
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-900 flex items-center">
-                        <i data-lucide="alert-circle" class="w-6 h-6 text-orange-500 mr-2"></i>
-                        Resultados del Análisis
+        <!-- ================= PESTAÑA 1: COMPARAR DOS CSV ================= -->
+        <div id="tab-compare-content" class="space-y-6 fade-in">
+            <!-- Zona de carga de archivos -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Archivo 1 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
+                    <h2 class="text-lg font-semibold mb-2 flex items-center">
+                        <span class="bg-slate-100 text-slate-600 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">1</span>
+                        Archivo Original (Antiguo)
                     </h2>
-                    <p class="text-slate-500 text-sm mt-1" id="results-summary"></p>
+                    <p class="text-sm text-slate-500 mb-4">Sube el CSV que contiene el listado inicial de piezas.</p>
+                    
+                    <div class="relative border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors flex-grow flex flex-col justify-center items-center group">
+                        <input type="file" id="file1" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleCompareFileSelect(event, 1)">
+                        <i data-lucide="upload-cloud" class="w-10 h-10 text-slate-400 group-hover:text-blue-500 mb-2 transition-colors"></i>
+                        <p class="font-medium text-slate-700" id="file1-name">Haz clic o arrastra tu CSV aquí</p>
+                        <p class="text-xs text-slate-400 mt-1" id="file1-status">Sin archivo seleccionado</p>
+                    </div>
                 </div>
-                <button onclick="downloadReport()" id="download-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-sm flex items-center justify-center transition-colors hidden">
-                    <i data-lucide="download" class="w-4 h-4 mr-2"></i>
-                    Descargar Informe CSV
+
+                <!-- Archivo 2 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
+                    <h2 class="text-lg font-semibold mb-2 flex items-center">
+                        <span class="bg-slate-100 text-slate-600 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">2</span>
+                        Archivo Actual (Nuevo)
+                    </h2>
+                    <p class="text-sm text-slate-500 mb-4">Sube el CSV actual para buscar las piezas desaparecidas.</p>
+                    
+                    <div class="relative border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors flex-grow flex flex-col justify-center items-center group">
+                        <input type="file" id="file2" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleCompareFileSelect(event, 2)">
+                        <i data-lucide="upload-cloud" class="w-10 h-10 text-slate-400 group-hover:text-blue-500 mb-2 transition-colors"></i>
+                        <p class="font-medium text-slate-700" id="file2-name">Haz clic o arrastra tu CSV aquí</p>
+                        <p class="text-xs text-slate-400 mt-1" id="file2-status">Sin archivo seleccionado</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuración -->
+            <div id="compare-config" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hidden fade-in">
+                <h2 class="text-lg font-semibold mb-4 flex items-center">
+                    <span class="bg-slate-100 text-slate-600 w-6 h-6 rounded-full flex items-center justify-center text-sm mr-2">3</span>
+                    Configuración del Identificador
+                </h2>
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Columna Identificadora (Archivo Original)</label>
+                        <select id="comp-key1" class="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Columna Identificadora (Archivo Actual)</label>
+                        <select id="comp-key2" class="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        </select>
+                    </div>
+                </div>
+                <button onclick="compareFiles()" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl shadow-sm flex items-center justify-center transition-colors">
+                    <i data-lucide="play" class="w-5 h-5 mr-2"></i>
+                    Comparar e Identificar Bajas
                 </button>
             </div>
 
-            <div class="overflow-x-auto custom-scrollbar rounded-xl border border-slate-200">
-                <table class="w-full text-left text-sm text-slate-600">
-                    <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200" id="table-head">
-                        <!-- Cabeceras dinámicas -->
-                    </thead>
-                    <tbody class="divide-y divide-slate-100" id="table-body">
-                        <!-- Filas dinámicas -->
-                    </tbody>
-                </table>
-            </div>
-            
-            <div id="no-results" class="hidden text-center py-12">
-                <div class="inline-flex bg-green-100 text-green-600 p-4 rounded-full mb-4">
-                    <i data-lucide="check-circle" class="w-8 h-8"></i>
+            <!-- Resultados de la Comparación -->
+            <div id="compare-results" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hidden fade-in">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 flex items-center">
+                            <i data-lucide="alert-circle" class="w-6 h-6 text-orange-500 mr-2"></i>
+                            Piezas que ya no existen en la lista nueva
+                        </h2>
+                        <p class="text-slate-500 text-sm mt-1" id="compare-summary"></p>
+                    </div>
+                    <!-- Botones de descarga -->
+                    <div id="compare-download-container" class="flex flex-wrap gap-2 hidden">
+                        <button onclick="downloadCompareReport()" class="bg-slate-700 hover:bg-slate-800 text-white font-medium py-2 px-4 rounded-lg shadow-sm flex items-center justify-center transition-colors text-sm">
+                            <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+                            Descargar CSV
+                        </button>
+                        <button onclick="downloadCompareExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm flex items-center justify-center transition-colors text-sm">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i>
+                            Descargar Excel (.xlsx)
+                        </button>
+                    </div>
                 </div>
-                <h3 class="text-lg font-semibold text-slate-900">¡Todo está en orden!</h3>
-                <p class="text-slate-500">No falta ninguna pieza del archivo original en el archivo actual.</p>
+
+                <div class="overflow-x-auto custom-scrollbar rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200" id="compare-table-head">
+                        </thead>
+                        <tbody class="divide-y divide-slate-100" id="compare-table-body">
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="compare-no-results" class="hidden text-center py-12">
+                    <div class="inline-flex bg-green-100 text-green-600 p-4 rounded-full mb-4">
+                        <i data-lucide="check-circle" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-900">¡Ninguna baja!</h3>
+                    <p class="text-slate-500">Todas las piezas del archivo original siguen existiendo en el listado actual.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PESTAÑA 2: BUSCAR PRECIO CERO ================= -->
+        <div id="tab-zero-content" class="space-y-6 hidden fade-in">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="grid md:grid-cols-2 gap-8 items-start">
+                    
+                    <!-- Carga Archivo Único -->
+                    <div>
+                        <h2 class="text-lg font-semibold mb-2">1. Carga tu Archivo</h2>
+                        <p class="text-sm text-slate-500 mb-4">Sube el CSV en el que deseas buscar precios vacíos o a 0.</p>
+                        
+                        <div class="relative border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:bg-slate-50 transition-colors flex flex-col justify-center items-center group">
+                            <input type="file" id="single-file" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleSingleFileSelect(event)">
+                            <i data-lucide="file-spreadsheet" class="w-12 h-12 text-slate-400 group-hover:text-indigo-500 mb-3 transition-colors"></i>
+                            <p class="font-medium text-slate-700" id="single-file-name">Haz clic o arrastra tu CSV aquí</p>
+                            <p class="text-sm text-slate-400 mt-1" id="single-file-status">Esperando archivo...</p>
+                        </div>
+                    </div>
+
+                    <!-- Configuración Precio -->
+                    <div id="single-config" class="hidden fade-in space-y-4">
+                        <h2 class="text-lg font-semibold">2. Columna de Precio</h2>
+                        
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Selecciona la columna que tiene los precios:</label>
+                            <select id="single-price-col" class="w-full border border-slate-300 rounded-lg p-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                            </select>
+                            <p class="text-xs text-slate-500 mt-2">
+                                <i data-lucide="info" class="w-3.5 h-3.5 inline mr-1"></i>
+                                Buscaremos valores como "0", "0.00", "0,00", o que contengan "0€".
+                            </p>
+                        </div>
+
+                        <button onclick="findZeroPrices()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm flex items-center justify-center transition-colors">
+                            <i data-lucide="search" class="w-5 h-5 mr-2"></i>
+                            Buscar Piezas a Precio 0
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Resultados Precio Cero -->
+            <div id="single-results" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hidden fade-in">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 flex items-center">
+                            <i data-lucide="list-x" class="w-6 h-6 text-red-500 mr-2"></i>
+                            Listado de Piezas a Precio 0
+                        </h2>
+                        <p class="text-slate-500 text-sm mt-1" id="single-summary"></p>
+                    </div>
+                    <!-- Botones de descarga -->
+                    <div id="single-download-container" class="flex flex-wrap gap-2 hidden">
+                        <button onclick="downloadSingleReport()" class="bg-slate-700 hover:bg-slate-800 text-white font-medium py-2 px-4 rounded-lg shadow-sm flex items-center justify-center transition-colors text-sm">
+                            <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+                            Descargar CSV
+                        </button>
+                        <button onclick="downloadSingleExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm flex items-center justify-center transition-colors text-sm">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i>
+                            Descargar Excel (.xlsx)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200" id="single-table-head">
+                        </thead>
+                        <tbody class="divide-y divide-slate-100" id="single-table-body">
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="single-no-results" class="hidden text-center py-12">
+                    <div class="inline-flex bg-green-100 text-green-600 p-4 rounded-full mb-4">
+                        <i data-lucide="check-circle" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-900">¡Ningún precio a cero!</h3>
+                    <p class="text-slate-500">Todas las piezas analizadas disponen de un precio superior a 0.</p>
+                </div>
             </div>
         </div>
 
     </div>
 
     <script>
-        // Inicializar iconos
+        // Inicializar Iconos
         lucide.createIcons();
 
-        // Variables de estado
-        let data1 = null;
-        let data2 = null;
-        let headers1 = [];
-        let headers2 = [];
-        let missingItems = [];
+        // Variables de Estado - Pestaña Comparador
+        let compData1 = null;
+        let compData2 = null;
+        let compHeaders1 = [];
+        let compHeaders2 = [];
+        let compMissingItems = [];
 
-        // Manejar la selección de archivos
-        function handleFileSelect(event, fileNum) {
+        // Variables de Estado - Pestaña Precio 0
+        let singleData = [];
+        let singleHeaders = [];
+        let singleZeroItems = [];
+
+        // Cambio de pestañas
+        function switchTab(tab) {
+            const tabCompare = document.getElementById('tab-compare-content');
+            const tabZero = document.getElementById('tab-zero-content');
+            const btnCompare = document.getElementById('btn-compare');
+            const btnZero = document.getElementById('btn-zero');
+
+            if (tab === 'compare') {
+                tabCompare.classList.remove('hidden');
+                tabZero.classList.add('hidden');
+                
+                btnCompare.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all bg-white text-blue-700 shadow-sm";
+                btnZero.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all text-white hover:bg-white/10";
+            } else {
+                tabCompare.classList.add('hidden');
+                tabZero.classList.remove('hidden');
+                
+                btnCompare.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all text-white hover:bg-white/10";
+                btnZero.className = "px-4 py-2 rounded-lg font-medium text-sm transition-all bg-white text-indigo-700 shadow-sm";
+            }
+        }
+
+        // --- MANEJO DE ARCHIVOS - COMPARADOR ---
+        function handleCompareFileSelect(event, fileNum) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // Actualizar UI
             document.getElementById(`file${fileNum}-name`).textContent = file.name;
             const statusEl = document.getElementById(`file${fileNum}-status`);
             statusEl.textContent = "Procesando...";
-            statusEl.classList.replace('text-slate-400', 'text-blue-500');
+            statusEl.className = "text-xs font-medium text-blue-500 mt-1";
 
-            // Leer y parsear el CSV
             Papa.parse(file, {
-                header: true, // Asume que la primera fila es la cabecera
+                header: true,
                 skipEmptyLines: true,
                 complete: function(results) {
                     if (fileNum === 1) {
-                        data1 = results.data;
-                        headers1 = results.meta.fields || [];
-                        statusEl.textContent = `${data1.length} filas cargadas`;
+                        compData1 = results.data;
+                        compHeaders1 = results.meta.fields || [];
+                        statusEl.textContent = `${compData1.length} piezas cargadas`;
                     } else {
-                        data2 = results.data;
-                        headers2 = results.meta.fields || [];
-                        statusEl.textContent = `${data2.length} filas cargadas`;
+                        compData2 = results.data;
+                        compHeaders2 = results.meta.fields || [];
+                        statusEl.textContent = `${compData2.length} piezas cargadas`;
                     }
-                    
-                    statusEl.classList.replace('text-blue-500', 'text-green-500');
-                    checkReadyToConfigure();
+                    statusEl.className = "text-xs font-medium text-green-500 mt-1";
+                    checkCompareReady();
                 },
-                error: function(error) {
+                error: function() {
                     statusEl.textContent = "Error al leer el archivo";
-                    statusEl.classList.replace('text-blue-500', 'text-red-500');
-                    console.error(error);
+                    statusEl.className = "text-xs font-medium text-red-500 mt-1";
                 }
             });
         }
 
-        // Comprobar si ambos archivos están cargados para mostrar la configuración
-        function checkReadyToConfigure() {
-            if (data1 && data2) {
-                populateSelect('key1', headers1);
-                populateSelect('key2', headers2);
+        function checkCompareReady() {
+            if (compData1 && compData2) {
+                populateSelect('comp-key1', compHeaders1);
+                populateSelect('comp-key2', compHeaders2);
                 
-                // Intentar auto-seleccionar columnas con nombres similares
-                autoMatchSelects();
+                // Intentar autodetectar identificadores coincidentes
+                autoMatchCompareSelects();
                 
-                document.getElementById('config-section').classList.remove('hidden');
-                // Ocultar resultados previos si los hubiera
-                document.getElementById('results-section').classList.add('hidden');
+                document.getElementById('compare-config').classList.remove('hidden');
+                document.getElementById('compare-results').classList.add('hidden');
             }
         }
 
-        // Rellenar los <select> con las cabeceras del CSV
-        function populateSelect(selectId, headers) {
-            const select = document.getElementById(selectId);
-            select.innerHTML = '';
-            headers.forEach(header => {
-                const option = document.createElement('option');
-                option.value = header;
-                option.textContent = header;
-                select.appendChild(option);
-            });
-        }
-
-        // Intento básico de auto-seleccionar la misma columna si se llama igual
-        function autoMatchSelects() {
-            const select1 = document.getElementById('key1');
-            const select2 = document.getElementById('key2');
+        function autoMatchCompareSelects() {
+            const select1 = document.getElementById('comp-key1');
+            const select2 = document.getElementById('comp-key2');
             
-            // Buscar si alguna cabecera del archivo 1 existe en el archivo 2
             for (let i = 0; i < select1.options.length; i++) {
-                const val = select1.options[i].value;
+                const val1 = select1.options[i].value.toLowerCase();
                 for (let j = 0; j < select2.options.length; j++) {
-                    if (val.toLowerCase() === select2.options[j].value.toLowerCase()) {
+                    const val2 = select2.options[j].value.toLowerCase();
+                    if (val1 === val2 && (val1.includes('id') || val1.includes('ref') || val1.includes('codigo') || val1.includes('código') || val1.includes('pieza'))) {
                         select1.selectedIndex = i;
                         select2.selectedIndex = j;
-                        return; // Match encontrado
+                        return;
                     }
                 }
             }
         }
 
-        // Lógica principal de comparación
         function compareFiles() {
-            const key1 = document.getElementById('key1').value;
-            const key2 = document.getElementById('key2').value;
+            const key1 = document.getElementById('comp-key1').value;
+            const key2 = document.getElementById('comp-key2').value;
 
             if (!key1 || !key2) {
-                alert("Por favor, selecciona las columnas identificadoras.");
+                alert("Por favor selecciona ambas columnas identificadoras.");
                 return;
             }
 
-            // Crear un Set con todos los identificadores del archivo 2 (Actual) para búsqueda rápida
-            // Convertimos a string y minúsculas para evitar falsos positivos por mayúsculas/espacios
-            const currentKeys = new Set(data2.map(row => {
+            // Guardar llaves en minúscula y limpias para evitar fallos por espacios/mayúsculas
+            const currentKeys = new Set(compData2.map(row => {
                 const val = row[key2];
                 return val ? String(val).trim().toLowerCase() : '';
             }).filter(val => val !== ''));
 
-            // Encontrar elementos en data1 que NO están en currentKeys
-            missingItems = data1.filter(row => {
+            compMissingItems = compData1.filter(row => {
                 const val = row[key1];
-                if (!val) return false; // Ignorar filas sin identificador
+                if (!val) return false;
                 const normalizedVal = String(val).trim().toLowerCase();
                 return !currentKeys.has(normalizedVal);
             });
 
-            renderResults();
+            renderCompareResults();
         }
 
-        // Mostrar resultados en la tabla HTML
-        function renderResults() {
-            const section = document.getElementById('results-section');
-            const summary = document.getElementById('results-summary');
-            const tHead = document.getElementById('table-head');
-            const tBody = document.getElementById('table-body');
-            const noResults = document.getElementById('no-results');
-            const downloadBtn = document.getElementById('download-btn');
+        function renderCompareResults() {
+            const section = document.getElementById('compare-results');
+            const summary = document.getElementById('compare-summary');
+            const tHead = document.getElementById('compare-table-head');
+            const tBody = document.getElementById('compare-table-body');
+            const noResults = document.getElementById('compare-no-results');
+            const downloadContainer = document.getElementById('compare-download-container');
 
             section.classList.remove('hidden');
 
-            if (missingItems.length === 0) {
-                summary.textContent = `Se revisaron ${data1.length} piezas.`;
+            if (compMissingItems.length === 0) {
+                summary.textContent = `Se han verificado las ${compData1.length} piezas iniciales.`;
                 tHead.innerHTML = '';
                 tBody.innerHTML = '';
                 noResults.classList.remove('hidden');
-                downloadBtn.classList.add('hidden');
+                downloadContainer.classList.add('hidden');
                 return;
             }
 
-            // Mostrar estado
-            summary.innerHTML = `Se encontraron <strong class="text-orange-600">${missingItems.length}</strong> piezas que estaban en el archivo original pero no en el actual.`;
+            summary.innerHTML = `Se han detectado <strong class="text-orange-600">${compMissingItems.length}</strong> piezas que ya no existen en el archivo actual.`;
             noResults.classList.add('hidden');
-            downloadBtn.classList.remove('hidden');
+            downloadContainer.classList.remove('hidden');
 
-            // Renderizar cabeceras de tabla (basado en el archivo original)
+            // Renderizar cabeceras
             let headHTML = '<tr>';
-            headers1.forEach(header => {
-                headHTML += `<th class="px-6 py-4 whitespace-nowrap">${header}</th>`;
+            compHeaders1.forEach(header => {
+                headHTML += `<th class="px-6 py-4 font-semibold text-slate-700 whitespace-nowrap">${header}</th>`;
             });
             headHTML += '</tr>';
             tHead.innerHTML = headHTML;
 
-            // Renderizar cuerpo de tabla (limitamos a 100 filas en UI para no colgar el navegador)
-            const displayItems = missingItems.slice(0, 100);
+            // Renderizar filas (limitando visualmente a 100)
+            const displayItems = compMissingItems.slice(0, 100);
             let bodyHTML = '';
             displayItems.forEach(row => {
                 bodyHTML += '<tr class="hover:bg-slate-50 transition-colors">';
-                headers1.forEach(header => {
+                compHeaders1.forEach(header => {
                     bodyHTML += `<td class="px-6 py-3 whitespace-nowrap">${row[header] || '-'}</td>`;
                 });
                 bodyHTML += '</tr>';
             });
-            
-            if (missingItems.length > 100) {
-                bodyHTML += `<tr><td colspan="${headers1.length}" class="px-6 py-4 text-center text-slate-500 italic">Mostrando 100 de ${missingItems.length} resultados. Descarga el CSV para ver la lista completa.</td></tr>`;
-            }
 
+            if (compMissingItems.length > 100) {
+                bodyHTML += `<tr><td colspan="${compHeaders1.length}" class="px-6 py-4 text-center text-slate-500 italic">Previsualizando 100 de ${compMissingItems.length} piezas. Descarga el reporte para ver la lista completa.</td></tr>`;
+            }
             tBody.innerHTML = bodyHTML;
         }
 
-        // Descargar los resultados como CSV
-        function downloadReport() {
-            if (missingItems.length === 0) return;
-
-            // Convertir JSON a CSV usando PapaParse
-            const csv = Papa.unparse(missingItems);
-            
-            // Crear el blob y el enlace de descarga
-            const blob = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8;' }); // \ufeff para BOM de UTF-8 (soporte Excel)
+        function downloadCompareReport() {
+            if (compMissingItems.length === 0) return;
+            const csv = Papa.unparse(compMissingItems);
+            const blob = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
-            
-            // Nombre del archivo con fecha
             const date = new Date().toISOString().split('T')[0];
             link.setAttribute("href", url);
-            link.setAttribute("download", `informe_piezas_faltantes_${date}.csv`);
-            
+            link.setAttribute("download", `piezas_desaparecidas_${date}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        function downloadCompareExcel() {
+            if (compMissingItems.length === 0) return;
+            const date = new Date().toISOString().split('T')[0];
+            
+            // Crear el libro de trabajo de Excel
+            const worksheet = XLSX.utils.json_to_sheet(compMissingItems);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Bajas de Inventario");
+            
+            // Generar descarga
+            XLSX.writeFile(workbook, `piezas_desaparecidas_${date}.xlsx`);
+        }
+
+
+        // --- MANEJO DE ARCHIVOS - PRECIO CERO ---
+        function handleSingleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('single-file-name').textContent = file.name;
+            const statusEl = document.getElementById('single-file-status');
+            statusEl.textContent = "Procesando...";
+            statusEl.className = "text-sm font-medium text-blue-500 mt-1";
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    singleData = results.data;
+                    singleHeaders = results.meta.fields || [];
+                    statusEl.textContent = `✅ ${singleData.length} filas cargadas correctamente.`;
+                    statusEl.className = "text-sm font-medium text-green-600 mt-1";
+                    
+                    setupSingleConfig();
+                },
+                error: function() {
+                    statusEl.textContent = "Error al leer el archivo CSV.";
+                    statusEl.className = "text-sm font-medium text-red-500 mt-1";
+                }
+            });
+        }
+
+        function setupSingleConfig() {
+            populateSelect('single-price-col', singleHeaders);
+            
+            // Auto buscar columna de precio
+            const select = document.getElementById('single-price-col');
+            for (let i = 0; i < select.options.length; i++) {
+                const label = select.options[i].value.toLowerCase();
+                if (label.includes('precio') || label.includes('price') || label.includes('pvp') || label.includes('coste') || label.includes('eur')) {
+                    select.selectedIndex = i;
+                    break;
+                }
+            }
+
+            document.getElementById('single-config').classList.remove('hidden');
+            document.getElementById('single-results').classList.add('hidden');
+        }
+
+        function isPriceZero(value) {
+            if (value === null || value === undefined || value.toString().trim() === '') return false;
+            
+            const strVal = value.toString().trim();
+            // Quedarse con dígitos, puntos, comas y guiones
+            const cleanedVal = strVal.replace(/[^\d.,-]/g, '').replace(',', '.');
+            if (cleanedVal === '') return false;
+            
+            const num = parseFloat(cleanedVal);
+            return num === 0;
+        }
+
+        function findZeroPrices() {
+            const priceCol = document.getElementById('single-price-col').value;
+            if (!priceCol) {
+                alert("Selecciona la columna que define el precio.");
+                return;
+            }
+
+            singleZeroItems = singleData.filter(row => {
+                return isPriceZero(row[priceCol]);
+            });
+
+            renderSingleResults();
+        }
+
+        function renderSingleResults() {
+            const section = document.getElementById('single-results');
+            const summary = document.getElementById('single-summary');
+            const tHead = document.getElementById('single-table-head');
+            const tBody = document.getElementById('single-table-body');
+            const noResults = document.getElementById('single-no-results');
+            const downloadContainer = document.getElementById('single-download-container');
+
+            section.classList.remove('hidden');
+
+            if (singleZeroItems.length === 0) {
+                summary.textContent = `Se han analizado las ${singleData.length} filas.`;
+                tHead.innerHTML = '';
+                tBody.innerHTML = '';
+                noResults.classList.remove('hidden');
+                downloadContainer.classList.add('hidden');
+                return;
+            }
+
+            summary.innerHTML = `Se han detectado <strong class="text-red-600">${singleZeroItems.length}</strong> artículos con precio cero.`;
+            noResults.classList.add('hidden');
+            downloadContainer.classList.remove('hidden');
+
+            // Renderizar Cabecera
+            let headHTML = '<tr>';
+            singleHeaders.forEach(header => {
+                headHTML += `<th class="px-6 py-4 font-semibold text-slate-700 whitespace-nowrap">${header}</th>`;
+            });
+            headHTML += '</tr>';
+            tHead.innerHTML = headHTML;
+
+            // Renderizar Filas
+            const displayItems = singleZeroItems.slice(0, 100);
+            let bodyHTML = '';
+            displayItems.forEach(row => {
+                bodyHTML += '<tr class="hover:bg-red-50 transition-colors">';
+                singleHeaders.forEach(header => {
+                    const isPrice = header === document.getElementById('single-price-col').value;
+                    const cellClass = isPrice ? 'px-6 py-3 whitespace-nowrap font-bold text-red-600' : 'px-6 py-3 whitespace-nowrap';
+                    bodyHTML += `<td class="${cellClass}">${row[header] || ''}</td>`;
+                });
+                bodyHTML += '</tr>';
+            });
+
+            if (singleZeroItems.length > 100) {
+                bodyHTML += `<tr><td colspan="${singleHeaders.length}" class="px-6 py-4 text-center text-slate-500 italic">Previsualizando 100 de ${singleZeroItems.length} piezas. Descarga el CSV o Excel para verlo completo.</td></tr>`;
+            }
+            tBody.innerHTML = bodyHTML;
+        }
+
+        function downloadSingleReport() {
+            if (singleZeroItems.length === 0) return;
+            const csv = Papa.unparse(singleZeroItems);
+            const blob = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            const date = new Date().toISOString().split('T')[0];
+            link.setAttribute("href", url);
+            link.setAttribute("download", `piezas_precio_cero_${date}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function downloadSingleExcel() {
+            if (singleZeroItems.length === 0) return;
+            const date = new Date().toISOString().split('T')[0];
+            
+            // Crear el libro de trabajo de Excel
+            const worksheet = XLSX.utils.json_to_sheet(singleZeroItems);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Precios a Cero");
+            
+            // Generar descarga
+            XLSX.writeFile(workbook, `piezas_precio_cero_${date}.xlsx`);
+        }
+
+        // Utilidad común para rellenar los selectores select
+        function populateSelect(id, list) {
+            const select = document.getElementById(id);
+            select.innerHTML = '';
+            list.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                opt.textContent = item;
+                select.appendChild(opt);
+            });
         }
     </script>
 </body>
