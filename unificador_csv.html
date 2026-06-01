@@ -126,8 +126,8 @@
     <div id="colsInfo"></div>
 
     <div class="opt">
-      <input type="checkbox" id="optZeros" checked>
-      <label for="optZeros">Tratar <code>06116</code> y <code>6116</code> como distintos (no normalizar ceros a la izquierda)</label>
+      <input type="checkbox" id="optZeros">
+      <label for="optZeros">Distinguir <code>06116</code> ≠ <code>6116</code> por ceros a la izquierda (por defecto los códigos numéricos cruzan por su valor)</label>
     </div>
     <div class="opt">
       <input type="checkbox" id="optOverwrite">
@@ -278,12 +278,24 @@ function renderColsInfo(){
 }
 
 // --- Normalización de clave ---
-function normKey(v, conservaCeros){
+// Reglas:
+//  · "6116.0"        -> "6116"   (float entero que mete Excel)
+//  · "6.116"/"6,116" -> "6116"   (separador de miles de Excel)
+//  · numérico puro   -> sin ceros a la izquierda, cruza por valor (06116 == 6116)
+//  · alfanumérico    -> texto en mayúsculas, comparación exacta (AB06116 != AB6116)
+// strictZeros=true conserva los ceros también en los numéricos (06116 != 6116).
+function normKey(v, strictZeros){
   let s = String(v == null ? '' : v).trim();
-  // Excel suele dar números como "6116" o "6116.0"
-  s = s.replace(/\.0+$/, '');
-  if(!conservaCeros){ s = s.replace(/^0+(?=\d)/, ''); }
-  return s;
+  if(s === '') return '';
+  s = s.replace(/\.0+$/, '');                       // 6116.0 -> 6116
+  if(/^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g, ''); // 6.116 -> 6116
+  if(/^\d+$/.test(s)) return strictZeros ? s : s.replace(/^0+(?=\d)/, '');
+  return s.toUpperCase();
+}
+
+// Para el diagnóstico: distingue tipo de código
+function esNumerico(v){
+  return /^\d+$/.test(String(v == null ? '' : v).trim().replace(/\.0+$/, '').replace(/^(\d{1,3})([.,]\d{3})+$/, (m)=>m.replace(/[.,]/g,'')));
 }
 
 function isFakeDate(s){
@@ -296,7 +308,7 @@ function unificar(){
   clearErr();
   const keyCsv = $('keyCsv').value;
   const keyXls = $('keyXls').value;
-  const conservaCeros = $('optZeros').checked;
+  const strictZeros = $('optZeros').checked;
   const overwrite = $('optOverwrite').checked;
   const filtraFechas = $('optFakeDates').checked;
 
@@ -304,7 +316,7 @@ function unificar(){
   const dict = {};
   let dupes = 0;
   xlsData.forEach(row=>{
-    const k = normKey(row[keyXls], conservaCeros);
+    const k = normKey(row[keyXls], strictZeros);
     if(k === '') return;
     if(dict[k]) dupes++;
     dict[k] = row; // último gana
@@ -318,16 +330,20 @@ function unificar(){
   resultHeaders = csvHeaders.concat(nuevasCols);
 
   let matched = 0, filled = 0;
-  const noMatch = [];
+  let matchNum = 0, matchAlfa = 0;
+  const noMatchNum = [], noMatchAlfa = [];
 
   resultRows = csvData.map(row=>{
     const out = Object.assign({}, row);
     nuevasCols.forEach(c=>{ if(!(c in out)) out[c] = ''; });
 
-    const k = normKey(row[keyCsv], conservaCeros);
+    const rawKey = row[keyCsv];
+    const k = normKey(rawKey, strictZeros);
     const src = dict[k];
+    const numerico = esNumerico(rawKey);
     if(src){
       matched++;
+      if(numerico) matchNum++; else matchAlfa++;
       colsRellenar.forEach(c=>{
         let val = src[c];
         if(val == null) return;
@@ -341,7 +357,10 @@ function unificar(){
         }
       });
     }else{
-      if(k !== '') noMatch.push(k);
+      if(k !== ''){
+        if(numerico){ if(noMatchNum.length < 8) noMatchNum.push(String(rawKey).trim()); }
+        else { if(noMatchAlfa.length < 8) noMatchAlfa.push(String(rawKey).trim()); }
+      }
     }
     return out;
   });
@@ -360,10 +379,19 @@ function unificar(){
 
   let avisos = '';
   if(matched === 0){
-    avisos += '<div class="aviso">No cruzó ninguna fila. Revisa que la columna clave sea la correcta en ambos archivos y prueba a desmarcar la opción de ceros a la izquierda.</div>';
+    avisos += '<div class="aviso">No cruzó ninguna fila. Revisa que la columna clave sea la correcta en ambos archivos.</div>';
+  }
+  const sinCruce = csvData.length - matched;
+  if(sinCruce > 0){
+    let det = '<div class="aviso"><strong>'+sinCruce.toLocaleString('es-ES')+' sin cruce.</strong>';
+    det += ' Numéricos cruzados: '+matchNum.toLocaleString('es-ES')+' · alfanuméricos cruzados: '+matchAlfa.toLocaleString('es-ES')+'.';
+    if(noMatchNum.length) det += '<br>Ejemplos numéricos que NO están en el Excel: <code>'+noMatchNum.map(escapeHtml).join('</code>, <code>')+'</code>';
+    if(noMatchAlfa.length) det += '<br>Ejemplos alfanuméricos que NO cruzan: <code>'+noMatchAlfa.map(escapeHtml).join('</code>, <code>')+'</code>';
+    det += '</div>';
+    avisos += det;
   }
   if(dupes > 0){
-    avisos += '<div class="aviso">'+dupes+' códigos duplicados en el Excel: se usó el último de cada uno.</div>';
+    avisos += '<div class="aviso">'+dupes.toLocaleString('es-ES')+' códigos duplicados en el Excel: se usó el último de cada uno.</div>';
   }
   if(nuevasCols.length){
     avisos += '<div class="aviso">Se añadieron columnas nuevas al CSV: '+escapeHtml(nuevasCols.join(', '))+'.</div>';
