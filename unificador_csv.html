@@ -8,73 +8,41 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --verde:#1f7a3a;
-    --verde-osc:#16602e;
-    --verde-claro:#e8f4ec;
-    --teal:#0c8478;
-    --tinta:#1d2b22;
-    --gris:#6b7a70;
-    --linea:#d9e3dc;
-    --fondo:#f6f9f7;
-    --aviso:#b54708;
-    --aviso-bg:#fff4e6;
-    --ok:#1f7a3a;
-    --ok-bg:#e8f4ec;
+    --verde:#1f7a3a; --verde-osc:#16602e; --verde-claro:#e8f4ec; --teal:#0c8478;
+    --tinta:#1d2b22; --gris:#6b7a70; --linea:#d9e3dc; --fondo:#f6f9f7;
+    --aviso:#b54708; --aviso-bg:#fff4e6; --ok:#1f7a3a; --ok-bg:#e8f4ec;
   }
   *{box-sizing:border-box;}
-  body{
-    margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--fondo);color:var(--tinta);line-height:1.5;
-  }
-  header{
-    background:linear-gradient(135deg,var(--verde) 0%,var(--teal) 100%);
-    color:#fff;padding:22px 24px;
-  }
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--fondo);color:var(--tinta);line-height:1.5;}
+  header{background:linear-gradient(135deg,var(--verde) 0%,var(--teal) 100%);color:#fff;padding:22px 24px;}
   header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.2px;}
   header p{margin:4px 0 0;font-size:13px;opacity:.92;}
   .wrap{max-width:920px;margin:0 auto;padding:24px;}
-  .card{
-    background:#fff;border:1px solid var(--linea);border-radius:14px;
-    padding:20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(20,60,40,.04);
-  }
+  .card{background:#fff;border:1px solid var(--linea);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(20,60,40,.04);}
   .card h2{margin:0 0 14px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
-  .num{
-    display:inline-flex;width:24px;height:24px;border-radius:50%;
-    background:var(--verde);color:#fff;align-items:center;justify-content:center;
-    font-size:13px;font-weight:700;flex-shrink:0;
-  }
-  .drop{
-    border:2px dashed var(--linea);border-radius:12px;padding:26px;text-align:center;
-    cursor:pointer;transition:.15s;background:#fafdfb;
-  }
+  .num{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--verde);color:#fff;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+  .drop{border:2px dashed var(--linea);border-radius:12px;padding:26px;text-align:center;cursor:pointer;transition:.15s;background:#fafdfb;}
   .drop:hover{border-color:var(--verde);background:var(--verde-claro);}
   .drop.has-file{border-style:solid;border-color:var(--verde);background:var(--verde-claro);}
   .drop strong{color:var(--verde-osc);}
   .drop .sub{font-size:12px;color:var(--gris);margin-top:6px;}
   .drop input{display:none;}
   .filename{font-size:13px;font-weight:600;color:var(--verde-osc);margin-top:8px;word-break:break-all;}
-  label.field{display:block;font-size:12px;font-weight:600;color:var(--gris);margin:14px 0 4px;}
   select,button{font-family:inherit;font-size:14px;}
-  select{
-    width:100%;padding:9px 10px;border:1px solid var(--linea);border-radius:9px;background:#fff;color:var(--tinta);
-  }
-  .cols{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
-  .chip{
-    font-size:12px;padding:5px 11px;border-radius:999px;background:var(--verde-claro);
-    color:var(--verde-osc);border:1px solid #c5e3d0;font-weight:600;
-  }
-  .chip.muted{background:#f0f3f1;color:var(--gris);border-color:var(--linea);}
-  .opt{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px;}
-  .opt input{width:17px;height:17px;accent-color:var(--verde);}
-  .btn{
-    background:var(--verde);color:#fff;border:none;padding:12px 18px;border-radius:10px;
-    font-weight:700;cursor:pointer;transition:.15s;
-  }
+  select{width:100%;padding:8px 10px;border:1px solid var(--linea);border-radius:9px;background:#fff;color:var(--tinta);}
+  table.map{width:100%;border-collapse:collapse;margin-top:4px;}
+  table.map th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gris);text-align:left;padding:6px 8px;font-weight:600;}
+  table.map td{padding:6px 8px;vertical-align:middle;border-top:1px solid var(--linea);}
+  .campo{font-weight:700;color:var(--verde-osc);font-size:14px;white-space:nowrap;}
+  .campo small{display:block;font-weight:600;color:var(--gris);font-size:11px;text-transform:none;letter-spacing:0;}
+  .flecha{color:var(--gris);text-align:center;font-size:16px;}
+  .btn{background:var(--verde);color:#fff;border:none;padding:12px 18px;border-radius:10px;font-weight:700;cursor:pointer;transition:.15s;}
   .btn:hover{background:var(--verde-osc);}
   .btn:disabled{background:#b9c8bf;cursor:not-allowed;}
   .btn.sec{background:#fff;color:var(--verde-osc);border:1.5px solid var(--verde);}
   .btn.sec:hover{background:var(--verde-claro);}
-  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
   .resumen{background:var(--ok-bg);border:1px solid #c5e3d0;border-radius:12px;padding:16px;margin-top:4px;}
   .resumen h3{margin:0 0 10px;font-size:14px;color:var(--verde-osc);}
   .stat-row{display:flex;flex-wrap:wrap;gap:10px;}
@@ -83,7 +51,7 @@
   .stat .l{font-size:11px;color:var(--gris);margin-top:4px;text-transform:uppercase;letter-spacing:.4px;}
   .aviso{background:var(--aviso-bg);border:1px solid #f4c89a;color:var(--aviso);padding:11px 14px;border-radius:10px;font-size:13px;margin-top:12px;}
   .err{background:#fde8e8;border:1px solid #f3b4b4;color:#9b1c1c;padding:11px 14px;border-radius:10px;font-size:13px;margin-top:12px;}
-  .hint{font-size:12px;color:var(--gris);margin-top:6px;}
+  .hint{font-size:12px;color:var(--gris);margin-top:10px;}
   .hidden{display:none;}
   footer{text-align:center;font-size:12px;color:var(--gris);padding:8px 0 28px;}
 </style>
@@ -91,7 +59,7 @@
 <body>
 <header>
   <h1>Unificador CSV + Excel</h1>
-  <p>Red Desguace · enriquece el CSV de vehículos con los datos del Excel cruzando por <strong>codvehiculo</strong></p>
+  <p>Red Desguace · rellena celdas vacías del CSV con los datos del Excel cruzando por <strong>codvehiculo</strong></p>
 </header>
 
 <div class="wrap">
@@ -110,38 +78,24 @@
     <h2><span class="num">2</span> Sube el Excel (datos de origen)</h2>
     <div class="drop" id="dropXls" onclick="document.getElementById('inXls').click()">
       <strong>Arrastra o haz clic</strong> para subir el Excel
-      <div class="sub">.xlsx / .xls · máx. 50 MB · columnas: codvehiculo · fechasalida · bastidor · matricula · motorversion</div>
+      <div class="sub">.xlsx / .xls · máx. 50 MB</div>
       <div class="filename hidden" id="nameXls"></div>
       <input type="file" id="inXls" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
     </div>
   </div>
 
-  <div class="card hidden" id="cardConfig">
-    <h2><span class="num">3</span> Configuración del cruce</h2>
-    <label class="field">Columna clave en el CSV</label>
-    <select id="keyCsv"></select>
-    <label class="field">Columna clave en el Excel</label>
-    <select id="keyXls"></select>
-
-    <div id="colsInfo"></div>
-
-    <div class="opt">
-      <input type="checkbox" id="optZeros">
-      <label for="optZeros">Distinguir <code>06116</code> ≠ <code>6116</code> por ceros a la izquierda (por defecto los códigos numéricos cruzan por su valor)</label>
-    </div>
-    <div class="opt">
-      <input type="checkbox" id="optOverwrite">
-      <label for="optOverwrite"><strong>Sobrescribir</strong> también celdas que ya tengan dato (por defecto solo rellena vacías)</label>
-    </div>
-    <div class="opt">
-      <input type="checkbox" id="optFakeDates" checked>
-      <label for="optFakeDates">Ignorar fechas falsas (<code>01/01/0001</code>, <code>1/1/1900</code>…)</label>
-    </div>
-
-    <div class="actions" style="margin-top:18px">
+  <div class="card hidden" id="cardMap">
+    <h2><span class="num">3</span> Mapeo de columnas</h2>
+    <table class="map">
+      <thead>
+        <tr><th>Campo</th><th>Columna en el Excel (origen)</th><th></th><th>Columna en el CSV (destino)</th></tr>
+      </thead>
+      <tbody id="mapBody"></tbody>
+    </table>
+    <div class="hint">El <strong>codvehiculo</strong> es la clave de cruce. Los otros cuatro solo se escriben si la celda del CSV está vacía. Los campos sin mapear se ignoran. Nunca se crean columnas nuevas.</div>
+    <div class="actions">
       <button class="btn" id="btnRun" onclick="unificar()">Unificar y previsualizar</button>
     </div>
-    <div class="hint">Las columnas del Excel que no existan en el CSV se crearán automáticamente.</div>
   </div>
 
   <div class="card hidden" id="cardResult">
@@ -151,7 +105,7 @@
       <div class="stat-row" id="stats"></div>
     </div>
     <div id="resAvisos"></div>
-    <div class="actions" style="margin-top:18px">
+    <div class="actions">
       <button class="btn" onclick="descargar('csv')">Descargar CSV</button>
       <button class="btn sec" onclick="descargar('xlsx')">Descargar Excel</button>
     </div>
@@ -165,24 +119,19 @@
 
 <script>
 const MAX_BYTES = 50 * 1024 * 1024;
-const TARGET_KEY = 'codvehiculo'; // clave de cruce por defecto
+// Campos canónicos. El primero (codvehiculo) es la clave de cruce; el resto se rellenan.
+const CAMPOS = ['codvehiculo','fechasalida','bastidor','matricula','motorversion'];
+const CLAVE = 'codvehiculo';
 
 let csvData = null, csvHeaders = null, csvDelimiter = ';';
 let xlsData = null, xlsHeaders = null;
 let resultRows = null, resultHeaders = null;
 
 const $ = id => document.getElementById(id);
-
-function showErr(msg){
-  $('globalErr').innerHTML = '<div class="err">'+escapeHtml(msg)+'</div>';
-}
+function showErr(msg){ $('globalErr').innerHTML = '<div class="err">'+escapeHtml(msg)+'</div>'; }
 function clearErr(){ $('globalErr').innerHTML=''; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// --- Validación de seguridad de archivo ---
 function validarArchivo(file, tiposExt){
   if(file.size > MAX_BYTES) throw new Error('El archivo supera el límite de 50 MB.');
   const ext = file.name.split('.').pop().toLowerCase();
@@ -190,19 +139,14 @@ function validarArchivo(file, tiposExt){
   return true;
 }
 
-// --- Drag & drop ---
 function setupDrop(dropId, inputId, handler){
   const drop = $(dropId), input = $(inputId);
   drop.addEventListener('dragover', e=>{e.preventDefault();drop.classList.add('has-file');});
   drop.addEventListener('dragleave', ()=>drop.classList.remove('has-file'));
-  drop.addEventListener('drop', e=>{
-    e.preventDefault();
-    if(e.dataTransfer.files.length) handler(e.dataTransfer.files[0]);
-  });
+  drop.addEventListener('drop', e=>{ e.preventDefault(); if(e.dataTransfer.files.length) handler(e.dataTransfer.files[0]); });
   input.addEventListener('change', e=>{ if(e.target.files.length) handler(e.target.files[0]); });
 }
 
-// --- Cargar CSV ---
 function handleCsv(file){
   clearErr();
   try{ validarArchivo(file, ['csv']); }catch(e){ return showErr(e.message); }
@@ -215,13 +159,12 @@ function handleCsv(file){
       $('nameCsv').textContent = file.name + '  ·  ' + csvData.length + ' filas · ' + csvHeaders.length + ' columnas';
       $('nameCsv').classList.remove('hidden');
       $('dropCsv').classList.add('has-file');
-      tryConfig();
+      tryMap();
     },
     error: err => showErr('Error al leer el CSV: '+err.message)
   });
 }
 
-// --- Cargar Excel ---
 function handleXls(file){
   clearErr();
   try{ validarArchivo(file, ['xlsx','xls']); }catch(e){ return showErr(e.message); }
@@ -236,66 +179,52 @@ function handleXls(file){
       $('nameXls').textContent = file.name + '  ·  ' + xlsData.length + ' filas · ' + xlsHeaders.length + ' columnas';
       $('nameXls').classList.remove('hidden');
       $('dropXls').classList.add('has-file');
-      tryConfig();
+      tryMap();
     }catch(err){ showErr('Error al leer el Excel: '+err.message); }
   };
   reader.onerror = ()=> showErr('No se pudo leer el archivo Excel.');
   reader.readAsArrayBuffer(file);
 }
 
-// --- Preparar configuración cuando ambos están cargados ---
-function tryConfig(){
+// Construye el panel de mapeo cuando ambos archivos están cargados
+function tryMap(){
   if(!csvData || !xlsData) return;
-  fillSelect('keyCsv', csvHeaders, TARGET_KEY);
-  fillSelect('keyXls', xlsHeaders, TARGET_KEY);
-  renderColsInfo();
-  $('cardConfig').classList.remove('hidden');
+  const body = $('mapBody');
+  body.innerHTML = '';
+  CAMPOS.forEach(campo=>{
+    const esClave = campo === CLAVE;
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><span class="campo">'+campo+(esClave?'<small>clave de cruce</small>':'<small>se rellena si está vacío</small>')+'</span></td>'+
+      '<td>'+selectHtml('map-xls-'+campo, xlsHeaders, campo)+'</td>'+
+      '<td class="flecha">→</td>'+
+      '<td>'+selectHtml('map-csv-'+campo, csvHeaders, campo)+'</td>';
+    body.appendChild(tr);
+  });
+  $('cardMap').classList.remove('hidden');
 }
 
-function fillSelect(id, options, preferred){
-  const sel = $(id);
-  sel.innerHTML = '';
+// Genera un <select> con autoselección por nombre exacto (insensible a mayúsculas)
+function selectHtml(id, options, preferido){
+  let html = '<select id="'+id+'"><option value="">— ninguna —</option>';
   options.forEach(o=>{
-    const op = document.createElement('option');
-    op.value = o; op.textContent = o;
-    if(o.toLowerCase() === preferred.toLowerCase()) op.selected = true;
-    sel.appendChild(op);
+    const sel = o.toLowerCase() === preferido.toLowerCase() ? ' selected' : '';
+    html += '<option value="'+escapeHtml(o)+'"'+sel+'>'+escapeHtml(o)+'</option>';
   });
-  sel.onchange = renderColsInfo;
+  html += '</select>';
+  return html;
 }
 
-function renderColsInfo(){
-  const keyXls = $('keyXls').value;
-  const aRellenar = xlsHeaders.filter(h => h !== keyXls);
-  const nuevas = aRellenar.filter(h => !csvHeaders.includes(h));
-  let html = '<label class="field" style="margin-top:18px">Columnas que el Excel aportará al CSV</label><div class="cols">';
-  aRellenar.forEach(h=>{
-    const nueva = !csvHeaders.includes(h);
-    html += '<span class="chip'+(nueva?'':'')+'">'+escapeHtml(h)+(nueva?' (nueva)':'')+'</span>';
-  });
-  html += '</div>';
-  $('colsInfo').innerHTML = html;
-}
-
-// --- Normalización de clave ---
-// Reglas:
-//  · "6116.0"        -> "6116"   (float entero que mete Excel)
-//  · "6.116"/"6,116" -> "6116"   (separador de miles de Excel)
-//  · numérico puro   -> sin ceros a la izquierda, cruza por valor (06116 == 6116)
-//  · alfanumérico    -> texto en mayúsculas, comparación exacta (AB06116 != AB6116)
-// strictZeros=true conserva los ceros también en los numéricos (06116 != 6116).
-function normKey(v, strictZeros){
+// Normalización de clave:
+//  "6116.0" -> "6116" | "6.116"/"6,116" -> "6116"
+//  numérico puro -> sin ceros a la izquierda (06116 == 6116) | alfanumérico -> texto en mayúsculas
+function normKey(v){
   let s = String(v == null ? '' : v).trim();
   if(s === '') return '';
-  s = s.replace(/\.0+$/, '');                       // 6116.0 -> 6116
-  if(/^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g, ''); // 6.116 -> 6116
-  if(/^\d+$/.test(s)) return strictZeros ? s : s.replace(/^0+(?=\d)/, '');
+  s = s.replace(/\.0+$/, '');
+  if(/^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g, '');
+  if(/^\d+$/.test(s)) return s.replace(/^0+(?=\d)/, '');
   return s.toUpperCase();
-}
-
-// Para el diagnóstico: distingue tipo de código
-function esNumerico(v){
-  return /^\d+$/.test(String(v == null ? '' : v).trim().replace(/\.0+$/, '').replace(/^(\d{1,3})([.,]\d{3})+$/, (m)=>m.replace(/[.,]/g,'')));
 }
 
 function isFakeDate(s){
@@ -303,126 +232,84 @@ function isFakeDate(s){
   return /^(01\/01\/0001|1\/1\/0001|0001-01-01|01\/01\/1900|1\/1\/1900|00\/00\/0000)/.test(v);
 }
 
-// --- Núcleo: unificar ---
 function unificar(){
   clearErr();
-  const keyCsv = $('keyCsv').value;
-  const keyXls = $('keyXls').value;
-  const strictZeros = $('optZeros').checked;
-  const overwrite = $('optOverwrite').checked;
-  const filtraFechas = $('optFakeDates').checked;
+  // Lee el mapeo
+  const map = {};
+  CAMPOS.forEach(campo=>{ map[campo] = { xls: $('map-xls-'+campo).value, csv: $('map-csv-'+campo).value }; });
+
+  const keyXls = map[CLAVE].xls, keyCsv = map[CLAVE].csv;
+  if(!keyXls || !keyCsv){ return showErr('Debes mapear la columna clave codvehiculo en ambos archivos.'); }
+
+  // Campos a rellenar = los canónicos (menos la clave) con origen y destino mapeados
+  const pares = CAMPOS.filter(c=>c!==CLAVE)
+                      .map(c=>({campo:c, src:map[c].xls, dst:map[c].csv}))
+                      .filter(p=>p.src && p.dst);
+
+  if(!pares.length){ return showErr('Mapea al menos un campo (fechasalida, bastidor, matricula o motorversion).'); }
 
   // Diccionario del Excel por clave normalizada
   const dict = {};
   let dupes = 0;
   xlsData.forEach(row=>{
-    const k = normKey(row[keyXls], strictZeros);
+    const k = normKey(row[keyXls]);
     if(k === '') return;
     if(dict[k]) dupes++;
-    dict[k] = row; // último gana
+    dict[k] = row;
   });
 
-  // Columnas a rellenar = todas las del Excel menos la clave
-  const colsRellenar = xlsHeaders.filter(h => h !== keyXls);
-  const nuevasCols = colsRellenar.filter(h => !csvHeaders.includes(h));
-
-  // Cabeceras finales
-  resultHeaders = csvHeaders.concat(nuevasCols);
+  // Las cabeceras del CSV NO cambian: nunca se crean columnas
+  resultHeaders = csvHeaders.slice();
 
   let matched = 0, filled = 0;
-  let matchNum = 0, matchAlfa = 0;
-  const noMatchNum = [], noMatchAlfa = [];
-
   resultRows = csvData.map(row=>{
     const out = Object.assign({}, row);
-    nuevasCols.forEach(c=>{ if(!(c in out)) out[c] = ''; });
-
-    const rawKey = row[keyCsv];
-    const k = normKey(rawKey, strictZeros);
-    const src = dict[k];
-    const numerico = esNumerico(rawKey);
+    const src = dict[normKey(row[keyCsv])];
     if(src){
       matched++;
-      if(numerico) matchNum++; else matchAlfa++;
-      colsRellenar.forEach(c=>{
-        let val = src[c];
+      pares.forEach(p=>{
+        let val = src[p.src];
         if(val == null) return;
         val = String(val).trim();
         if(val === '') return;
-        if(filtraFechas && isFakeDate(val)) return;
-        const actual = out[c] == null ? '' : String(out[c]).trim();
-        if(actual === '' || overwrite){
-          if(actual !== val){ out[c] = val; filled++; }
-          else { out[c] = val; }
-        }
+        if(isFakeDate(val)) return;                       // fechas falsas siempre ignoradas
+        const actual = out[p.dst] == null ? '' : String(out[p.dst]).trim();
+        if(actual === ''){ out[p.dst] = val; filled++; }  // solo rellena vacías
       });
-    }else{
-      if(k !== ''){
-        if(numerico){ if(noMatchNum.length < 8) noMatchNum.push(String(rawKey).trim()); }
-        else { if(noMatchAlfa.length < 8) noMatchAlfa.push(String(rawKey).trim()); }
-      }
     }
     return out;
   });
 
-  // Resumen
   const stats = [
-    ['v','Filas CSV', csvData.length],
-    ['v','Cruzadas', matched],
-    ['v','Sin cruce', csvData.length - matched],
-    ['v','Datos rellenados', filled],
-    ['v','Columnas nuevas', nuevasCols.length],
+    ['Filas CSV', csvData.length],
+    ['Cruzadas', matched],
+    ['Sin cruce', csvData.length - matched],
+    ['Datos rellenados', filled],
   ];
   $('stats').innerHTML = stats.map(s=>
-    '<div class="stat"><div class="v">'+s[2].toLocaleString('es-ES')+'</div><div class="l">'+s[1]+'</div></div>'
+    '<div class="stat"><div class="v">'+s[1].toLocaleString('es-ES')+'</div><div class="l">'+s[0]+'</div></div>'
   ).join('');
 
   let avisos = '';
-  if(matched === 0){
-    avisos += '<div class="aviso">No cruzó ninguna fila. Revisa que la columna clave sea la correcta en ambos archivos.</div>';
-  }
-  const sinCruce = csvData.length - matched;
-  if(sinCruce > 0){
-    let det = '<div class="aviso"><strong>'+sinCruce.toLocaleString('es-ES')+' sin cruce.</strong>';
-    det += ' Numéricos cruzados: '+matchNum.toLocaleString('es-ES')+' · alfanuméricos cruzados: '+matchAlfa.toLocaleString('es-ES')+'.';
-    if(noMatchNum.length) det += '<br>Ejemplos numéricos que NO están en el Excel: <code>'+noMatchNum.map(escapeHtml).join('</code>, <code>')+'</code>';
-    if(noMatchAlfa.length) det += '<br>Ejemplos alfanuméricos que NO cruzan: <code>'+noMatchAlfa.map(escapeHtml).join('</code>, <code>')+'</code>';
-    det += '</div>';
-    avisos += det;
-  }
-  if(dupes > 0){
-    avisos += '<div class="aviso">'+dupes.toLocaleString('es-ES')+' códigos duplicados en el Excel: se usó el último de cada uno.</div>';
-  }
-  if(nuevasCols.length){
-    avisos += '<div class="aviso">Se añadieron columnas nuevas al CSV: '+escapeHtml(nuevasCols.join(', '))+'.</div>';
-  }
+  if(matched === 0) avisos += '<div class="aviso">No cruzó ninguna fila. Revisa el mapeo de la columna clave.</div>';
+  if(dupes > 0) avisos += '<div class="aviso">'+dupes.toLocaleString('es-ES')+' códigos duplicados en el Excel: se usó el último de cada uno.</div>';
   $('resAvisos').innerHTML = avisos;
-  $('resTitle').textContent = 'Cruce completado · ' + matched.toLocaleString('es-ES') + ' de ' + csvData.length.toLocaleString('es-ES') + ' vehículos enriquecidos';
+  $('resTitle').textContent = 'Cruce completado · ' + matched.toLocaleString('es-ES') + ' de ' + csvData.length.toLocaleString('es-ES') + ' vehículos';
   $('cardResult').classList.remove('hidden');
   $('cardResult').scrollIntoView({behavior:'smooth'});
 }
 
-// --- Neutralizar CSV injection ---
-function safeCell(v){
-  let s = v == null ? '' : String(v);
-  if(/^[=\+\-@\t\r]/.test(s)) s = "'" + s;
-  return s;
-}
+function safeCell(v){ let s = v == null ? '' : String(v); if(/^[=\+\-@\t\r]/.test(s)) s = "'" + s; return s; }
 
-// --- Descargas ---
 function descargar(formato){
   if(!resultRows) return;
   if(formato === 'csv'){
-    const safe = resultRows.map(r=>{
-      const o = {};
-      resultHeaders.forEach(h=> o[h] = safeCell(r[h]));
-      return o;
-    });
+    const safe = resultRows.map(r=>{ const o={}; resultHeaders.forEach(h=>o[h]=safeCell(r[h])); return o; });
     const csv = Papa.unparse({fields:resultHeaders, data:safe}, {delimiter:csvDelimiter});
     const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
     descargarBlob(blob, 'vehiculos_unificado.csv');
   }else{
-    const aoa = [resultHeaders].concat(resultRows.map(r=> resultHeaders.map(h=> r[h] == null ? '' : r[h])));
+    const aoa = [resultHeaders].concat(resultRows.map(r=> resultHeaders.map(h=> r[h]==null?'':r[h])));
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Vehiculos unificados');
@@ -432,13 +319,10 @@ function descargar(formato){
 
 function descargarBlob(blob, name){
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
 }
 
-// Init
 setupDrop('dropCsv','inCsv',handleCsv);
 setupDrop('dropXls','inXls',handleXls);
 </script>
