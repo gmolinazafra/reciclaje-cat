@@ -215,10 +215,16 @@ function selectHtml(id, options, preferido){
   return html;
 }
 
-// Cruce EXACTO por codvehiculo: no se toca nada (ni ceros ni letras).
-// Solo se recortan los espacios sobrantes; el código se compara tal cual está en cada archivo.
+// Normalización SOLO para emparejar (el codvehiculo de salida nunca se modifica).
+// El CSV trae el código sin ceros de relleno (6483) y el Excel con ellos (06483):
+// es el mismo vehículo. Se ignoran únicamente los ceros de relleno y se CONSERVAN
+// todas las letras, tanto al principio como al final (M06002, 00438C, 03217R...).
+//   6483 == 06483 | 00438C -> 438C | M06002 -> M6002 | M903516 -> M903516
 function normKey(v){
-  return String(v == null ? '' : v).trim();
+  let s = String(v == null ? '' : v).trim().toUpperCase();
+  if(s === '') return '';
+  const m = s.match(/^([A-Z]*)0*(.*)$/);   // prefijo de letras | ceros de relleno | resto
+  return m ? (m[1] + m[2]) : s;
 }
 
 function isFakeDate(s){
@@ -255,7 +261,17 @@ function unificar(){
   // Las cabeceras del CSV NO cambian: nunca se crean columnas
   resultHeaders = csvHeaders.slice();
 
-  let matched = 0, filled = 0;
+  // Regla de salida: a los codvehiculo SIN letra se les rellena con ceros por delante
+  // hasta 5 dígitos, para que coincidan con el formato que espera la web
+  // (243 -> 00243, 6483 -> 06483). Los códigos de 5+ dígitos se dejan igual,
+  // y los que llevan letra (delante o detrás) se dejan intactos.
+  function addCeroInicial(v){
+    const s = String(v == null ? '' : v).trim();
+    if(s === '' || /[A-Za-z]/.test(s)) return v;   // vacío o con letra -> sin tocar
+    return s.padStart(5, '0');                      // 243 -> 00243
+  }
+
+  let matched = 0, filled = 0, ceros = 0;
   resultRows = csvData.map(row=>{
     const out = Object.assign({}, row);
     const src = dict[normKey(row[keyCsv])];
@@ -271,6 +287,10 @@ function unificar(){
         if(actual === ''){ out[p.dst] = val; filled++; }  // solo rellena vacías
       });
     }
+    // Cero inicial en la columna codvehiculo de salida
+    const antes = out[keyCsv];
+    const despues = addCeroInicial(antes);
+    if(despues !== antes){ out[keyCsv] = despues; ceros++; }
     return out;
   });
 
@@ -279,6 +299,7 @@ function unificar(){
     ['Cruzadas', matched],
     ['Sin cruce', csvData.length - matched],
     ['Datos rellenados', filled],
+    ['Ceros añadidos', ceros],
   ];
   $('stats').innerHTML = stats.map(s=>
     '<div class="stat"><div class="v">'+s[1].toLocaleString('es-ES')+'</div><div class="l">'+s[0]+'</div></div>'
