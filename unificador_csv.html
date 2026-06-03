@@ -7,59 +7,413 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  :root{
-    --verde:#1f7a3a; --verde-osc:#16602e; --verde-claro:#e8f4ec; --teal:#0c8478;
-    --tinta:#1d2b22; --gris:#6b7a70; --linea:#d9e3dc; --fondo:#f6f9f7;
-    --aviso:#b54708; --aviso-bg:#fff4e6; --ok:#1f7a3a; --ok-bg:#e8f4ec;
+  :root {
+    --verde: #1f7a3a; 
+    --verde-osc: #16602e; 
+    --verde-claro: #e8f4ec; 
+    --teal: #0c8478;
+    --tinta: #1d2b22; 
+    --gris: #6b7a70; 
+    --linea: #d9e3dc; 
+    --fondo: #f6f9f7;
+    --aviso: #b54708; 
+    --aviso-bg: #fff4e6; 
+    --ok: #1f7a3a; 
+    --ok-bg: #e8f4ec;
+    --sombra: rgba(20, 60, 40, 0.05);
   }
-  *{box-sizing:border-box;}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--fondo);color:var(--tinta);line-height:1.5;}
-  header{background:linear-gradient(135deg,var(--verde) 0%,var(--teal) 100%);color:#fff;padding:22px 24px;}
-  header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.2px;}
-  header p{margin:4px 0 0;font-size:13px;opacity:.92;}
-  .wrap{max-width:920px;margin:0 auto;padding:24px;}
-  .card{background:#fff;border:1px solid var(--linea);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(20,60,40,.04);}
-  .card h2{margin:0 0 14px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
-  .num{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--verde);color:#fff;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
-  .drop{border:2px dashed var(--linea);border-radius:12px;padding:26px;text-align:center;cursor:pointer;transition:.15s;background:#fafdfb;}
-  .drop:hover{border-color:var(--verde);background:var(--verde-claro);}
-  .drop.has-file{border-style:solid;border-color:var(--verde);background:var(--verde-claro);}
-  .drop strong{color:var(--verde-osc);}
-  .drop .sub{font-size:12px;color:var(--gris);margin-top:6px;}
-  .drop input{display:none;}
-  .filename{font-size:13px;font-weight:600;color:var(--verde-osc);margin-top:8px;word-break:break-all;}
-  select,button{font-family:inherit;font-size:14px;}
-  select{width:100%;padding:8px 10px;border:1px solid var(--linea);border-radius:9px;background:#fff;color:var(--tinta);}
-  table.map{width:100%;border-collapse:collapse;margin-top:4px;}
-  table.map th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gris);text-align:left;padding:6px 8px;font-weight:600;}
-  table.map td{padding:6px 8px;vertical-align:middle;border-top:1px solid var(--linea);}
-  .campo{font-weight:700;color:var(--verde-osc);font-size:14px;white-space:nowrap;}
-  .campo small{display:block;font-weight:600;color:var(--gris);font-size:11px;text-transform:none;letter-spacing:0;}
-  .flecha{color:var(--gris);text-align:center;font-size:16px;}
-  .btn{background:var(--verde);color:#fff;border:none;padding:12px 18px;border-radius:10px;font-weight:700;cursor:pointer;transition:.15s;}
-  .btn:hover{background:var(--verde-osc);}
-  .btn:disabled{background:#b9c8bf;cursor:not-allowed;}
-  .btn.sec{background:#fff;color:var(--verde-osc);border:1.5px solid var(--verde);}
-  .btn.sec:hover{background:var(--verde-claro);}
-  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
-  .resumen{background:var(--ok-bg);border:1px solid #c5e3d0;border-radius:12px;padding:16px;margin-top:4px;}
-  .resumen h3{margin:0 0 10px;font-size:14px;color:var(--verde-osc);}
-  .stat-row{display:flex;flex-wrap:wrap;gap:10px;}
-  .stat{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:10px 14px;min-width:120px;flex:1;}
-  .stat .v{font-size:22px;font-weight:800;color:var(--verde-osc);line-height:1;}
-  .stat .l{font-size:11px;color:var(--gris);margin-top:4px;text-transform:uppercase;letter-spacing:.4px;}
-  .aviso{background:var(--aviso-bg);border:1px solid #f4c89a;color:var(--aviso);padding:11px 14px;border-radius:10px;font-size:13px;margin-top:12px;}
-  .err{background:#fde8e8;border:1px solid #f3b4b4;color:#9b1c1c;padding:11px 14px;border-radius:10px;font-size:13px;margin-top:12px;}
-  .hint{font-size:12px;color:var(--gris);margin-top:10px;}
-  .hidden{display:none;}
-  footer{text-align:center;font-size:12px;color:var(--gris);padding:8px 0 28px;}
+  
+  * { box-sizing: border-box; }
+  
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--fondo);
+    color: var(--tinta);
+    line-height: 1.5;
+  }
+  
+  header {
+    background: linear-gradient(135deg, var(--verde) 0%, var(--teal) 100%);
+    color: #fff;
+    padding: 24px;
+    box-shadow: 0 2px 8px var(--sombra);
+  }
+  
+  header .header-wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  header p {
+    margin: 4px 0 0;
+    font-size: 13.5px;
+    opacity: 0.92;
+  }
+
+  .badge {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  
+  .card {
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px -1px var(--sombra), 0 2px 4px -1px var(--sombra);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  
+  .card h2 {
+    margin: 0 0 16px;
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--verde-osc);
+  }
+  
+  .num {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--verde);
+    color: #fff;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  
+  .drop {
+    border: 2px dashed var(--linea);
+    border-radius: 12px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fafdfb;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .drop:hover {
+    border-color: var(--verde);
+    background: var(--verde-claro);
+  }
+  
+  .drop.has-file {
+    border-style: solid;
+    border-color: var(--verde);
+    background: var(--verde-claro);
+  }
+
+  .drop-icon {
+    font-size: 32px;
+    color: var(--verde);
+    margin-bottom: 4px;
+  }
+  
+  .drop strong {
+    color: var(--verde-osc);
+    font-size: 15px;
+  }
+  
+  .drop .sub {
+    font-size: 12px;
+    color: var(--gris);
+  }
+  
+  .drop input { display: none; }
+  
+  .filename {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--verde-osc);
+    background: rgba(31, 122, 58, 0.08);
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-top: 8px;
+    word-break: break-all;
+    border: 1px solid rgba(31, 122, 58, 0.15);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  select, button {
+    font-family: inherit;
+    font-size: 14px;
+  }
+  
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--linea);
+    border-radius: 9px;
+    background: #fff;
+    color: var(--tinta);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  select:focus {
+    border-color: var(--verde);
+    box-shadow: 0 0 0 3px rgba(31, 122, 58, 0.15);
+  }
+  
+  table.map {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+  }
+  
+  table.map th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--gris);
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 700;
+  }
+  
+  table.map td {
+    padding: 12px;
+    vertical-align: middle;
+    border-top: 1px solid var(--linea);
+  }
+
+  table.map tr:hover td {
+    background: #fbfdfc;
+  }
+  
+  .campo {
+    font-weight: 700;
+    color: var(--verde-osc);
+    font-size: 14.5px;
+    white-space: nowrap;
+  }
+  
+  .campo small {
+    display: block;
+    font-weight: 600;
+    color: var(--gris);
+    font-size: 11px;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-top: 2px;
+  }
+  
+  .flecha {
+    color: var(--gris);
+    text-align: center;
+    font-size: 18px;
+    width: 40px;
+  }
+  
+  .btn {
+    background: var(--verde);
+    color: #fff;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 4px rgba(31, 122, 58, 0.15);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .btn:hover {
+    background: var(--verde-osc);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(31, 122, 58, 0.2);
+  }
+  
+  .btn:disabled {
+    background: #b9c8bf;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .btn.sec {
+    background: #fff;
+    color: var(--verde-osc);
+    border: 1.5px solid var(--verde);
+    box-shadow: none;
+  }
+  
+  .btn.sec:hover {
+    background: var(--verde-claro);
+  }
+  
+  .actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+  
+  .resumen {
+    background: var(--ok-bg);
+    border: 1px solid #c5e3d0;
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 4px;
+  }
+  
+  .resumen h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    color: var(--verde-osc);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .stat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .stat {
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 10px;
+    padding: 12px 16px;
+    min-width: 140px;
+    flex: 1;
+    box-shadow: 0 1px 3px var(--sombra);
+  }
+  
+  .stat .v {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--verde-osc);
+    line-height: 1.1;
+  }
+  
+  .stat .l {
+    font-size: 11px;
+    color: var(--gris);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    font-weight: 600;
+  }
+  
+  .aviso {
+    background: var(--aviso-bg);
+    border: 1px solid #f4c89a;
+    color: var(--aviso);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+  
+  .err {
+    background: #fde8e8;
+    border: 1px solid #f3b4b4;
+    color: #9b1c1c;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+  
+  .hint {
+    font-size: 12.5px;
+    color: var(--gris);
+    margin-top: 12px;
+    background: #fcfdfe;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border-left: 3px solid var(--teal);
+  }
+  
+  .hidden { display: none !important; }
+  
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--gris);
+    padding: 16px 0 40px;
+  }
+
+  /* Animación sutil de entrada */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in {
+    animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
 </style>
 </head>
 <body>
+
 <header>
-  <h1>Unificador CSV + Excel</h1>
-  <p>Red Desguace · rellena celdas vacías del CSV con los datos del Excel cruzando por <strong>codvehiculo</strong></p>
+  <div class="header-wrap">
+    <div>
+      <h1>
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path>
+        </svg>
+        Unificador CSV + Excel
+      </h1>
+      <p>Red Desguace · rellena celdas vacías del CSV con los datos del Excel cruzando por <strong>codvehiculo</strong></p>
+    </div>
+    <span class="badge">Local & Seguro</span>
+  </div>
 </header>
 
 <div class="wrap">
@@ -67,8 +421,9 @@
   <div class="card">
     <h2><span class="num">1</span> Sube el CSV (vehículos a enriquecer)</h2>
     <div class="drop" id="dropCsv" onclick="document.getElementById('inCsv').click()">
-      <strong>Arrastra o haz clic</strong> para subir el CSV
-      <div class="sub">.csv · máx. 50 MB</div>
+      <span class="drop-icon">📄</span>
+      <strong>Arrastra o haz clic</strong> para subir el CSV de destino
+      <div class="sub">Formato .csv · Máx. 50 MB</div>
       <div class="filename hidden" id="nameCsv"></div>
       <input type="file" id="inCsv" accept=".csv,text/csv">
     </div>
@@ -77,28 +432,41 @@
   <div class="card">
     <h2><span class="num">2</span> Sube el Excel (datos de origen)</h2>
     <div class="drop" id="dropXls" onclick="document.getElementById('inXls').click()">
-      <strong>Arrastra o haz clic</strong> para subir el Excel
-      <div class="sub">.xlsx / .xls · máx. 50 MB</div>
+      <span class="drop-icon">📊</span>
+      <strong>Arrastra o haz clic</strong> para subir el Excel con datos
+      <div class="sub">Formato .xlsx, .xls · Máx. 50 MB</div>
       <div class="filename hidden" id="nameXls"></div>
       <input type="file" id="inXls" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
     </div>
   </div>
 
-  <div class="card hidden" id="cardMap">
+  <div class="card hidden fade-in" id="cardMap">
     <h2><span class="num">3</span> Mapeo de columnas</h2>
     <table class="map">
       <thead>
-        <tr><th>Campo</th><th>Columna en el Excel (origen)</th><th></th><th>Columna en el CSV (destino)</th></tr>
+        <tr>
+          <th>Campo de Destino</th>
+          <th>Columna en Excel (Origen)</th>
+          <th></th>
+          <th>Columna en CSV (Destino)</th>
+        </tr>
       </thead>
       <tbody id="mapBody"></tbody>
     </table>
-    <div class="hint">El <strong>codvehiculo</strong> es la clave de cruce. Los otros cuatro solo se escriben si la celda del CSV está vacía. Los campos sin mapear se ignoran. Nunca se crean columnas nuevas.</div>
+    <div class="hint">
+      El <strong>codvehiculo</strong> es la clave de cruce obligatoria. El campo <strong>motorversion</strong> se <strong>sobrescribirá siempre</strong> con el dato del Excel. Los otros campos mapeados (incluyendo <strong>bastidor</strong>) solo se escribirán si la celda correspondiente del CSV está vacía. Nunca se crearán columnas nuevas.
+    </div>
     <div class="actions">
-      <button class="btn" id="btnRun" onclick="unificar()">Unificar y previsualizar</button>
+      <button class="btn" id="btnRun" onclick="unificar()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"></path>
+        </svg>
+        Unificar y previsualizar
+      </button>
     </div>
   </div>
 
-  <div class="card hidden" id="cardResult">
+  <div class="card hidden fade-in" id="cardResult">
     <h2><span class="num">4</span> Resultado</h2>
     <div class="resumen">
       <h3 id="resTitle">Cruce completado</h3>
@@ -106,8 +474,18 @@
     </div>
     <div id="resAvisos"></div>
     <div class="actions">
-      <button class="btn" onclick="descargar('csv')">Descargar CSV</button>
-      <button class="btn sec" onclick="descargar('xlsx')">Descargar Excel</button>
+      <button class="btn" onclick="descargar('csv')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"></path>
+        </svg>
+        Descargar CSV
+      </button>
+      <button class="btn sec" onclick="descargar('xlsx')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"></path>
+        </svg>
+        Descargar Excel
+      </button>
     </div>
   </div>
 
@@ -115,12 +493,12 @@
 
 </div>
 
-<footer>Unificador · Red Desguace — procesa todo en tu navegador, ningún archivo sale de tu equipo.</footer>
+<footer>Unificador · Red Desguace — procesa todo en tu navegador de forma segura, ningún archivo se envía a Internet.</footer>
 
 <script>
 const MAX_BYTES = 50 * 1024 * 1024;
-// Campos canónicos. El primero (codvehiculo) es la clave de cruce; el resto se rellenan.
-const CAMPOS = ['codvehiculo','fechasalida','bastidor','matricula','motorversion'];
+// Campos canónicos soportados en el unificador
+const CAMPOS = ['codvehiculo', 'fechasalida', 'bastidor', 'matricula', 'motorversion'];
 const CLAVE = 'codvehiculo';
 
 let csvData = null, csvHeaders = null, csvDelimiter = ';';
@@ -128,7 +506,7 @@ let xlsData = null, xlsHeaders = null;
 let resultRows = null, resultHeaders = null;
 
 const $ = id => document.getElementById(id);
-function showErr(msg){ $('globalErr').innerHTML = '<div class="err">'+escapeHtml(msg)+'</div>'; }
+function showErr(msg){ $('globalErr').innerHTML = '<div class="err"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>'+escapeHtml(msg)+'</div>'; }
 function clearErr(){ $('globalErr').innerHTML=''; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -156,7 +534,7 @@ function handleCsv(file){
       csvData = res.data.filter(r => Object.values(r).some(v => String(v).trim() !== ''));
       csvHeaders = res.meta.fields || [];
       csvDelimiter = res.meta.delimiter || ';';
-      $('nameCsv').textContent = file.name + '  ·  ' + csvData.length + ' filas · ' + csvHeaders.length + ' columnas';
+      $('nameCsv').textContent = file.name + ' · ' + csvData.length + ' filas · ' + csvHeaders.length + ' col.';
       $('nameCsv').classList.remove('hidden');
       $('dropCsv').classList.add('has-file');
       tryMap();
@@ -176,7 +554,7 @@ function handleXls(file){
       const json = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
       xlsData = json;
       xlsHeaders = json.length ? Object.keys(json[0]) : [];
-      $('nameXls').textContent = file.name + '  ·  ' + xlsData.length + ' filas · ' + xlsHeaders.length + ' columnas';
+      $('nameXls').textContent = file.name + ' · ' + xlsData.length + ' filas · ' + xlsHeaders.length + ' col.';
       $('nameXls').classList.remove('hidden');
       $('dropXls').classList.add('has-file');
       tryMap();
@@ -186,44 +564,106 @@ function handleXls(file){
   reader.readAsArrayBuffer(file);
 }
 
-// Construye el panel de mapeo cuando ambos archivos están cargados
+/**
+ * Normalizador de texto para emparejamiento inteligente de columnas
+ */
+function normalizarTexto(texto) {
+  return String(texto)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+    .replace(/[^a-z0-9]/g, "");     // Quitar guiones, espacios y caracteres especiales
+}
+
+/**
+ * Busca de forma inteligente la mejor coincidencia para un campo en base a sinónimos
+ */
+function buscarMejorColumna(campo, opciones) {
+  const normCampo = normalizarTexto(campo);
+  
+  // Diccionario de sinónimos de uso habitual
+  const sinonimos = {
+    codvehiculo: ['codvehiculo', 'codigo', 'id', 'cod', 'codveh', 'vehiculo', 'ref', 'codigo_vehiculo'],
+    fechasalida: ['fechasalida', 'fecha', 'salida', 'fecsal', 'fsalida', 'fecha_salida'],
+    bastidor: ['bastidor', 'bastidores', 'chasis', 'vin', 'numbastidor', 'num_bastidor', 'frame'],
+    matricula: ['matricula', 'patente', 'placa', 'reg', 'nummatricula'],
+    motorversion: ['motorversion', 'motor', 'version', 'versionmotor', 'codmotor', 'tipomotor', 'motor_version', 'mot', 'codigo_motor']
+  };
+
+  const listaPermitidos = sinonimos[campo] || [normCampo];
+
+  // 1. Intento exacto de normalización
+  for (const opt of opciones) {
+    if (normalizarTexto(opt) === normCampo) return opt;
+  }
+
+  // 2. Comprobar si coincide con la lista de sinónimos
+  for (const opt of opciones) {
+    const normOpt = normalizarTexto(opt);
+    if (listaPermitidos.includes(normOpt)) return opt;
+  }
+
+  // 3. Comprobar si contiene o está contenido en alguno de los sinónimos (búsqueda flexible)
+  for (const opt of opciones) {
+    const normOpt = normalizarTexto(opt);
+    for (const sin of listaPermitidos) {
+      if ((normOpt.includes(sin) || sin.includes(normOpt)) && normOpt.length > 3) {
+        return opt;
+      }
+    }
+  }
+
+  return ''; // Ninguno sugerido
+}
+
 function tryMap(){
   if(!csvData || !xlsData) return;
   const body = $('mapBody');
   body.innerHTML = '';
-  CAMPOS.forEach(campo=>{
+  
+  CAMPOS.forEach(campo => {
     const esClave = campo === CLAVE;
     const tr = document.createElement('tr');
+    
+    // Buscar la columna recomendada en Excel y CSV mediante el algoritmo inteligente
+    const colRecomendadaXls = buscarMejorColumna(campo, xlsHeaders);
+    const colRecomendadaCsv = buscarMejorColumna(campo, csvHeaders);
+    
+    // Subtexto descriptivo del campo
+    let subtexto = 'se rellena si está vacío';
+    if(esClave) subtexto = 'clave de cruce obligatoria';
+    else if(campo === 'motorversion') subtexto = 'motor / versión (se REEMPLAZA siempre)';
+    else if(campo === 'bastidor') subtexto = 'bastidores / chasis (se rellena)';
+
     tr.innerHTML =
-      '<td><span class="campo">'+campo+(esClave?'<small>clave de cruce</small>':'<small>se rellena si está vacío</small>')+'</span></td>'+
-      '<td>'+selectHtml('map-xls-'+campo, xlsHeaders, campo)+'</td>'+
-      '<td class="flecha">→</td>'+
-      '<td>'+selectHtml('map-csv-'+campo, csvHeaders, campo)+'</td>';
+      '<td><span class="campo">' + campo + '<small>' + subtexto + '</small></span></td>' +
+      '<td>' + selectHtml('map-xls-' + campo, xlsHeaders, colRecomendadaXls) + '</td>' +
+      '<td class="flecha">→</td>' +
+      '<td>' + selectHtml('map-csv-' + campo, csvHeaders, colRecomendadaCsv) + '</td>';
     body.appendChild(tr);
   });
+  
   $('cardMap').classList.remove('hidden');
+  $('cardMap').scrollIntoView({ behavior: 'smooth' });
 }
 
-// Genera un <select> con autoselección por nombre exacto (insensible a mayúsculas)
-function selectHtml(id, options, preferido){
-  let html = '<select id="'+id+'"><option value="">— ninguna —</option>';
+// Genera un elemento select preseleccionando el valor sugerido
+function selectHtml(id, options, sugerido){
+  let html = '<select id="'+id+'"><option value="">— ninguna columna mapeada —</option>';
   options.forEach(o=>{
-    const sel = o.toLowerCase() === preferido.toLowerCase() ? ' selected' : '';
+    const sel = o === sugerido ? ' selected' : '';
     html += '<option value="'+escapeHtml(o)+'"'+sel+'>'+escapeHtml(o)+'</option>';
   });
   html += '</select>';
   return html;
 }
 
-// Normalización SOLO para emparejar (el codvehiculo de salida nunca se modifica).
-// El CSV trae el código sin ceros de relleno (6483) y el Excel con ellos (06483):
-// es el mismo vehículo. Se ignoran únicamente los ceros de relleno y se CONSERVAN
-// todas las letras, tanto al principio como al final (M06002, 00438C, 03217R...).
-//   6483 == 06483 | 00438C -> 438C | M06002 -> M6002 | M903516 -> M903516
+// Normalización SOLO para emparejar (el codvehiculo original no se muta).
+// Elimina ceros a la izquierda y normaliza letras
 function normKey(v){
   let s = String(v == null ? '' : v).trim().toUpperCase();
   if(s === '') return '';
-  const m = s.match(/^([A-Z]*)0*(.*)$/);   // prefijo de letras | ceros de relleno | resto
+  const m = s.match(/^([A-Z]*)0*(.*)$/); // prefijo de letras | ceros iniciales | resto
   return m ? (m[1] + m[2]) : s;
 }
 
@@ -234,87 +674,124 @@ function isFakeDate(s){
 
 function unificar(){
   clearErr();
-  // Lee el mapeo
+  
+  // Lee los mapeos configurados en la tabla
   const map = {};
-  CAMPOS.forEach(campo=>{ map[campo] = { xls: $('map-xls-'+campo).value, csv: $('map-csv-'+campo).value }; });
+  CAMPOS.forEach(campo => { 
+    map[campo] = { 
+      xls: $('map-xls-'+campo).value, 
+      csv: $('map-csv-'+campo).value 
+    }; 
+  });
 
   const keyXls = map[CLAVE].xls, keyCsv = map[CLAVE].csv;
-  if(!keyXls || !keyCsv){ return showErr('Debes mapear la columna clave codvehiculo en ambos archivos.'); }
+  if(!keyXls || !keyCsv){ 
+    return showErr('Debes mapear la columna clave codvehiculo en ambos archivos.'); 
+  }
 
-  // Campos a rellenar = los canónicos (menos la clave) con origen y destino mapeados
-  const pares = CAMPOS.filter(c=>c!==CLAVE)
-                      .map(c=>({campo:c, src:map[c].xls, dst:map[c].csv}))
-                      .filter(p=>p.src && p.dst);
+  // Identifica qué pares de columnas adicionales se van a unificar/rellenar
+  const pares = CAMPOS.filter(c => c !== CLAVE)
+                      .map(c => ({ campo: c, src: map[c].xls, dst: map[c].csv }))
+                      .filter(p => p.src && p.dst);
 
-  if(!pares.length){ return showErr('Mapea al menos un campo (fechasalida, bastidor, matricula o motorversion).'); }
+  if(!pares.length){ 
+    return showErr('Mapea al menos un campo adicional a unificar (como motorversion o bastidor).'); 
+  }
 
-  // Diccionario del Excel por clave normalizada
+  // Indexar el Excel en un diccionario para búsquedas O(1) veloces
   const dict = {};
   let dupes = 0;
-  xlsData.forEach(row=>{
+  xlsData.forEach(row => {
     const k = normKey(row[keyXls]);
     if(k === '') return;
     if(dict[k]) dupes++;
     dict[k] = row;
   });
 
-  // Las cabeceras del CSV NO cambian: nunca se crean columnas
   resultHeaders = csvHeaders.slice();
 
-  // Regla de salida: a los codvehiculo SIN letra se les rellena con ceros por delante
-  // hasta 5 dígitos, para que coincidan con el formato que espera la web
-  // (243 -> 00243, 6483 -> 06483). Los códigos de 5+ dígitos se dejan igual,
-  // y los que llevan letra (delante o detrás) se dejan intactos.
+  // Aplica regla de relleno de ceros por delante en los codvehiculo puramente numéricos
   function addCeroInicial(v){
     const s = String(v == null ? '' : v).trim();
-    if(s === '' || /[A-Za-z]/.test(s)) return v;   // vacío o con letra -> sin tocar
-    return s.padStart(5, '0');                      // 243 -> 00243
+    if(s === '' || /[A-Za-z]/.test(s)) return v; // No tocar vacíos o alfanuméricos
+    return s.padStart(5, '0'); // Rellenar con ceros hasta 5 cifras
   }
 
   let matched = 0, filled = 0, ceros = 0;
-  resultRows = csvData.map(row=>{
+  
+  resultRows = csvData.map(row => {
     const out = Object.assign({}, row);
     const src = dict[normKey(row[keyCsv])];
+    
     if(src){
       matched++;
-      pares.forEach(p=>{
+      pares.forEach(p => {
         let val = src[p.src];
         if(val == null) return;
         val = String(val).trim();
         if(val === '') return;
-        if(isFakeDate(val)) return;                       // fechas falsas siempre ignoradas
+        if(isFakeDate(val)) return; // Ignorar fechas inválidas
+        
         const actual = out[p.dst] == null ? '' : String(out[p.dst]).trim();
-        if(actual === ''){ out[p.dst] = val; filled++; }  // solo rellena vacías
+        
+        if (p.campo === 'motorversion') {
+          // REGLA: Sobrescribir siempre con el valor de Excel si este es diferente al actual
+          if (actual !== val) {
+            out[p.dst] = val;
+            filled++;
+          }
+        } else {
+          // Rellenar únicamente si el campo en el CSV de destino está vacío
+          if (actual === '') { 
+            out[p.dst] = val; 
+            filled++; 
+          }
+        }
       });
     }
-    // Cero inicial en la columna codvehiculo de salida
+    
+    // Estandarización de códigos de vehículos en la columna final
     const antes = out[keyCsv];
     const despues = addCeroInicial(antes);
-    if(despues !== antes){ out[keyCsv] = despues; ceros++; }
+    if(despues !== antes){ 
+      out[keyCsv] = despues; 
+      ceros++; 
+    }
     return out;
   });
 
+  // Renderizar las estadísticas finales
   const stats = [
     ['Filas CSV', csvData.length],
     ['Cruzadas', matched],
     ['Sin cruce', csvData.length - matched],
-    ['Datos rellenados', filled],
+    ['Datos unificados', filled],
     ['Ceros añadidos', ceros],
   ];
-  $('stats').innerHTML = stats.map(s=>
+  
+  $('stats').innerHTML = stats.map(s =>
     '<div class="stat"><div class="v">'+s[1].toLocaleString('es-ES')+'</div><div class="l">'+s[0]+'</div></div>'
   ).join('');
 
   let avisos = '';
-  if(matched === 0) avisos += '<div class="aviso">No cruzó ninguna fila. Revisa el mapeo de la columna clave.</div>';
-  if(dupes > 0) avisos += '<div class="aviso">'+dupes.toLocaleString('es-ES')+' códigos duplicados en el Excel: se usó el último de cada uno.</div>';
+  if(matched === 0) {
+    avisos += '<div class="aviso"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> No se pudo cruzar ninguna fila. Comprueba que las columnas asignadas a "codvehiculo" sean las correctas.</div>';
+  }
+  if(dupes > 0) {
+    avisos += '<div class="aviso"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 111.063 1.06l-.041.02a.75.75 0 11-1.063-1.06zm0 4.5l.041-.02a.75.75 0 111.063 1.06l-.041.02a.75.75 0 11-1.063-1.06zM20.25 12a8.25 8.25 0 11-16.5 0 8.25 8.25 0 0116.5 0z"></path></svg> Se detectaron '+dupes.toLocaleString('es-ES')+' códigos duplicados en el Excel de origen: se tomó el último disponible en el archivo para cada caso.</div>';
+  }
+  
   $('resAvisos').innerHTML = avisos;
-  $('resTitle').textContent = 'Cruce completado · ' + matched.toLocaleString('es-ES') + ' de ' + csvData.length.toLocaleString('es-ES') + ' vehículos';
+  $('resTitle').innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Cruce completado · ' + matched.toLocaleString('es-ES') + ' de ' + csvData.length.toLocaleString('es-ES') + ' vehículos';
   $('cardResult').classList.remove('hidden');
-  $('cardResult').scrollIntoView({behavior:'smooth'});
+  $('cardResult').scrollIntoView({ behavior: 'smooth' });
 }
 
-function safeCell(v){ let s = v == null ? '' : String(v); if(/^[=\+\-@\t\r]/.test(s)) s = "'" + s; return s; }
+function safeCell(v){ 
+  let s = v == null ? '' : String(v); 
+  if(/^[=\+\-@\t\r]/.test(s)) s = "'" + s; 
+  return s; 
+}
 
 function descargar(formato){
   if(!resultRows) return;
