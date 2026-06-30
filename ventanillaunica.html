@@ -32,13 +32,32 @@
     <div class="max-w-5xl mx-auto px-4 py-8">
         <header class="text-center mb-10">
             <!-- El logo ahora se basa en el ANCHO (w-full max-w-md) para que el texto sea grande y legible -->
-            <img src="imagenes/logoreddesguaces.svg" alt="Red Desguace" class="w-full max-w-xs sm:max-w-sm md:max-w-md h-auto mx-auto mb-8 object-contain">
+            <img src="imagenes/logoreddesguaces.png" alt="Red Desguace" class="w-full max-w-xs sm:max-w-sm md:max-w-md h-auto mx-auto mb-8 object-contain">
             
             <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-2 uppercase">Ventanilla Única</h1>
             <p class="text-slate-600 text-lg">Sistema de división y auditoría de facturación internacional.</p>
         </header>
 
         <main class="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+            <!-- Instrucciones para sacar el CSV de CRVnet antes de usar esta herramienta -->
+            <details class="mb-8 rounded-xl border border-indigo-100 bg-indigo-50/60 open:bg-indigo-50">
+                <summary class="cursor-pointer select-none px-5 py-4 font-semibold text-indigo-700 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    ¿Cómo saco el CSV desde CRVnet? (pulsa para ver los pasos)
+                </summary>
+                <ol class="px-5 pb-5 pt-1 space-y-2 text-sm text-slate-700 list-decimal list-inside marker:text-indigo-600 marker:font-semibold">
+                    <li>Abre CRVnet.</li>
+                    <li>Entra en <strong>Estadísticas</strong>.</li>
+                    <li>Ve al <strong>Panel de informes</strong>.</li>
+                    <li>Selecciona <strong>Facturación</strong>.</li>
+                    <li>Elige <strong>Exportación ventas</strong>.</li>
+                    <li>Indica la <strong>fecha inicial</strong> y la <strong>fecha final</strong> del periodo.</li>
+                    <li>Elige la <strong>carpeta de exportación</strong> de destino.</li>
+                    <li>Pulsa <strong>Imprimir</strong> (es el botón que lanza la exportación).</li>
+                    <li>En la carpeta que hayas elegido, el archivo ya estará creado con el nombre <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200">consulta_ventas_&lt;fecha del día&gt;</code>. Ese es el CSV que tienes que arrastrar abajo.</li>
+                </ol>
+            </details>
+
             <!-- Zona de Arrastre -->
             <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center transition-all cursor-pointer hover:border-indigo-400 group bg-slate-50/50">
                 <input type="file" id="csvFile" class="hidden" accept=".csv">
@@ -52,7 +71,7 @@
                         Arrastra aquí tu CSV de facturación
                     </div>
                     <p class="text-sm text-slate-400 max-w-md mx-auto italic">
-                        Nota: Se filtrará España, se normalizarán Portugal/Francia y se excluirán operaciones con IVA 0%.
+                        Nota: Se filtrará España, se normalizarán los países de la UE (con o sin tildes) y se excluirán operaciones con IVA 0%. El ZIP final se organiza en carpetas por mes.
                     </p>
                 </div>
             </div>
@@ -82,8 +101,32 @@
             <!-- Informe y Descarga -->
             <div id="successSection" class="hidden mt-8 space-y-6 animate-bounce-in">
                 <div class="bg-emerald-50 text-emerald-700 p-4 rounded-xl text-center font-medium border border-emerald-200 mb-2 shadow-sm">
-                    ¡Procesamiento completado! Se ha generado tu ZIP con las facturas por país y el reporte de auditoría.
+                    ¡Procesamiento completado! Se ha generado tu ZIP con las facturas organizadas en carpetas por mes y país, más el reporte de auditoría.
                 </div>
+
+                <!-- KPIs: ventas totales por trimestre y país -->
+                <div id="kpiSection" class="w-full bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h5 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                        KPIs del periodo
+                    </h5>
+                    <div id="kpiCards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
+                    <div id="kpiQuarterWrap" class="overflow-x-auto hidden">
+                        <p class="text-sm font-semibold text-slate-600 mb-2">Ventas por trimestre y país</p>
+                        <table class="min-w-full text-sm text-left">
+                            <thead class="text-xs text-slate-500 uppercase bg-slate-100 border-b">
+                                <tr>
+                                    <th class="px-4 py-2">Trimestre</th>
+                                    <th class="px-4 py-2">País</th>
+                                    <th class="px-4 py-2 text-right">Registros</th>
+                                    <th class="px-4 py-2 text-right text-indigo-700 font-bold">Total Facturado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kpiQuarterBody" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div id="auditReport" class="w-full bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm text-left overflow-hidden">
                     <h5 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -144,13 +187,59 @@
             'IMPORTE_CON_IVA', 'PAIS', 'TIPO_IVA', 'PORC_IVA' 
         ];
 
-        // Mapeo solicitado para normalizar
-        const COUNTRY_MAP = {
-            'pt': 'Portugal', 'portugal': 'Portugal', 'PORTUGAL': 'Portugal',
-            'fr': 'Francia', 'francia': 'Francia', 'france': 'Francia', 'FR': 'Francia'
-        };
+        // Quita acentos/diacríticos y pasa a minúsculas, para que "Bélgica",
+        // "belgica" y "BÉLGICA" se reconozcan como el mismo país en vez de
+        // crear grupos/archivos separados.
+        function normalizeKey(s) {
+            return s
+                .toString()
+                .trim()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+        }
 
-        const EXCLUDED_COUNTRIES = ['es', 'españa', 'espana', 'spain'];
+        // Mapeo país -> nombre canónico (con tildes correctas). Las claves
+        // están normalizadas (sin acentos) e incluyen: código ISO de 2
+        // letras, nombre en español con y sin tilde, y variantes habituales
+        // en inglés/idioma local. Cubre los 27 países de la UE (Ventanilla
+        // Única / OSS aplica a toda la UE, no solo a Portugal y Francia).
+        const COUNTRY_MAP = {};
+        function addCountry(canonicalName, ...variants) {
+            variants.forEach(v => { COUNTRY_MAP[normalizeKey(v)] = canonicalName; });
+        }
+        addCountry('Alemania', 'de', 'alemania', 'germany', 'deutschland');
+        addCountry('Austria', 'at', 'austria');
+        addCountry('Bélgica', 'be', 'belgica', 'bélgica', 'belgique', 'belgium');
+        addCountry('Bulgaria', 'bg', 'bulgaria');
+        addCountry('Croacia', 'hr', 'croacia', 'croatia');
+        addCountry('Chipre', 'cy', 'chipre', 'cyprus');
+        addCountry('República Checa', 'cz', 'republica checa', 'chequia', 'czechia', 'czech republic');
+        addCountry('Dinamarca', 'dk', 'dinamarca', 'denmark');
+        addCountry('Eslovaquia', 'sk', 'eslovaquia', 'slovakia');
+        addCountry('Eslovenia', 'si', 'eslovenia', 'slovenia');
+        addCountry('Estonia', 'ee', 'estonia');
+        addCountry('Finlandia', 'fi', 'finlandia', 'finland');
+        addCountry('Francia', 'fr', 'francia', 'france');
+        addCountry('Grecia', 'gr', 'el', 'grecia', 'greece');
+        addCountry('Hungría', 'hu', 'hungria', 'hungary');
+        addCountry('Irlanda', 'ie', 'irlanda', 'ireland');
+        addCountry('Italia', 'it', 'italia', 'italy');
+        addCountry('Letonia', 'lv', 'letonia', 'latvia');
+        addCountry('Lituania', 'lt', 'lituania', 'lithuania');
+        addCountry('Luxemburgo', 'lu', 'luxemburgo', 'luxembourg');
+        addCountry('Malta', 'mt', 'malta');
+        addCountry('Países Bajos', 'nl', 'paises bajos', 'holanda', 'netherlands');
+        addCountry('Polonia', 'pl', 'polonia', 'poland');
+        addCountry('Portugal', 'pt', 'portugal');
+        addCountry('Rumanía', 'ro', 'rumania', 'romania');
+        addCountry('Suecia', 'se', 'suecia', 'sweden');
+        // No es UE (no aplica a la ventanilla única tras el Brexit), pero
+        // aparece con volumen real en los datos de CRVnet, así que se
+        // normaliza igual para que no salga repetido en variantes distintas.
+        addCountry('Reino Unido', 'gb', 'uk', 'reino unido', 'inglaterra', 'england', 'london', 'londres', 'united kingdom');
+
+        const EXCLUDED_COUNTRIES = ['es', 'españa', 'espana', 'spain'].map(normalizeKey);
 
         let parsedData = null;
         let generatedZip = null;
@@ -171,6 +260,37 @@
 
         const formatEuro = (n) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
 
+        // Extrae "AAAA-MM" de la fecha de operación para organizar el ZIP en
+        // carpetas por mes. Soporta DD/MM/AAAA, DD-MM-AAAA, AAAA-MM-DD y,
+        // como último recurso, cualquier formato que Date() sepa interpretar.
+        function getMonthFolder(dateStr) {
+            if (!dateStr) return 'Sin-Fecha';
+            const s = dateStr.toString().trim();
+            let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+            if (m) return `${m[3]}-${m[2].padStart(2, '0')}`;
+            m = s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+            if (m) return `${m[1]}-${m[2].padStart(2, '0')}`;
+            const d = new Date(s);
+            if (!isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            return 'Sin-Fecha';
+        }
+
+        // Etiqueta de trimestre tipo "T2-2026". Prioridad: columnas TRIMESTRE/AÑO
+        // si el CSV las trae (como los de CRVnet, son las oficiales del propio
+        // sistema); si no existen, se calcula a partir del mes de FECHA_OPERACION.
+        function getQuarterLabel(row, mapping, fechaOperacion) {
+            const trimCol = mapping['TRIMESTRE'];
+            const anioCol = mapping['ANIO'];
+            if (trimCol && anioCol && row[trimCol] && row[anioCol]) {
+                return `T${row[trimCol].toString().trim()}-${row[anioCol].toString().trim()}`;
+            }
+            const monthFolder = getMonthFolder(fechaOperacion);
+            if (monthFolder === 'Sin-Fecha') return 'Sin-Fecha';
+            const [y, m] = monthFolder.split('-');
+            const q = Math.ceil(parseInt(m, 10) / 3);
+            return `T${q}-${y}`;
+        }
+
         // Eventos básicos de carga
         dropZone.addEventListener('click', () => fileInput.click());
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drop-zone--over'); });
@@ -186,7 +306,12 @@
         });
 
         function handleFile(file) {
+            // CRVnet exporta el CSV en Windows-1252/ISO-8859-1, no en UTF-8.
+            // Sin indicarlo explícitamente, el navegador lo lee como UTF-8 por
+            // defecto y los acentos se corrompen (p.ej. "BÉLGICA" -> "B�LGICA")
+            // antes incluso de llegar a la normalización de países.
             Papa.parse(file, {
+                encoding: 'ISO-8859-1',
                 header: true, skipEmptyLines: true,
                 complete: function(results) {
                     parsedData = results;
@@ -215,6 +340,14 @@
                          const matchPorcIva = csvFields.find(csvCol => csvCol.toLowerCase().includes('porc') && csvCol.toLowerCase().includes('iva'));
                          if(matchPorcIva) columnMapping['PORC_IVA'] = matchPorcIva;
                     }
+                    // Columnas opcionales para los KPIs por trimestre. Si el CSV
+                    // ya trae TRIMESTRE/AÑO (como los de CRVnet), se usan tal
+                    // cual; si no existen, el trimestre se calcula a partir de
+                    // FECHA_OPERACION más adelante.
+                    const matchTrimestre = csvFields.find(c => normalizeKey(c).includes('trimestre'));
+                    if (matchTrimestre) columnMapping['TRIMESTRE'] = matchTrimestre;
+                    const matchAnio = csvFields.find(c => /^a[n\u00f1]o$/.test(normalizeKey(c)));
+                    if (matchAnio) columnMapping['ANIO'] = matchAnio;
 
                     csvFields.forEach(f => {
                         const o = document.createElement('option');
@@ -242,7 +375,9 @@
             
             setTimeout(async () => {
                 const groups = {};
+                const monthGroups = {}; // { 'AAAA-MM': { 'Pais': [filas...] } } -> estructura de carpetas del ZIP
                 const auditSummary = {};
+                const quarterSummary = {}; // { 'T2-2026': { 'Pais': {rows,sin,iva,con} } } -> KPIs por trimestre y país
                 let allAuditRows = [];   // Registros Aceptados
                 let discardedRows = [];  // Registros Descartados y su motivo
                 
@@ -269,8 +404,16 @@
                         }
                     }
 
-                    const originalCountry = (row[countryKey] || 'Otros').toString().trim();
-                    const lowerCountry = originalCountry.toLowerCase();
+                    // BUG corregido (existía ya en el archivo original): antes,
+                    // si la celda de país venía vacía, "|| 'Otros'" la convertía
+                    // en un país falso llamado "Otros" ANTES de que el filtro de
+                    // "país vacío" de abajo pudiera descartarla -> con tu CSV real,
+                    // 342 de 876 filas válidas (39%, 22.337€) caían en ese cajón
+                    // de sastre en vez de descartarse. Ahora una celda vacía sigue
+                    // siendo realmente vacía y el filtro de la línea de abajo sí
+                    // la descarta como corresponde.
+                    const originalCountry = (row[countryKey] ?? '').toString().trim();
+                    const lowerCountry = normalizeKey(originalCountry);
                     
                     // 2. FILTRO DE CARACTERES EXTRAÑOS O TELÉFONOS
                     if (!isDiscarded && (/\d/.test(originalCountry) || originalCountry === '')) {
@@ -300,8 +443,14 @@
 
                     // SI LLEGA AQUÍ, EL REGISTRO ES VÁLIDO
 
-                    // Normalizar Portugal y Francia
-                    let finalName = COUNTRY_MAP[lowerCountry] || (originalCountry.charAt(0).toUpperCase() + originalCountry.slice(1).toLowerCase());
+                    // Normalizar el país contra el mapeo de la UE. Si no está
+                    // en el mapeo, se agrupa igualmente por su forma SIN
+                    // ACENTOS (lowerCountry) para que variantes con/sin tilde
+                    // del mismo país no acaben en archivos separados; solo se
+                    // pierde el acento en el nombre mostrado para países no
+                    // contemplados explícitamente en el mapeo de arriba.
+                    let finalName = COUNTRY_MAP[lowerCountry] ||
+                        (lowerCountry.charAt(0).toUpperCase() + lowerCountry.slice(1));
 
                     if (!groups[finalName]) {
                         groups[finalName] = [];
@@ -313,10 +462,23 @@
                     delete filteredRow['PORC_IVA'];
                     
                     groups[finalName].push(filteredRow);
+
+                    // Carpeta por mes (según FECHA_OPERACION) para el ZIP final
+                    const monthFolder = getMonthFolder(extractedRow['FECHA_OPERACION']);
+                    if (!monthGroups[monthFolder]) monthGroups[monthFolder] = {};
+                    if (!monthGroups[monthFolder][finalName]) monthGroups[monthFolder][finalName] = [];
+                    monthGroups[monthFolder][finalName].push(filteredRow);
                     
                     // Añadir la fila a la auditoría de aceptados
-                    const auditRow = { ...filteredRow, 'PAIS_DETECTADO': finalName };
+                    const quarterLabel = getQuarterLabel(row, columnMapping, extractedRow['FECHA_OPERACION']);
+                    const auditRow = { ...filteredRow, 'PAIS_DETECTADO': finalName, 'MES_DETECTADO': monthFolder, 'TRIMESTRE_DETECTADO': quarterLabel };
                     allAuditRows.push(auditRow);
+
+                    // KPI: ventas totales por trimestre y país
+                    if (!quarterSummary[quarterLabel]) quarterSummary[quarterLabel] = {};
+                    if (!quarterSummary[quarterLabel][finalName]) {
+                        quarterSummary[quarterLabel][finalName] = { rows: 0, sin: 0, iva: 0, con: 0 };
+                    }
 
                     // Calcular importes
                     const colNameSinIva = columnMapping['IMPORTE_TOTAL_SIN_IVA'];
@@ -331,6 +493,11 @@
                     auditSummary[finalName].sin += base;
                     auditSummary[finalName].iva += importeIva;
                     auditSummary[finalName].con += total;
+
+                    quarterSummary[quarterLabel][finalName].rows++;
+                    quarterSummary[quarterLabel][finalName].sin += base;
+                    quarterSummary[quarterLabel][finalName].iva += importeIva;
+                    quarterSummary[quarterLabel][finalName].con += total;
                     
                     gRows++; gSin += base; gIva += importeIva; gCon += total;
                 });
@@ -340,18 +507,35 @@
                 const tbody = document.getElementById('auditTableBody');
                 tbody.innerHTML = '';
 
-                // 1. Generar los archivos por país
+                // 1. Generar los archivos por país, organizados en carpetas por mes
+                //    dentro del ZIP (AAAA-MM/Pais.xlsx). Si un país tiene operaciones
+                //    en varios meses, se genera un archivo por cada combinación
+                //    mes+país (es lo correcto para presentar por periodos).
+                const months = Object.keys(monthGroups).sort();
+                let filesDone = 0;
+                const totalFiles = months.reduce((acc, mo) => acc + Object.keys(monthGroups[mo]).length, 0);
+
+                for (const month of months) {
+                    const countriesInMonth = Object.keys(monthGroups[month]);
+                    for (const cName of countriesInMonth) {
+                        statusMsg.textContent = `Preparando Excel de ${cName} (${month})...`;
+
+                        const columnsToExport = REQUIRED_COLUMNS.filter(c => c !== 'PORC_IVA');
+                        const ws = XLSX.utils.json_to_sheet(monthGroups[month][cName], {header: columnsToExport});
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, "Datos");
+                        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                        zip.file(`${month}/${cName}.xlsx`, buf);
+
+                        filesDone++;
+                        progressBar.style.width = `${(filesDone / totalFiles) * 100}%`;
+                        await new Promise(r => setTimeout(r, 20));
+                    }
+                }
+
+                // 2. Tabla de auditoría en pantalla: totales por país (independiente del mes)
                 for (let i = 0; i < countries.length; i++) {
                     const cName = countries[i];
-                    statusMsg.textContent = `Preparando Excel de ${cName}...`;
-                    
-                    const columnsToExport = REQUIRED_COLUMNS.filter(c => c !== 'PORC_IVA');
-                    const ws = XLSX.utils.json_to_sheet(groups[cName], {header: columnsToExport});
-                    const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, "Datos");
-                    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                    zip.file(`${cName}.xlsx`, buf);
-
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 transition-colors";
                     tr.innerHTML = `
@@ -362,8 +546,6 @@
                         <td class="px-4 py-3 text-right font-bold text-indigo-700">${formatEuro(auditSummary[cName].con)}</td>
                     `;
                     tbody.appendChild(tr);
-                    progressBar.style.width = `${((i+1)/countries.length)*100}%`;
-                    await new Promise(r => setTimeout(r, 20));
                 }
 
                 document.getElementById('grandTotalRows').textContent = gRows;
@@ -394,9 +576,40 @@
                 const summaryWs = XLSX.utils.json_to_sheet(summaryData);
                 XLSX.utils.book_append_sheet(auditWb, summaryWs, "Resumen Exportado");
 
+                // HOJA 1b: KPIs por trimestre y país
+                const quarterLabels = Object.keys(quarterSummary).sort();
+                const kpiData = [];
+                for (const q of quarterLabels) {
+                    const countriesInQ = Object.keys(quarterSummary[q]).sort(
+                        (a, b) => quarterSummary[q][b].con - quarterSummary[q][a].con
+                    );
+                    let qRows = 0, qSin = 0, qIva = 0, qCon = 0;
+                    for (const c of countriesInQ) {
+                        const d = quarterSummary[q][c];
+                        kpiData.push({
+                            'Trimestre': q,
+                            'País': c,
+                            'Registros': d.rows,
+                            'Base Imp. (Sin IVA)': d.sin,
+                            'Importe IVA': d.iva,
+                            'Total Facturado': d.con,
+                        });
+                        qRows += d.rows; qSin += d.sin; qIva += d.iva; qCon += d.con;
+                    }
+                    kpiData.push({
+                        'Trimestre': q, 'País': 'TOTAL ' + q,
+                        'Registros': qRows, 'Base Imp. (Sin IVA)': qSin,
+                        'Importe IVA': qIva, 'Total Facturado': qCon,
+                    });
+                }
+                const kpiWs = XLSX.utils.json_to_sheet(kpiData);
+                XLSX.utils.book_append_sheet(auditWb, kpiWs, "KPIs Trimestre");
+
                 // HOJA 2: Registros Aceptados
                 const columnsForDetailedAudit = REQUIRED_COLUMNS.filter(c => c !== 'PORC_IVA');
                 columnsForDetailedAudit.push('PAIS_DETECTADO');
+                columnsForDetailedAudit.push('MES_DETECTADO');
+                columnsForDetailedAudit.push('TRIMESTRE_DETECTADO');
                 const detailedWs = XLSX.utils.json_to_sheet(allAuditRows, {header: columnsForDetailedAudit});
                 XLSX.utils.book_append_sheet(auditWb, detailedWs, "Registros Aceptados");
 
@@ -419,6 +632,55 @@
                 zip.file("Informe_Auditoria_Detallada.xlsx", auditBuf);
 
                 generatedZip = await zip.generateAsync({type:"blob"});
+
+                // Render de los KPIs en pantalla
+                const quarterLabelsUI = Object.keys(quarterSummary).sort();
+                const distinctCountries = new Set();
+                quarterLabelsUI.forEach(q => Object.keys(quarterSummary[q]).forEach(c => distinctCountries.add(c)));
+
+                document.getElementById('kpiCards').innerHTML = `
+                    <div class="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                        <p class="text-xs uppercase tracking-wide text-indigo-500 font-semibold mb-1">Total Facturado</p>
+                        <p class="text-2xl font-extrabold text-indigo-700">${formatEuro(gCon)}</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-1">Registros</p>
+                        <p class="text-2xl font-extrabold text-slate-800">${gRows}</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-1">Países</p>
+                        <p class="text-2xl font-extrabold text-slate-800">${distinctCountries.size}</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-1">Trimestre(s)</p>
+                        <p class="text-2xl font-extrabold text-slate-800">${quarterLabelsUI.join(', ') || '—'}</p>
+                    </div>
+                `;
+
+                const kpiQuarterBody = document.getElementById('kpiQuarterBody');
+                kpiQuarterBody.innerHTML = '';
+                for (const q of quarterLabelsUI) {
+                    const countriesInQ = Object.keys(quarterSummary[q]).sort(
+                        (a, b) => quarterSummary[q][b].con - quarterSummary[q][a].con
+                    );
+                    countriesInQ.forEach((c, idx) => {
+                        const d = quarterSummary[q][c];
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="px-4 py-2">${idx === 0 ? q : ''}</td>
+                            <td class="px-4 py-2 font-medium">${c}</td>
+                            <td class="px-4 py-2 text-right">${d.rows}</td>
+                            <td class="px-4 py-2 text-right font-bold text-indigo-700">${formatEuro(d.con)}</td>
+                        `;
+                        kpiQuarterBody.appendChild(tr);
+                    });
+                }
+                // Solo se muestra la tabla detallada si hay más de un trimestre
+                // o más de un país (con uno solo de cada, las tarjetas de arriba ya lo dicen todo).
+                if (quarterLabelsUI.length > 1 || distinctCountries.size > 1) {
+                    document.getElementById('kpiQuarterWrap').classList.remove('hidden');
+                }
+
                 statusSection.classList.add('hidden');
                 successSection.classList.remove('hidden');
             }, 100);
