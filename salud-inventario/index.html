@@ -1,6 +1,4 @@
-﻿New-Item -ItemType Directory -Force salud-inventario | Out-Null
-
-@'
+﻿@'
 <!doctype html>
 <html lang="es">
 <head>
@@ -144,7 +142,7 @@
   <main>
     <header>
       <div>
-        <h1>salud-inventario</h1>
+        <<h1>Análisis de salud del inventario</h1>
         <p class="status" id="status">Carga el CSV de CRVNET para ver los KPIs.</p>
       </div>
 
@@ -316,4 +314,3 @@
   </script>
 </body>
 </html>
-'@ | Set-Content -Encoding UTF8 salud-inventario\index.html
