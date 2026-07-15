@@ -151,7 +151,23 @@ const ALIAS = {
   zona:      ['ZONA'],
   // 'Nº VALE' del CSV normaliza a NVALE; 'Vale' del Excel a VALE.
   vale:      ['VALE', 'NVALE', 'NUMVALE', 'NOVALE'],
+  fecha:     ['FECHA'],
 };
+
+// Fecha del export (formato M/D/YYYY) a timestamp para desempatar
+// duplicados: gana la entrada mas reciente. Ilegible → 0.
+function fechaTs(v) {
+  if (!v) return 0;
+  const p = String(v).trim().split(/[\/\-]/);
+  if (p.length !== 3) return 0;
+  let [a, b, c] = p.map(Number);
+  if (!a || !b || !c) return 0;
+  if (c < 100) c += 2000;
+  // Si el primer numero no puede ser mes, es D/M/YYYY
+  const [mes, dia] = a > 12 ? [b, a] : [a, b];
+  const t = new Date(c, mes - 1, dia).getTime();
+  return isNaN(t) ? 0 : t;
+}
 
 function celdaVacia(v) {
   return v === null || v === undefined || String(v).trim() === '';
@@ -249,6 +265,7 @@ function indexarCsv(filas) {
   const iBas = buscarColumna(cab, ALIAS.bastidor);
   const iNum = buscarColumna(cab, ALIAS.numero);
   const iVal = buscarColumna(cab, ALIAS.vale);
+  const iFec = buscarColumna(cab, ALIAS.fecha);
   const iZon = buscarColumna(cab, ALIAS.zona);
 
   if (iZon === -1) throw new Error('El CSV no tiene columna <strong>ZONA</strong>.');
@@ -260,26 +277,24 @@ function indexarCsv(filas) {
   const porBastidor = new Map();
   const porVale = new Map();
 
+  // Duplicados (misma matricula/nº/bastidor/vale en varias filas del
+  // registro): prevalece la entrada con FECHA mas reciente.
+  const meter = (mapa, clave, dato) => {
+    if (!clave) return;
+    const previo = mapa.get(clave);
+    if (!previo || dato.ts >= previo.ts) mapa.set(clave, dato);
+  };
   for (let f = 1; f < filas.length; f++) {
     const fila = filas[f];
-    const dato = { zona: iZon !== -1 ? fila[iZon] : '', numero: iNum !== -1 ? fila[iNum] : '' };
-
-    if (iMat !== -1) {
-      const k = normalizarValor(fila[iMat]);
-      if (k && !porMatricula.has(k)) porMatricula.set(k, dato);
-    }
-    if (iNum !== -1) {
-      const k = normalizarValor(fila[iNum]);
-      if (k && !porNumero.has(k)) porNumero.set(k, dato);
-    }
-    if (iBas !== -1) {
-      const k = normalizarValor(fila[iBas]);
-      if (k && !porBastidor.has(k)) porBastidor.set(k, dato);
-    }
-    if (iVal !== -1) {
-      const k = normalizarValor(fila[iVal]);
-      if (k && !porVale.has(k)) porVale.set(k, dato);
-    }
+    const dato = {
+      zona: iZon !== -1 ? fila[iZon] : '',
+      numero: iNum !== -1 ? fila[iNum] : '',
+      ts: iFec !== -1 ? fechaTs(fila[iFec]) : 0,
+    };
+    if (iMat !== -1) meter(porMatricula, normalizarValor(fila[iMat]), dato);
+    if (iNum !== -1) meter(porNumero, normalizarValor(fila[iNum]), dato);
+    if (iBas !== -1) meter(porBastidor, normalizarValor(fila[iBas]), dato);
+    if (iVal !== -1) meter(porVale, normalizarValor(fila[iVal]), dato);
   }
   return { porMatricula, porNumero, porBastidor, porVale };
 }
@@ -343,9 +358,14 @@ async function procesar() {
     for (let f = 1; f < datos.length; f++) {
       const fila = datos[f];
 
-      // Prioridad de búsqueda: matrícula → nº → bastidor
+      // Prioridad de búsqueda: VALE → matrícula → nº → bastidor
+      // (el vale de entrada es el dato mas univoco del registro).
       let dato = null, via = null;
-      if (eMat !== -1) {
+      if (eVal !== -1) {
+        const k = normalizarValor(fila[eVal]);
+        if (k && indices.porVale.has(k)) { dato = indices.porVale.get(k); via = 'val'; }
+      }
+      if (!dato && eMat !== -1) {
         const k = normalizarValor(fila[eMat]);
         if (k && indices.porMatricula.has(k)) { dato = indices.porMatricula.get(k); via = 'mat'; }
       }
@@ -356,10 +376,6 @@ async function procesar() {
       if (!dato && eBas !== -1) {
         const k = normalizarValor(fila[eBas]);
         if (k && indices.porBastidor.has(k)) { dato = indices.porBastidor.get(k); via = 'bas'; }
-      }
-      if (!dato && eVal !== -1) {
-        const k = normalizarValor(fila[eVal]);
-        if (k && indices.porVale.has(k)) { dato = indices.porVale.get(k); via = 'val'; }
       }
 
       if (dato) {
