@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rellenador de Zonas</title>
+<!-- Bootstrap 5 + Iconos -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<!-- PapaParse (CSV) -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<!-- SheetJS con soporte de ESTILOS (fork xlsx-js-style, API idéntica a xlsx.full.min.js;
+     necesario para que las filas modificadas viajen con fondo verde en el Excel final) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+<style>
+  body { background: #f4f6f9; min-height: 100vh; }
+  .tarjeta-principal { max-width: 980px; margin: 2.5rem auto; }
+  .dropzone {
+    border: 2px dashed #adb5bd; border-radius: 12px; padding: 2rem 1rem;
+    text-align: center; cursor: pointer; transition: all .2s ease; background: #fff;
+  }
+  .dropzone:hover { border-color: #0d6efd; background: #f0f7ff; }
+  .dropzone.arrastrando { border-color: #0d6efd; background: #e2efff; transform: scale(1.02); }
+  .dropzone.cargado { border-color: #198754; background: #eafaf1; }
+  .dropzone i { font-size: 2.2rem; }
+  .fila-modificada { background: #d1f2d9 !important; }
+  .tabla-scroll { max-height: 320px; overflow: auto; }
+  .stat-num { font-size: 1.4rem; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="container tarjeta-principal">
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+
+      <h1 class="h3 text-center mb-1"><i class="bi bi-geo-alt-fill text-primary"></i> Rellenador de Zonas</h1>
+      <p class="text-center text-muted mb-4">Enriquece tu Excel con <strong>ZONA</strong> y <strong>Nº</strong> desde el REGISTRO GENERAL</p>
+
+      <!-- ============ ZONAS DE CARGA ============ -->
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div id="dzCsv" class="dropzone">
+            <i class="bi bi-filetype-csv text-success"></i>
+            <p class="mb-1 mt-2 fw-semibold">REGISTRO GENERAL.csv</p>
+            <p class="small text-muted mb-0" id="csvNombre">Arrastra aquí o haz clic para seleccionar</p>
+            <input type="file" id="inputCsv" accept=".csv" hidden>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div id="dzXlsx" class="dropzone">
+            <i class="bi bi-file-earmark-excel text-success"></i>
+            <p class="mb-1 mt-2 fw-semibold">Excel a completar (.xlsx)</p>
+            <p class="small text-muted mb-0" id="xlsxNombre">Arrastra aquí o haz clic para seleccionar</p>
+            <input type="file" id="inputXlsx" accept=".xlsx" hidden>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ OPCIONES ============ -->
+      <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" id="soloVacias" checked>
+        <label class="form-check-label" for="soloVacias">
+          Actualizar solo celdas vacías <span class="text-muted small">(si se desmarca, sobrescribe ZONA y Nº)</span>
+        </label>
+      </div>
+
+      <!-- ============ ALERTAS ============ -->
+      <div id="zonaAlertas" class="mt-3"></div>
+
+      <!-- ============ BOTÓN + PROGRESO ============ -->
+      <div class="d-grid mt-3">
+        <button id="btnProcesar" class="btn btn-primary btn-lg" disabled>
+          <span id="spinner" class="spinner-border spinner-border-sm me-2 d-none"></span>
+          <i class="bi bi-gear-fill me-1" id="iconoProcesar"></i>Procesar
+        </button>
+      </div>
+      <div class="progress mt-3 d-none" id="barraContenedor" style="height: 22px;">
+        <div id="barra" class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%">0%</div>
+      </div>
+
+      <!-- ============ ESTADÍSTICAS ============ -->
+      <div id="stats" class="row text-center mt-4 d-none g-2"></div>
+
+      <!-- ============ DESCARGAS ============ -->
+      <div id="zonaDescargas" class="d-none mt-3 d-flex gap-2 flex-wrap justify-content-center">
+        <button id="btnDescargar" class="btn btn-success"><i class="bi bi-download me-1"></i>Descargar Excel completado</button>
+        <button id="btnNoEncontrados" class="btn btn-outline-secondary d-none"><i class="bi bi-filetype-csv me-1"></i>Descargar no encontrados CSV</button>
+      </div>
+
+      <!-- ============ VISTA PREVIA ============ -->
+      <div id="zonaPrevia" class="d-none mt-4">
+        <h2 class="h6"><i class="bi bi-check-circle text-success"></i> Primeras coincidencias (máx. 20)</h2>
+        <div class="tabla-scroll border rounded"><table class="table table-sm table-hover mb-0" id="tablaPrevia"></table></div>
+      </div>
+      <div id="zonaNoEnc" class="d-none mt-4">
+        <h2 class="h6"><i class="bi bi-question-circle text-warning"></i> No encontrados</h2>
+        <div class="tabla-scroll border rounded"><table class="table table-sm table-hover mb-0" id="tablaNoEnc"></table></div>
+      </div>
+
+    </div>
+  </div>
+  <p class="text-center text-muted small mt-3 mb-4">Todo se procesa en tu navegador. Ningún dato sale de tu equipo.</p>
+</div>
+
+<script>
+'use strict';
+
+/* ==================================================================
+   ESTADO GLOBAL
+   ================================================================== */
+let archivoCsv = null;      // File del CSV maestro
+let archivoXlsx = null;     // File del Excel a completar
+let resultado = null;       // { workbook, nombreSalida, noEncontrados }
+
+/* ==================================================================
+   UTILIDADES
+   ================================================================== */
+
+// Normaliza un VALOR para indexar/buscar: mayúsculas, sin acentos,
+// sin espacios, guiones, puntos ni barras.
+function normalizarValor(v) {
+  if (v === null || v === undefined) return '';
+  return String(v)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // acentos fuera
+    .toUpperCase()
+    .replace(/[\s\-.\/\\]/g, '');                        // espacios - . / \
+}
+
+// Normaliza un NOMBRE DE COLUMNA: además de lo anterior, elimina
+// cualquier símbolo (º, ª, :, etc.) dejando solo letras y números.
+function normalizarCabecera(v) {
+  return normalizarValor(v).replace(/[^A-Z0-9]/g, '');
+}
+
+// Busca en una lista de cabeceras la primera que coincida con
+// alguno de los alias dados. Devuelve el índice o -1.
+function buscarColumna(cabeceras, alias) {
+  const normalizadas = cabeceras.map(normalizarCabecera);
+  for (const a of alias) {
+    const i = normalizadas.indexOf(a);
+    if (i !== -1) return i;
+  }
+  return -1;
+}
+
+const ALIAS = {
+  matricula: ['MATRICULA'],
+  bastidor:  ['BASTIDOR'],
+  numero:    ['N', 'NO', 'NUM', 'NUMERO'],
+  zona:      ['ZONA'],
+};
+
+function celdaVacia(v) {
+  return v === null || v === undefined || String(v).trim() === '';
+}
+
+function alerta(mensaje, tipo = 'danger') {
+  document.getElementById('zonaAlertas').innerHTML =
+    `<div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+       <i class="bi bi-exclamation-triangle-fill me-1"></i>${mensaje}
+       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+     </div>`;
+}
+
+function limpiarAlertas() { document.getElementById('zonaAlertas').innerHTML = ''; }
+
+function ponerProgreso(pct, texto) {
+  const barra = document.getElementById('barra');
+  barra.style.width = pct + '%';
+  barra.textContent = texto || (pct + '%');
+}
+
+// Cede el hilo al navegador para que la barra se pinte (lotes grandes).
+function respirar() { return new Promise(r => setTimeout(r, 0)); }
+
+/* ==================================================================
+   CARGA DE ARCHIVOS (drag & drop + click)
+   ================================================================== */
+function prepararDropzone(idZona, idInput, idNombre, extension, asignar) {
+  const zona = document.getElementById(idZona);
+  const input = document.getElementById(idInput);
+
+  zona.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files[0]) recibir(input.files[0]); });
+
+  ['dragenter', 'dragover'].forEach(ev =>
+    zona.addEventListener(ev, e => { e.preventDefault(); zona.classList.add('arrastrando'); }));
+  ['dragleave', 'drop'].forEach(ev =>
+    zona.addEventListener(ev, e => { e.preventDefault(); zona.classList.remove('arrastrando'); }));
+  zona.addEventListener('drop', e => {
+    if (e.dataTransfer.files[0]) recibir(e.dataTransfer.files[0]);
+  });
+
+  function recibir(archivo) {
+    limpiarAlertas();
+    if (!archivo.name.toLowerCase().endsWith(extension)) {
+      alerta(`El archivo <strong>${archivo.name}</strong> no es un ${extension.toUpperCase()} válido.`);
+      return;
+    }
+    asignar(archivo);
+    zona.classList.add('cargado');
+    document.getElementById(idNombre).innerHTML =
+      `<i class="bi bi-check-circle-fill text-success"></i> ${archivo.name}`;
+    document.getElementById('btnProcesar').disabled = !(archivoCsv && archivoXlsx);
+  }
+}
+
+prepararDropzone('dzCsv', 'inputCsv', 'csvNombre', '.csv', f => archivoCsv = f);
+prepararDropzone('dzXlsx', 'inputXlsx', 'xlsxNombre', '.xlsx', f => archivoXlsx = f);
+
+/* ==================================================================
+   LECTURA DEL CSV MAESTRO → ÍNDICES Map() O(1)
+   ================================================================== */
+// Algunos exports (p. ej. desde apps/Sheets) llegan "encapsulados":
+// cada línea ENTERA va entre comillas y las comillas internas dobladas
+// ("_id,""FECHA"",""MARCA""..."). Parseado tal cual da UNA sola columna.
+// Se detecta (>80% de líneas con ese patrón) y se desenrolla antes de
+// parsear. Los CSV normales pasan intactos. También se retira el BOM.
+function preprocesarCsv(texto) {
+  texto = texto.replace(/^\uFEFF/, '');
+  const lineas = texto.split(/\r?\n/).filter(l => l.trim() !== '');
+  if (lineas.length === 0) return texto;
+  const encapsuladas = lineas.filter(l => {
+    const t = l.trim();
+    return t.startsWith('"') && t.endsWith('"') && t.includes('""');
+  }).length;
+  if (encapsuladas / lineas.length > 0.8) {
+    return lineas
+      .map(l => l.trim().replace(/^"/, '').replace(/"$/, '').replace(/""/g, '"'))
+      .join('\n');
+  }
+  return texto;
+}
+
+async function leerCsv(archivo) {
+  const texto = preprocesarCsv(await archivo.text());
+  const r = Papa.parse(texto, { skipEmptyLines: true });
+  return r.data;
+}
+
+// Construye los tres índices (matrícula, nº, bastidor) en UNA sola
+// pasada del CSV. Cada entrada apunta a { zona, numero }.
+function indexarCsv(filas) {
+  const cab = filas[0];
+  const iMat = buscarColumna(cab, ALIAS.matricula);
+  const iBas = buscarColumna(cab, ALIAS.bastidor);
+  const iNum = buscarColumna(cab, ALIAS.numero);
+  const iZon = buscarColumna(cab, ALIAS.zona);
+
+  if (iZon === -1) throw new Error('El CSV no tiene columna <strong>ZONA</strong>.');
+  if (iNum === -1) throw new Error('El CSV no tiene columna <strong>Nº</strong>.');
+  if (iMat === -1 && iBas === -1) throw new Error('El CSV necesita al menos <strong>MATRÍCULA</strong> o <strong>BASTIDOR</strong>.');
+
+  const porMatricula = new Map();
+  const porNumero = new Map();
+  const porBastidor = new Map();
+
+  for (let f = 1; f < filas.length; f++) {
+    const fila = filas[f];
+    const dato = { zona: iZon !== -1 ? fila[iZon] : '', numero: iNum !== -1 ? fila[iNum] : '' };
+
+    if (iMat !== -1) {
+      const k = normalizarValor(fila[iMat]);
+      if (k && !porMatricula.has(k)) porMatricula.set(k, dato);
+    }
+    if (iNum !== -1) {
+      const k = normalizarValor(fila[iNum]);
+      if (k && !porNumero.has(k)) porNumero.set(k, dato);
+    }
+    if (iBas !== -1) {
+      const k = normalizarValor(fila[iBas]);
+      if (k && !porBastidor.has(k)) porBastidor.set(k, dato);
+    }
+  }
+  return { porMatricula, porNumero, porBastidor };
+}
+
+/* ==================================================================
+   PROCESO PRINCIPAL
+   ================================================================== */
+document.getElementById('btnProcesar').addEventListener('click', procesar);
+
+async function procesar() {
+  limpiarAlertas();
+  const t0 = performance.now();
+  const btn = document.getElementById('btnProcesar');
+  btn.disabled = true;
+  document.getElementById('spinner').classList.remove('d-none');
+  document.getElementById('iconoProcesar').classList.add('d-none');
+  document.getElementById('barraContenedor').classList.remove('d-none');
+  document.getElementById('stats').classList.add('d-none');
+  document.getElementById('zonaDescargas').classList.add('d-none');
+  document.getElementById('zonaPrevia').classList.add('d-none');
+  document.getElementById('zonaNoEnc').classList.add('d-none');
+  ponerProgreso(5, 'Leyendo CSV…');
+
+  try {
+    /* ---- 1. CSV maestro ---- */
+    const filasCsv = await leerCsv(archivoCsv);
+    if (!filasCsv || filasCsv.length < 2) throw new Error('El CSV está vacío.');
+    ponerProgreso(20, 'Indexando…');
+    await respirar();
+    const indices = indexarCsv(filasCsv);
+
+    /* ---- 2. Excel ---- */
+    ponerProgreso(30, 'Leyendo Excel…');
+    await respirar();
+    const buffer = await archivoXlsx.arrayBuffer();
+    const libro = XLSX.read(buffer, { type: 'array' });
+    const nombreHoja = libro.SheetNames[0];
+    const hoja = libro.Sheets[nombreHoja];
+    const datos = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: true, defval: '' });
+    if (!datos || datos.length < 2) throw new Error('El Excel está vacío.');
+
+    const cabE = datos[0].map(c => String(c));
+    const eMat = buscarColumna(cabE, ALIAS.matricula);
+    const eBas = buscarColumna(cabE, ALIAS.bastidor);
+    const eNum = buscarColumna(cabE, ALIAS.numero);
+    const eZon = buscarColumna(cabE, ALIAS.zona);
+
+    if (eZon === -1) throw new Error('El Excel no tiene columna <strong>ZONA</strong>.');
+    if (eNum === -1) throw new Error('El Excel no tiene columna <strong>Nº</strong>.');
+    if (eMat === -1 && eBas === -1 && eNum === -1) throw new Error('El Excel necesita <strong>MATRÍCULA</strong>, <strong>Nº</strong> o <strong>BASTIDOR</strong> para poder buscar.');
+
+    /* ---- 3. Cruce por lotes (UI viva con >100k filas) ---- */
+    const soloVacias = document.getElementById('soloVacias').checked;
+    const stats = { total: datos.length - 1, porMat: 0, porNum: 0, porBas: 0, noEnc: 0, modificadas: 0 };
+    const filasModificadas = new Set();
+    const coincidencias = [];     // para la vista previa (máx 20)
+    const noEncontrados = [];     // para tabla + CSV descargable
+
+    const LOTE = 2000;
+    for (let f = 1; f < datos.length; f++) {
+      const fila = datos[f];
+
+      // Prioridad de búsqueda: matrícula → nº → bastidor
+      let dato = null, via = null;
+      if (eMat !== -1) {
+        const k = normalizarValor(fila[eMat]);
+        if (k && indices.porMatricula.has(k)) { dato = indices.porMatricula.get(k); via = 'mat'; }
+      }
+      if (!dato && eNum !== -1) {
+        const k = normalizarValor(fila[eNum]);
+        if (k && indices.porNumero.has(k)) { dato = indices.porNumero.get(k); via = 'num'; }
+      }
+      if (!dato && eBas !== -1) {
+        const k = normalizarValor(fila[eBas]);
+        if (k && indices.porBastidor.has(k)) { dato = indices.porBastidor.get(k); via = 'bas'; }
+      }
+
+      if (dato) {
+        if (via === 'mat') stats.porMat++;
+        else if (via === 'num') stats.porNum++;
+        else stats.porBas++;
+
+        let cambio = false;
+        if (!celdaVacia(dato.zona) && (!soloVacias || celdaVacia(fila[eZon]))) {
+          if (String(fila[eZon]) !== String(dato.zona)) { fila[eZon] = dato.zona; cambio = true; }
+        }
+        if (!celdaVacia(dato.numero) && (!soloVacias || celdaVacia(fila[eNum]))) {
+          if (String(fila[eNum]) !== String(dato.numero)) { fila[eNum] = dato.numero; cambio = true; }
+        }
+        if (cambio) {
+          stats.modificadas++;
+          filasModificadas.add(f);
+          if (coincidencias.length < 20) {
+            coincidencias.push({
+              clave: eMat !== -1 ? fila[eMat] : (eBas !== -1 ? fila[eBas] : fila[eNum]),
+              zona: fila[eZon], numero: fila[eNum], via,
+            });
+          }
+        }
+      } else {
+        stats.noEnc++;
+        noEncontrados.push({
+          matricula: eMat !== -1 ? fila[eMat] : '',
+          numero: eNum !== -1 ? fila[eNum] : '',
+          bastidor: eBas !== -1 ? fila[eBas] : '',
+        });
+      }
+
+      if (f % LOTE === 0) {
+        ponerProgreso(30 + Math.round((f / datos.length) * 55), `Cruzando… ${Math.round((f / datos.length) * 100)}%`);
+        await respirar();
+      }
+    }
+
+    /* ---- 4. Reconstruir hoja + fondo verde en modificadas ---- */
+    ponerProgreso(90, 'Generando Excel…');
+    await respirar();
+    const hojaNueva = XLSX.utils.aoa_to_sheet(datos);
+    const VERDE = { fill: { patternType: 'solid', fgColor: { rgb: 'D1F2D9' } } };
+    const rango = XLSX.utils.decode_range(hojaNueva['!ref']);
+    for (const f of filasModificadas) {
+      for (let c = rango.s.c; c <= rango.e.c; c++) {
+        const dir = XLSX.utils.encode_cell({ r: f, c });
+        if (hojaNueva[dir]) hojaNueva[dir].s = VERDE;
+      }
+    }
+    const libroNuevo = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libroNuevo, hojaNueva, nombreHoja);
+
+    const nombreBase = archivoXlsx.name.replace(/\.xlsx$/i, '');
+    resultado = { workbook: libroNuevo, nombreSalida: `${nombreBase}_COMPLETADO.xlsx`, noEncontrados };
+
+    /* ---- 5. Pintar resultados ---- */
+    stats.tiempo = ((performance.now() - t0) / 1000).toFixed(2) + ' s';
+    pintarStats(stats);
+    pintarPrevia(coincidencias);
+    pintarNoEncontrados(noEncontrados);
+    document.getElementById('zonaDescargas').classList.remove('d-none');
+    document.getElementById('btnNoEncontrados').classList.toggle('d-none', noEncontrados.length === 0);
+    ponerProgreso(100, 'Completado ✔');
+
+  } catch (err) {
+    alerta(err.message || 'Error inesperado procesando los archivos.');
+    ponerProgreso(0, '');
+    document.getElementById('barraContenedor').classList.add('d-none');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('spinner').classList.add('d-none');
+    document.getElementById('iconoProcesar').classList.remove('d-none');
+  }
+}
+
+/* ==================================================================
+   PINTADO DE RESULTADOS
+   ================================================================== */
+function pintarStats(s) {
+  const bloque = (icono, color, valor, etiqueta) =>
+    `<div class="col-6 col-md-3 col-lg">
+       <div class="border rounded p-2 h-100 bg-white">
+         <i class="bi ${icono} text-${color}"></i>
+         <div class="stat-num">${valor}</div>
+         <div class="small text-muted">${etiqueta}</div>
+       </div>
+     </div>`;
+  const cont = document.getElementById('stats');
+  cont.innerHTML =
+    bloque('bi-list-ol', 'secondary', s.total.toLocaleString('es-ES'), 'Total filas') +
+    bloque('bi-car-front', 'primary', s.porMat.toLocaleString('es-ES'), 'Por matrícula') +
+    bloque('bi-hash', 'info', s.porNum.toLocaleString('es-ES'), 'Por Nº') +
+    bloque('bi-upc', 'primary', s.porBas.toLocaleString('es-ES'), 'Por bastidor') +
+    bloque('bi-question-circle', 'warning', s.noEnc.toLocaleString('es-ES'), 'No encontradas') +
+    bloque('bi-pencil-square', 'success', s.modificadas.toLocaleString('es-ES'), 'Modificadas') +
+    bloque('bi-stopwatch', 'secondary', s.tiempo, 'Tiempo');
+  cont.classList.remove('d-none');
+}
+
+function pintarPrevia(lista) {
+  if (lista.length === 0) return;
+  const t = document.getElementById('tablaPrevia');
+  t.innerHTML = '<thead class="table-light"><tr><th>Clave</th><th>ZONA</th><th>Nº</th><th>Encontrado por</th></tr></thead><tbody>' +
+    lista.map(c =>
+      `<tr class="fila-modificada"><td>${c.clave ?? ''}</td><td>${c.zona ?? ''}</td><td>${c.numero ?? ''}</td>
+       <td>${c.via === 'mat' ? 'Matrícula' : c.via === 'num' ? 'Nº' : 'Bastidor'}</td></tr>`).join('') +
+    '</tbody>';
+  document.getElementById('zonaPrevia').classList.remove('d-none');
+}
+
+function pintarNoEncontrados(lista) {
+  if (lista.length === 0) return;
+  const t = document.getElementById('tablaNoEnc');
+  t.innerHTML = '<thead class="table-light"><tr><th>Matrícula</th><th>Nº</th><th>Bastidor</th></tr></thead><tbody>' +
+    lista.slice(0, 200).map(n =>
+      `<tr><td>${n.matricula ?? ''}</td><td>${n.numero ?? ''}</td><td>${n.bastidor ?? ''}</td></tr>`).join('') +
+    '</tbody>' + (lista.length > 200 ? `<caption class="p-2 small text-muted">Mostrando 200 de ${lista.length.toLocaleString('es-ES')} — el CSV descargable los incluye todos.</caption>` : '');
+  document.getElementById('zonaNoEnc').classList.remove('d-none');
+}
+
+/* ==================================================================
+   DESCARGAS
+   ================================================================== */
+document.getElementById('btnDescargar').addEventListener('click', () => {
+  if (resultado) XLSX.writeFile(resultado.workbook, resultado.nombreSalida);
+});
+
+document.getElementById('btnNoEncontrados').addEventListener('click', () => {
+  if (!resultado || resultado.noEncontrados.length === 0) return;
+  const csv = Papa.unparse(resultado.noEncontrados.map(n => ({
+    MATRICULA: n.matricula, 'Nº': n.numero, BASTIDOR: n.bastidor,
+  })), { delimiter: ';' });
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'no_encontrados.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
