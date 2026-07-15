@@ -149,6 +149,8 @@ const ALIAS = {
   bastidor:  ['BASTIDOR'],
   numero:    ['N', 'NO', 'NUM', 'NUMERO'],
   zona:      ['ZONA'],
+  // 'Nº VALE' del CSV normaliza a NVALE; 'Vale' del Excel a VALE.
+  vale:      ['VALE', 'NVALE', 'NUMVALE', 'NOVALE'],
 };
 
 function celdaVacia(v) {
@@ -246,6 +248,7 @@ function indexarCsv(filas) {
   const iMat = buscarColumna(cab, ALIAS.matricula);
   const iBas = buscarColumna(cab, ALIAS.bastidor);
   const iNum = buscarColumna(cab, ALIAS.numero);
+  const iVal = buscarColumna(cab, ALIAS.vale);
   const iZon = buscarColumna(cab, ALIAS.zona);
 
   if (iZon === -1) throw new Error('El CSV no tiene columna <strong>ZONA</strong>.');
@@ -255,6 +258,7 @@ function indexarCsv(filas) {
   const porMatricula = new Map();
   const porNumero = new Map();
   const porBastidor = new Map();
+  const porVale = new Map();
 
   for (let f = 1; f < filas.length; f++) {
     const fila = filas[f];
@@ -272,8 +276,12 @@ function indexarCsv(filas) {
       const k = normalizarValor(fila[iBas]);
       if (k && !porBastidor.has(k)) porBastidor.set(k, dato);
     }
+    if (iVal !== -1) {
+      const k = normalizarValor(fila[iVal]);
+      if (k && !porVale.has(k)) porVale.set(k, dato);
+    }
   }
-  return { porMatricula, porNumero, porBastidor };
+  return { porMatricula, porNumero, porBastidor, porVale };
 }
 
 /* ==================================================================
@@ -318,6 +326,7 @@ async function procesar() {
     const eBas = buscarColumna(cabE, ALIAS.bastidor);
     const eNum = buscarColumna(cabE, ALIAS.numero);
     const eZon = buscarColumna(cabE, ALIAS.zona);
+    const eVal = buscarColumna(cabE, ALIAS.vale);
 
     if (eZon === -1) throw new Error('El Excel no tiene columna <strong>ZONA</strong>.');
     if (eNum === -1) throw new Error('El Excel no tiene columna <strong>Nº</strong>.');
@@ -325,7 +334,7 @@ async function procesar() {
 
     /* ---- 3. Cruce por lotes (UI viva con >100k filas) ---- */
     const soloVacias = document.getElementById('soloVacias').checked;
-    const stats = { total: datos.length - 1, porMat: 0, porNum: 0, porBas: 0, noEnc: 0, modificadas: 0 };
+    const stats = { total: datos.length - 1, porMat: 0, porNum: 0, porBas: 0, porVal: 0, noEnc: 0, modificadas: 0 };
     const filasModificadas = new Set();
     const coincidencias = [];     // para la vista previa (máx 20)
     const noEncontrados = [];     // para tabla + CSV descargable
@@ -348,11 +357,16 @@ async function procesar() {
         const k = normalizarValor(fila[eBas]);
         if (k && indices.porBastidor.has(k)) { dato = indices.porBastidor.get(k); via = 'bas'; }
       }
+      if (!dato && eVal !== -1) {
+        const k = normalizarValor(fila[eVal]);
+        if (k && indices.porVale.has(k)) { dato = indices.porVale.get(k); via = 'val'; }
+      }
 
       if (dato) {
         if (via === 'mat') stats.porMat++;
         else if (via === 'num') stats.porNum++;
-        else stats.porBas++;
+        else if (via === 'bas') stats.porBas++;
+        else stats.porVal++;
 
         let cambio = false;
         if (!celdaVacia(dato.zona) && (!soloVacias || celdaVacia(fila[eZon]))) {
@@ -377,6 +391,7 @@ async function procesar() {
           matricula: eMat !== -1 ? fila[eMat] : '',
           numero: eNum !== -1 ? fila[eNum] : '',
           bastidor: eBas !== -1 ? fila[eBas] : '',
+          vale: eVal !== -1 ? fila[eVal] : '',
         });
       }
 
@@ -442,6 +457,7 @@ function pintarStats(s) {
     bloque('bi-car-front', 'primary', s.porMat.toLocaleString('es-ES'), 'Por matrícula') +
     bloque('bi-hash', 'info', s.porNum.toLocaleString('es-ES'), 'Por Nº') +
     bloque('bi-upc', 'primary', s.porBas.toLocaleString('es-ES'), 'Por bastidor') +
+    bloque('bi-ticket-perforated', 'info', s.porVal.toLocaleString('es-ES'), 'Por vale') +
     bloque('bi-question-circle', 'warning', s.noEnc.toLocaleString('es-ES'), 'No encontradas') +
     bloque('bi-pencil-square', 'success', s.modificadas.toLocaleString('es-ES'), 'Modificadas') +
     bloque('bi-stopwatch', 'secondary', s.tiempo, 'Tiempo');
@@ -454,7 +470,7 @@ function pintarPrevia(lista) {
   t.innerHTML = '<thead class="table-light"><tr><th>Clave</th><th>ZONA</th><th>Nº</th><th>Encontrado por</th></tr></thead><tbody>' +
     lista.map(c =>
       `<tr class="fila-modificada"><td>${c.clave ?? ''}</td><td>${c.zona ?? ''}</td><td>${c.numero ?? ''}</td>
-       <td>${c.via === 'mat' ? 'Matrícula' : c.via === 'num' ? 'Nº' : 'Bastidor'}</td></tr>`).join('') +
+       <td>${c.via === 'mat' ? 'Matrícula' : c.via === 'num' ? 'Nº' : c.via === 'bas' ? 'Bastidor' : 'Vale'}</td></tr>`).join('') +
     '</tbody>';
   document.getElementById('zonaPrevia').classList.remove('d-none');
 }
@@ -462,9 +478,9 @@ function pintarPrevia(lista) {
 function pintarNoEncontrados(lista) {
   if (lista.length === 0) return;
   const t = document.getElementById('tablaNoEnc');
-  t.innerHTML = '<thead class="table-light"><tr><th>Matrícula</th><th>Nº</th><th>Bastidor</th></tr></thead><tbody>' +
+  t.innerHTML = '<thead class="table-light"><tr><th>Matrícula</th><th>Nº</th><th>Bastidor</th><th>Vale</th></tr></thead><tbody>' +
     lista.slice(0, 200).map(n =>
-      `<tr><td>${n.matricula ?? ''}</td><td>${n.numero ?? ''}</td><td>${n.bastidor ?? ''}</td></tr>`).join('') +
+      `<tr><td>${n.matricula ?? ''}</td><td>${n.numero ?? ''}</td><td>${n.bastidor ?? ''}</td><td>${n.vale ?? ''}</td></tr>`).join('') +
     '</tbody>' + (lista.length > 200 ? `<caption class="p-2 small text-muted">Mostrando 200 de ${lista.length.toLocaleString('es-ES')} — el CSV descargable los incluye todos.</caption>` : '');
   document.getElementById('zonaNoEnc').classList.remove('d-none');
 }
@@ -479,7 +495,7 @@ document.getElementById('btnDescargar').addEventListener('click', () => {
 document.getElementById('btnNoEncontrados').addEventListener('click', () => {
   if (!resultado || resultado.noEncontrados.length === 0) return;
   const csv = Papa.unparse(resultado.noEncontrados.map(n => ({
-    MATRICULA: n.matricula, 'Nº': n.numero, BASTIDOR: n.bastidor,
+    MATRICULA: n.matricula, 'Nº': n.numero, BASTIDOR: n.bastidor, VALE: n.vale,
   })), { delimiter: ';' });
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
