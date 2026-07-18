@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enriquecedor de precios · Recambio Verde</title>
+<style>
+  :root{
+    --marca:#0b6b5b; --marca2:#0e8a75; --tinta:#14202e; --gris:#5b6b7c;
+    --linea:#e2e8f0; --fondo:#f6f8fb; --rojo:#c0392b; --ambar:#c77f13; --verde:#1e874b; --azul:#1f5f8b;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+    color:var(--tinta); margin:0; background:#eef2f6; font-size:14px; line-height:1.5;}
+  header{background:linear-gradient(135deg,#0b6b5b,#083f38); color:#fff; padding:18px 22px;}
+  header h1{margin:0; font-size:20px; font-weight:800; letter-spacing:-.3px;}
+  header p{margin:4px 0 0; font-size:12.5px; opacity:.85;}
+  header .brand{float:right; text-align:right; font-weight:800; font-size:15px; opacity:.95;}
+  header .brand small{display:block; font-weight:400; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; opacity:.8;}
+  .wrap{max-width:1200px; margin:0 auto; padding:20px;}
+  .card{background:#fff; border:1px solid var(--linea); border-radius:12px; padding:18px 20px; margin:16px 0; box-shadow:0 1px 3px rgba(20,32,46,.05);}
+  .card h2{margin:0 0 4px; font-size:15px; color:var(--marca);}
+  .card .step{display:inline-block; background:var(--marca); color:#fff; width:22px; height:22px; border-radius:50%; text-align:center; line-height:22px; font-size:12px; font-weight:700; margin-right:8px;}
+  .muted{color:var(--gris); font-size:12.5px;}
+  label{font-size:12px; font-weight:600; color:var(--tinta); display:block; margin:8px 0 3px;}
+  select,input[type=text],input[type=number]{width:100%; padding:8px 10px; border:1px solid var(--linea); border-radius:8px; font-size:13px; background:#fff; color:var(--tinta);}
+  input[readonly]{background:var(--fondo);}
+  .grid{display:grid; gap:12px;}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g4{grid-template-columns:repeat(4,1fr);}
+  .g2{grid-template-columns:repeat(2,1fr);}
+  @media(max-width:760px){.g3,.g4,.g2{grid-template-columns:1fr;}}
+  .btn{display:inline-flex; align-items:center; gap:6px; background:var(--marca); color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:background .15s;}
+  .btn:hover{background:var(--marca2);}
+  .btn:disabled{background:#9fb2ac; cursor:not-allowed;}
+  .btn.sec{background:#fff; color:var(--marca); border:1.5px solid var(--marca);}
+  .btn.sec:hover{background:#f0f7f5;}
+  .btn.warn{background:var(--ambar);} .btn.warn:hover{background:#a86a0f;}
+  .btn.red{background:var(--rojo);}
+  #drop{border:2px dashed #b8c6d3; border-radius:12px; padding:30px; text-align:center; color:var(--gris); cursor:pointer; transition:.15s; background:var(--fondo);}
+  #drop.drag{border-color:var(--marca); background:#eafaf5; color:var(--marca);}
+  #drop b{color:var(--marca);}
+  table{width:100%; border-collapse:collapse; font-size:12px; margin-top:10px;}
+  th{position:sticky; top:0; background:var(--tinta); color:#fff; padding:7px 8px; text-align:left; font-size:11px; white-space:nowrap; z-index:2;}
+  td{padding:6px 8px; border-bottom:1px solid var(--linea); vertical-align:middle;}
+  tr:nth-child(even) td{background:#f8fafc;}
+  .tbl-scroll{max-height:560px; overflow:auto; border:1px solid var(--linea); border-radius:10px;}
+  td input{padding:5px 6px; font-size:12px; border-radius:6px; width:90px;}
+  a.buscar{color:var(--azul); font-weight:700; text-decoration:none; white-space:nowrap;}
+  a.buscar:hover{text-decoration:underline;}
+  .pill{display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px;}
+  .pill.ok{background:#e4f4ea; color:var(--verde);} .pill.err{background:#fbe9e7; color:var(--rojo);}
+  .pill.wait{background:#eef2f6; color:var(--gris);} .pill.run{background:#fff3cf; color:var(--ambar);}
+  .callout{border-radius:10px; padding:11px 14px; margin:12px 0; font-size:12.5px;}
+  .c-info{background:#e8f0f7; border:1px solid #aecbe3;} .c-info b{color:var(--azul);}
+  .c-warn{background:#fdf3dc; border:1px solid #edd18a;} .c-warn b{color:var(--ambar);}
+  .c-ok{background:#e4f4ea; border:1px solid #a9d8bd;} .c-ok b{color:var(--verde);}
+  .hidden{display:none;}
+  .progress{height:10px; background:#e6ebf1; border-radius:6px; overflow:hidden; margin:8px 0;}
+  .progress>div{height:100%; width:0; background:linear-gradient(90deg,var(--marca),var(--marca2)); transition:width .2s;}
+  .radio-row{display:flex; gap:10px; flex-wrap:wrap;}
+  .radio-card{flex:1; min-width:180px; border:1.5px solid var(--linea); border-radius:10px; padding:10px 12px; cursor:pointer;}
+  .radio-card.active{border-color:var(--marca); background:#f0f7f5;}
+  .radio-card b{font-size:13px;} .radio-card p{margin:2px 0 0; font-size:11.5px; color:var(--gris);}
+  .stat{font-weight:700;}
+  .foot{text-align:center; color:var(--gris); font-size:11px; padding:20px;}
+  code{background:#eef2f6; padding:1px 5px; border-radius:4px; font-size:12px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0;">
+    <div class="brand">Limonada&nbsp;Web<small>Reciclaje CAT</small></div>
+    <h1>Enriquecedor de precios · Recambio Verde</h1>
+    <p>Sube tu CSV de piezas y obtén precios de referencia de recambioverde.es para afinar la tasación.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- PASO 1 -->
+  <div class="card">
+    <h2><span class="step">1</span>Sube tu CSV</h2>
+    <p class="muted">Se procesa <b>en tu navegador</b>: el archivo no se sube a ningún servidor. Admite separador coma o punto y coma.</p>
+    <div id="drop">Arrastra aquí tu <b>.csv</b> o haz clic para seleccionarlo</div>
+    <input type="file" id="file" accept=".csv,text/csv" class="hidden">
+    <div id="fileInfo" class="muted" style="margin-top:8px;"></div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div class="card hidden" id="cardMap">
+    <h2><span class="step">2</span>Mapea las columnas y define la búsqueda</h2>
+    <p class="muted">Indica qué columna es cada campo. La búsqueda en Recambio Verde se construye con la plantilla de abajo.</p>
+    <div class="grid g4">
+      <div><label>Tipo de pieza *</label><select id="mapTipo"></select></div>
+      <div><label>Marca *</label><select id="mapMarca"></select></div>
+      <div><label>Modelo</label><select id="mapModelo"></select></div>
+      <div><label>Versión / Año</label><select id="mapVersion"></select></div>
+    </div>
+    <div class="grid g3" style="margin-top:6px;">
+      <div><label>Ref. Visual (opcional)</label><select id="mapRefVisual"></select></div>
+      <div><label>Ref. Catálogo (opcional)</label><select id="mapRefCatalogo"></select></div>
+      <div><label>Precio actual (opcional)</label><select id="mapPrecio"></select></div>
+    </div>
+    <label style="margin-top:14px;">Plantilla de búsqueda por descripción <span class="muted">(usa {tipo} {marca} {modelo} {version})</span></label>
+    <input type="text" id="tpl" value="{tipo} {marca} {modelo}">
+
+    <label style="margin-top:14px;">Estrategia de búsqueda</label>
+    <div class="radio-row" id="stratRow">
+      <div class="radio-card active" data-strat="refdesc"><b>🎯 Referencia + respaldo</b><p>Busca por Ref. Visual (o Catálogo). Si no hay resultados, usa la descripción. Máxima precisión.</p></div>
+      <div class="radio-card" data-strat="ref"><b>🔑 Solo referencia</b><p>Únicamente por Ref. Visual / Catálogo.</p></div>
+      <div class="radio-card" data-strat="desc"><b>📝 Solo descripción</b><p>Únicamente {tipo} {marca} {modelo}.</p></div>
+    </div>
+
+    <div class="callout c-info" style="margin-top:10px;">
+      <b>Ejemplo (primera fila):</b><br>
+      <span class="muted">Por descripción: <span id="tplPreview">—</span> → <span id="tplUrl">—</span></span><br>
+      <span class="muted">Por referencia: <span id="refPreview">—</span> → <span id="refUrl">—</span></span>
+    </div>
+
+    <label style="margin-top:14px;">Filtrar piezas a procesar <span class="muted">(tu CSV tiene <b id="totalRows">0</b> filas — conviene ir por lotes)</span></label>
+    <div class="grid g4">
+      <div><label>Familia</label><select id="fFamilia"><option value="">(todas)</option></select></div>
+      <div><label>Desde la fila nº</label><input type="number" id="fDesde" value="1" min="1"></div>
+      <div><label>Máx. filas a procesar</label><input type="number" id="fMax" value="300" min="1"></div>
+      <div><label>&nbsp;</label><label style="font-weight:400;display:flex;align-items:center;gap:6px;padding:8px 0;"><input type="checkbox" id="fSoloRef" style="width:auto;"> Solo piezas con referencia</label></div>
+    </div>
+    <div class="callout c-warn" id="fCountBox" style="margin-top:4px;"><b id="fCount">—</b></div>
+
+    <button class="btn" id="btnBuild">Generar tabla de búsquedas &nbsp;→</button>
+  </div>
+
+  <!-- PASO 3 -->
+  <div class="card hidden" id="cardMode">
+    <h2><span class="step">3</span>Cómo obtener los precios</h2>
+    <div class="radio-row">
+      <div class="radio-card active" data-mode="asistido">
+        <b>🖱️ Asistido</b>
+        <p>Sin instalar nada. Abre cada búsqueda en una pestaña y anotas el precio. 100% fiable.</p>
+      </div>
+      <div class="radio-card" data-mode="auto">
+        <b>⚡ Automático</b>
+        <p>Rastrea los precios solo, a través de tu proxy (Cloudflare Worker). Requiere configurarlo una vez.</p>
+      </div>
+    </div>
+
+    <div id="autoPanel" class="hidden" style="margin-top:14px;">
+      <div class="grid g3">
+        <div style="grid-column:span 2;">
+          <label>URL de tu proxy <span class="muted">(termina en <code>?url=</code> o incluye <code>{url}</code>)</span></label>
+          <input type="text" id="proxy" placeholder="https://tu-worker.tu-cuenta.workers.dev/?url=">
+        </div>
+        <div><label>Pausa entre consultas (ms)</label><input type="number" id="delay" value="1200" min="300" step="100"></div>
+      </div>
+      <div class="callout c-warn">
+        <b>Uso responsable:</b> el rastreo va de una en una y con pausa para no saturar Recambio Verde. Úsalo con moderación y respeta sus condiciones de uso. Si su web cambia el maquetado, el parser de precios puede necesitar ajustes (el modo asistido siempre funciona).
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="btn" id="btnRun">▶ Iniciar rastreo</button>
+        <button class="btn red hidden" id="btnStop">■ Detener</button>
+        <span class="muted" id="runStatus"></span>
+      </div>
+      <div class="progress hidden" id="progWrap"><div id="progBar"></div></div>
+    </div>
+  </div>
+
+  <!-- RESULTADOS -->
+  <div class="card hidden" id="cardResults">
+    <h2>Resultados</h2>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:6px;">
+      <button class="btn sec" id="btnOpenAll">Abrir todas las búsquedas pendientes</button>
+      <button class="btn" id="btnExport">⬇ Exportar CSV enriquecido</button>
+      <span class="muted" id="resSummary"></span>
+    </div>
+    <p class="muted">Precio sugerido = <b>media</b> de los resultados (editable). Si escribes un precio manual, prevalece.</p>
+    <div class="tbl-scroll">
+      <table id="tbl"><thead></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+</div>
+
+<div class="foot">
+  Enriquecedor de precios · Limonada Web · Reciclaje CAT — herramienta de apoyo a la tasación.<br>
+  Los precios de Recambio Verde son orientativos y de terceros; verifica antes de fijar tu precio final.
+</div>
+
+<script>
+"use strict";
+
+// ---------- Estado global ----------
+let RAW = { headers: [], rows: [], delimiter: ',' };
+let MODEL = [];   // filas de trabajo: {orig:{}, query, url, n, min, media, max, manual, status}
+let MODE = 'asistido';
+let STOP = false;
+
+const RV_BASE = 'https://www.recambioverde.es/recambios-desguace/';
+const $ = s => document.querySelector(s);
+
+// ---------- Utilidades ----------
+function slugify(str){
+  return (str||'')
+    .toString().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'')
+    .replace(/-{2,}/g,'-');
+}
+function rvUrl(query){ return RV_BASE + slugify(query); }
+
+// Parser CSV robusto (comillas, saltos de línea, delimitador , o ;)
+function detectDelimiter(text){
+  const firstLine = text.split(/\r?\n/)[0] || '';
+  const c = (firstLine.match(/,/g)||[]).length;
+  const s = (firstLine.match(/;/g)||[]).length;
+  return s > c ? ';' : ',';
+}
+function parseCSV(text, delim){
+  const rows=[]; let row=[]; let field=''; let i=0; let inQ=false;
+  text = text.replace(/^﻿/,''); // BOM
+  while(i < text.length){
+    const ch = text[i];
+    if(inQ){
+      if(ch === '"'){
+        if(text[i+1] === '"'){ field+='"'; i+=2; continue; }
+        inQ=false; i++; continue;
+      }
+      field+=ch; i++; continue;
+    }
+    if(ch === '"'){ inQ=true; i++; continue; }
+    if(ch === delim){ row.push(field); field=''; i++; continue; }
+    if(ch === '\n'){ row.push(field); rows.push(row); row=[]; field=''; i++; continue; }
+    if(ch === '\r'){ i++; continue; }
+    field+=ch; i++;
+  }
+  if(field.length>0 || row.length>0){ row.push(field); rows.push(row); }
+  return rows.filter(r => r.length>1 || (r.length===1 && r[0].trim()!==''));
+}
+
+function guessCol(headers, keys){
+  const h = headers.map(x=>x.toLowerCase());
+  for(const k of keys){
+    const idx = h.findIndex(x => x.includes(k));
+    if(idx>=0) return idx;
+  }
+  return -1;
+}
+
+function fillSelect(sel, headers, guessIdx, allowEmpty){
+  sel.innerHTML='';
+  if(allowEmpty){ const o=document.createElement('option'); o.value=''; o.textContent='— (ninguna) —'; sel.appendChild(o); }
+  headers.forEach((h,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=h||('Columna '+(i+1)); sel.appendChild(o); });
+  if(guessIdx>=0) sel.value = guessIdx;
+  else if(allowEmpty) sel.value='';
+}
+
+// ---------- Precio: parseo y formato ----------
+function parsePriceStr(s){
+  // "1.234,56" -> 1234.56 ; "51,64" -> 51.64
+  if(s==null) return NaN;
+  s = (''+s).trim().replace(/\./g,'').replace(',', '.').replace(/[^0-9.]/g,'');
+  const v = parseFloat(s); return isFinite(v)? v : NaN;
+}
+function fmt(v){ return (typeof v==='number' && isFinite(v))? v.toFixed(2).replace('.',',')+' €' : '—'; }
+
+function extractPrices(html){
+  let prices=[];
+  try{
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    // Elimina precios tachados / originales para quedarnos con el precio vigente
+    doc.querySelectorAll('del,s,strike,[class*="antes" i],[class*="old" i],[class*="orig" i],[class*="tacha" i],[class*="regular" i],[class*="anterior" i]').forEach(e=>e.remove());
+    const txt = (doc.body? doc.body.textContent : html) || '';
+    const rx = /(\d{1,3}(?:\.\d{3})*,\d{2})\s*€/g; let m;
+    while((m = rx.exec(txt))){ const v = parsePriceStr(m[1]); if(isFinite(v) && v>0.5 && v<100000) prices.push(v); }
+  }catch(e){
+    const rx = /(\d{1,3}(?:\.\d{3})*,\d{2})\s*€/g; let m;
+    while((m = rx.exec(html))){ const v = parsePriceStr(m[1]); if(isFinite(v)&&v>0.5&&v<100000) prices.push(v); }
+  }
+  return prices;
+}
+function stats(arr){
+  if(!arr.length) return {n:0, min:NaN, media:NaN, max:NaN};
+  const s=[...arr].sort((a,b)=>a-b);
+  const sum=s.reduce((a,b)=>a+b,0);
+  return {n:s.length, min:s[0], media:sum/s.length, max:s[s.length-1]};
+}
+
+// ---------- Carga de archivo ----------
+const drop=$('#drop'), fileInput=$('#file');
+drop.addEventListener('click', ()=>fileInput.click());
+drop.addEventListener('dragover', e=>{e.preventDefault(); drop.classList.add('drag');});
+drop.addEventListener('dragleave', ()=>drop.classList.remove('drag'));
+drop.addEventListener('drop', e=>{e.preventDefault(); drop.classList.remove('drag'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);});
+fileInput.addEventListener('change', e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
+
+function handleFile(file){
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const text = ev.target.result;
+    const delim = detectDelimiter(text);
+    const all = parseCSV(text, delim);
+    if(all.length < 2){ alert('El CSV parece vacío o no tiene datos.'); return; }
+    RAW.delimiter = delim;
+    RAW.headers = all[0].map(h=>h.trim());
+    RAW.rows = all.slice(1).map(r=>{ const o={}; RAW.headers.forEach((h,i)=>o[h]= (r[i]!==undefined? r[i].trim():'')); return o; });
+    $('#fileInfo').innerHTML = `<b>${file.name}</b> · ${RAW.rows.length} filas · ${RAW.headers.length} columnas · separador «${delim}»`;
+    setupMapping();
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function setupMapping(){
+  const H = RAW.headers;
+  fillSelect($('#mapTipo'),       H, guessCol(H,['articulo','artículo','descripcion','descripción','concepto','producto','tipopieza','nombre','pieza','tipo']), false);
+  fillSelect($('#mapMarca'),      H, guessCol(H,['marca','fabricante']), false);
+  fillSelect($('#mapModelo'),     H, guessCol(H,['modelo','vehiculo','vehículo']), true);
+  fillSelect($('#mapVersion'),    H, guessCol(H,['version','versión','año','ano','year','motor']), true);
+  fillSelect($('#mapRefVisual'),  H, guessCol(H,['refvisual','ref visual','ref_visual','visual','oem','referencia']), true);
+  fillSelect($('#mapRefCatalogo'),H, guessCol(H,['refcatalogo','refcatálogo','ref catalogo','ref catálogo','ref_catalogo','catalogo','catálogo','catalog']), true);
+  fillSelect($('#mapPrecio'),     H, guessCol(H,['precio','pvp','importe','coste']), true);
+  $('#cardMap').classList.remove('hidden');
+  ['#mapTipo','#mapMarca','#mapModelo','#mapVersion','#mapRefVisual','#mapRefCatalogo','#tpl'].forEach(s=>$(s).addEventListener('input', updatePreview));
+
+  // Familia para filtrar
+  FAMILIA_COL = guessCol(H,['familia','categoria','categoría','grupo','seccion','sección']);
+  const ff = $('#fFamilia'); ff.innerHTML='<option value="">(todas las familias)</option>';
+  if(FAMILIA_COL>=0){
+    const col = H[FAMILIA_COL];
+    const counts = {};
+    RAW.rows.forEach(r=>{ const v=(r[col]||'').trim(); if(v) counts[v]=(counts[v]||0)+1; });
+    Object.keys(counts).sort().forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=`${v} (${counts[v]})`; ff.appendChild(o); });
+  }
+  $('#totalRows').textContent = RAW.rows.length;
+  ['#fFamilia','#fDesde','#fMax','#fSoloRef','#mapRefVisual','#mapRefCatalogo'].forEach(s=>$(s).addEventListener('input', updateFilterCount));
+  updateFilterCount();
+  updatePreview();
+}
+
+let FAMILIA_COL = -1;
+function getFilteredIndices(){
+  const famCol = FAMILIA_COL>=0? RAW.headers[FAMILIA_COL] : null;
+  const fam = $('#fFamilia').value;
+  const soloRef = $('#fSoloRef').checked;
+  const desde = Math.max(1, parseInt($('#fDesde').value)||1);
+  const max   = Math.max(1, parseInt($('#fMax').value)||300);
+  const matches=[];
+  for(let i=0;i<RAW.rows.length;i++){
+    const row=RAW.rows[i];
+    if(fam && famCol && (row[famCol]||'').trim()!==fam) continue;
+    if(soloRef && !refCompact(refOf(row).value)) continue;
+    matches.push(i);
+  }
+  return { total: matches.length, indices: matches.slice(desde-1, desde-1+max) };
+}
+function updateFilterCount(){
+  if(!RAW.rows.length) return;
+  const f = getFilteredIndices();
+  $('#fCount').textContent = `Coinciden ${f.total} piezas · se procesarán ${f.indices.length} en este lote`;
+  $('#fCountBox').className = 'callout ' + (f.indices.length>1500?'c-warn':'c-ok');
+}
+
+let STRAT = 'refdesc';
+document.querySelectorAll('#stratRow .radio-card').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    document.querySelectorAll('#stratRow .radio-card').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active'); STRAT = c.dataset.strat;
+  });
+});
+
+function rowValue(row, sel){ const v=$(sel).value; return v===''? '' : (row[RAW.headers[+v]]||''); }
+function buildQuery(row){
+  const map = { tipo:rowValue(row,'#mapTipo'), marca:rowValue(row,'#mapMarca'), modelo:rowValue(row,'#mapModelo'), version:rowValue(row,'#mapVersion') };
+  let q = $('#tpl').value;
+  q = q.replace(/\{(\w+)\}/g,(m,k)=> (map[k]!==undefined? map[k]:''));
+  return q.replace(/\s+/g,' ').trim();
+}
+// Referencia: se busca por la ruta directa (RV la trata como consulta exacta y devuelve
+// solo piezas con esa referencia). Se compacta a alfanumérico conservando el valor.
+function refCompact(s){ return (s||'').toString().trim().replace(/[^0-9A-Za-z]/g,''); }
+function refUrlOf(ref){ return refCompact(ref)? RV_BASE + refCompact(ref) : ''; }
+function refOf(row){
+  const v = rowValue(row,'#mapRefVisual').trim();
+  const c = rowValue(row,'#mapRefCatalogo').trim();
+  const chosen = refCompact(v)? v : (refCompact(c)? c : '');
+  return { visual:v, catalogo:c, value:chosen };
+}
+function hasRefMapped(){ return $('#mapRefVisual').value!=='' || $('#mapRefCatalogo').value!==''; }
+
+function updatePreview(){
+  if(!RAW.rows.length) return;
+  const q = buildQuery(RAW.rows[0]);
+  $('#tplPreview').textContent = q || '(vacío)';
+  $('#tplUrl').textContent = rvUrl(q);
+  const r = refOf(RAW.rows[0]);
+  $('#refPreview').textContent = r.value || '(sin referencia)';
+  $('#refUrl').textContent = r.value? refUrlOf(r.value) : '—';
+}
+
+// ---------- Construir modelo de trabajo ----------
+$('#btnBuild').addEventListener('click', ()=>{
+  const f = getFilteredIndices();
+  if(!f.indices.length){ alert('Ningún registro coincide con el filtro. Ajusta la familia o el rango.'); return; }
+  if(f.indices.length>1500 && !confirm(`Vas a generar ${f.indices.length} filas. La tabla puede ir lenta y, en modo automático, el rastreo tardaría mucho. ¿Continuar? (Recomendado: procesar por lotes de 200–500.)`)) return;
+  MODEL = f.indices.map(i=>{
+    const row = RAW.rows[i];
+    const q = buildQuery(row);
+    const r = refOf(row);
+    return {
+      orig:row,
+      query:q, url:rvUrl(q),
+      refValue:r.value, refUrl:refUrlOf(r.value),
+      n:null, min:null, media:null, max:null,
+      method:'', manual:'', status:'wait'
+    };
+  });
+  renderTable();
+  $('#cardMode').classList.remove('hidden');
+  $('#cardResults').classList.remove('hidden');
+  $('#cardResults').scrollIntoView({behavior:'smooth'});
+});
+
+// Plan de búsqueda ordenado según la estrategia elegida
+function getPlan(it){
+  const ref = it.refUrl? {method:'referencia', url:it.refUrl, label:it.refValue} : null;
+  const desc = {method:'descripcion', url:it.url, label:it.query};
+  if(STRAT==='desc') return [desc];
+  if(STRAT==='ref')  return ref? [ref] : [];
+  return ref? [ref, desc] : [desc]; // refdesc: referencia con respaldo de descripción
+}
+function primaryUrl(it){ const p=getPlan(it); return p.length? p[0].url : it.url; }
+
+// ---------- Modo ----------
+document.querySelectorAll('.radio-card').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    document.querySelectorAll('.radio-card').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');
+    MODE = c.dataset.mode;
+    $('#autoPanel').classList.toggle('hidden', MODE!=='auto');
+  });
+});
+
+// ---------- Tabla ----------
+let SHOW_MODELO=false, SHOW_REF=false;
+function renderTable(){
+  SHOW_MODELO = $('#mapModelo').value!=='';
+  SHOW_REF = hasRefMapped();
+  const thead = `<tr>
+    <th>#</th><th>Tipo</th><th>Marca</th>${SHOW_MODELO?'<th>Modelo</th>':''}
+    <th>Búsqueda descripción</th>${SHOW_REF?'<th>Referencia</th>':''}<th>Método</th>
+    <th>Nº</th><th>Mín</th><th>Media</th><th>Máx</th>
+    <th>Precio manual</th><th>Sugerido</th><th>Estado</th>
+  </tr>`;
+  $('#tbl thead').innerHTML = thead;
+  const tb = $('#tbl tbody'); tb.innerHTML='';
+  MODEL.forEach((it,idx)=>{
+    const tr=document.createElement('tr');
+    const refCell = SHOW_REF
+      ? (it.refUrl? `<td><a class="buscar" href="${it.refUrl}" target="_blank" rel="noopener" data-i="${idx}">🔑 ${esc(it.refValue)} ↗</a></td>` : `<td class="muted">—</td>`)
+      : '';
+    tr.innerHTML = `
+      <td>${idx+1}</td>
+      <td>${esc(rowValue(it.orig,'#mapTipo'))}</td>
+      <td>${esc(rowValue(it.orig,'#mapMarca'))}</td>
+      ${SHOW_MODELO?`<td>${esc(rowValue(it.orig,'#mapModelo'))}</td>`:''}
+      <td><a class="buscar" href="${it.url}" target="_blank" rel="noopener" data-i="${idx}">🔍 ${esc(it.query)} ↗</a></td>
+      ${refCell}
+      <td class="c-metodo">${metodoBadge(it.method)}</td>
+      <td class="c-n">—</td>
+      <td class="c-min">—</td>
+      <td class="c-media stat">—</td>
+      <td class="c-max">—</td>
+      <td><input type="text" placeholder="€" value="${esc(it.manual)}" data-i="${idx}" class="manual"></td>
+      <td class="c-sug stat">—</td>
+      <td class="c-estado">${statusPill(it.status)}</td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('.manual').forEach(inp=>{
+    inp.addEventListener('input', e=>{ const i=+e.target.dataset.i; MODEL[i].manual=e.target.value; refreshRow(i); });
+  });
+  tb.querySelectorAll('a.buscar').forEach(a=>{
+    a.addEventListener('click', e=>{ const i=+e.currentTarget.dataset.i; if(MODEL[i].status==='wait'){ MODEL[i].status='opened'; refreshRow(i); } });
+  });
+  MODEL.forEach((_,i)=>refreshRow(i));
+  updateSummary();
+}
+function statusPill(s){
+  if(s==='ok') return '<span class="pill ok">✓ ok</span>';
+  if(s==='err') return '<span class="pill err">sin datos</span>';
+  if(s==='run') return '<span class="pill run">…</span>';
+  if(s==='opened') return '<span class="pill wait">abierta</span>';
+  return '<span class="pill wait">pendiente</span>';
+}
+function metodoBadge(m){
+  if(m==='referencia') return '<span class="pill ok">🔑 referencia</span>';
+  if(m==='descripcion') return '<span class="pill" style="background:#fff3cf;color:#a86a0f;">📝 descripción</span>';
+  return '<span class="muted">—</span>';
+}
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function refreshRow(i){
+  const row = $('#tbl tbody').children[i]; if(!row) return;
+  const it = MODEL[i];
+  const q = sel => row.querySelector(sel);
+  q('.c-metodo').innerHTML = metodoBadge(it.method);
+  q('.c-n').textContent   = it.n==null?'—':it.n;
+  q('.c-min').textContent = it.min==null?'—':fmt(it.min);
+  q('.c-media').textContent = it.media==null?'—':fmt(it.media);
+  q('.c-max').textContent = it.max==null?'—':fmt(it.max);
+  const manualV = it.manual!==''? parsePriceStr(it.manual) : NaN;
+  const sug = isFinite(manualV)? manualV : it.media;
+  q('.c-sug').textContent = fmt(sug);
+  q('.c-estado').innerHTML = statusPill(it.status);
+  updateSummary();
+}
+function updateSummary(){
+  const ok = MODEL.filter(m=>m.status==='ok').length;
+  const porRef = MODEL.filter(m=>m.method==='referencia').length;
+  const conPrecio = MODEL.filter(m=> (m.manual!=='' && isFinite(parsePriceStr(m.manual))) || isFinite(m.media)).length;
+  $('#resSummary').textContent = `${MODEL.length} piezas · ${ok} con datos de RV (${porRef} por referencia) · ${conPrecio} con precio sugerido`;
+}
+
+// ---------- Abrir todas (asistido) ----------
+$('#btnOpenAll').addEventListener('click', ()=>{
+  const pend = MODEL.filter(m=>m.status==='wait');
+  if(pend.length>15 && !confirm(`Se abrirán ${pend.length} pestañas. ¿Continuar? (El navegador puede pedir permiso para ventanas emergentes.)`)) return;
+  pend.forEach((m,i)=>{ window.open(primaryUrl(m),'_blank','noopener'); m.status='opened'; });
+  MODEL.forEach((_,i)=>refreshRow(i));
+});
+
+// ---------- Rastreo automático ----------
+$('#btnRun').addEventListener('click', runAuto);
+$('#btnStop').addEventListener('click', ()=>{ STOP=true; });
+
+function buildProxyUrl(base, target){
+  base = base.trim();
+  if(!base) return null;
+  if(base.includes('{url}')) return base.replace('{url}', encodeURIComponent(target));
+  return base + encodeURIComponent(target);
+}
+
+async function runAuto(){
+  const proxy = $('#proxy').value.trim();
+  if(!proxy){ alert('Introduce la URL de tu proxy (Cloudflare Worker). Tienes el código y las instrucciones en el README.'); return; }
+  const delay = Math.max(300, +$('#delay').value||1200);
+  STOP=false;
+  $('#btnRun').classList.add('hidden'); $('#btnStop').classList.remove('hidden');
+  $('#progWrap').classList.remove('hidden');
+  const pend = MODEL.map((m,i)=>i).filter(i=>MODEL[i].status!=='ok');
+  let done=0;
+  for(const i of pend){
+    if(STOP) break;
+    const it = MODEL[i];
+    it.status='run'; it.method=''; refreshRow(i);
+    const plan = getPlan(it);
+    let found=false;
+    for(let s=0; s<plan.length; s++){
+      if(STOP) break;
+      const step = plan[s];
+      $('#runStatus').textContent = `Consultando ${done+1}/${pend.length} (${step.method}): ${step.label}`;
+      try{
+        const res = await fetch(buildProxyUrl(proxy, step.url), {method:'GET'});
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const st = stats(extractPrices(await res.text()));
+        if(st.n>0){
+          it.n=st.n; it.min=st.min; it.media=st.media; it.max=st.max;
+          it.method=step.method; it.status='ok'; found=true;
+          refreshRow(i); break;
+        }
+      }catch(err){
+        $('#runStatus').textContent='Error: '+err.message+' — revisa el proxy.';
+      }
+      // pausa también entre intentos (referencia → descripción) de la misma pieza
+      if(!STOP && s<plan.length-1) await new Promise(r=>setTimeout(r, delay));
+    }
+    if(!found && !STOP){ it.n=0; it.status='err'; }
+    refreshRow(i);
+    done++;
+    $('#progBar').style.width = (done/pend.length*100)+'%';
+    if(!STOP && done<pend.length) await new Promise(r=>setTimeout(r, delay));
+  }
+  $('#btnRun').classList.remove('hidden'); $('#btnStop').classList.add('hidden');
+  $('#runStatus').textContent = STOP? `Detenido. ${done} consultadas.` : `Completado. ${done} consultadas.`;
+}
+
+// ---------- Exportar ----------
+function num2(v){ return (typeof v==='number' && isFinite(v))? v.toFixed(2).replace('.',',') : ''; }
+function buildCSV(){
+  const d = RAW.delimiter;
+  const extra = ['rv_metodo','rv_busqueda','rv_url_descripcion','rv_referencia','rv_url_referencia','rv_n_resultados','rv_min','rv_media','rv_max','rv_precio_sugerido'];
+  const headers = [...RAW.headers, ...extra];
+  const lines = [headers.map(csvCell).join(d)];
+  MODEL.forEach(it=>{
+    const manualV = it.manual!==''? parsePriceStr(it.manual) : NaN;
+    const sug = isFinite(manualV)? manualV : it.media;
+    const base = RAW.headers.map(h=> it.orig[h]!==undefined? it.orig[h] : '');
+    const metodo = it.manual!==''&&isFinite(manualV)? 'manual' : (it.method||'');
+    const add = [ metodo, it.query, it.url, it.refValue, it.refUrl, (it.n==null?'':it.n), num2(it.min), num2(it.media), num2(it.max), num2(sug) ];
+    lines.push([...base, ...add].map(csvCell).join(d));
+  });
+  return '﻿'+lines.join('\r\n');
+}
+$('#btnExport').addEventListener('click', ()=>{
+  const blob = new Blob([buildCSV()], {type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='piezas_enriquecidas.csv'; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 100);
+});
+function csvCell(v){
+  v = (v==null?'':''+v);
+  if(/["\n\r;,]/.test(v)) return '"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+</script>
+</body>
+</html>
