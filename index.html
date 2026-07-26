@@ -1178,6 +1178,41 @@
     </div>
   </section>
 
+  <style>
+    .hermano { background: var(--cream-light); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 56px 0; }
+    .hermano-inner { max-width: 760px; margin: 0 auto; display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+    .hermano-txt { flex: 1 1 380px; }
+    .hermano h3 { font-family: var(--font-display); font-size: 1.35rem; color: var(--green-deep); margin: 0 0 10px; font-weight: 500; }
+    .hermano p { color: var(--muted); font-size: 0.95rem; line-height: 1.65; margin: 0; }
+    .hermano-cta { flex: 0 0 auto; }
+    .hermano-cta a {
+      display: inline-block; padding: 13px 26px; border: 1px solid var(--green-mid);
+      color: var(--green-deep); text-decoration: none; border-radius: var(--radius);
+      font-size: 0.9rem; font-weight: 600; transition: all .2s;
+    }
+    .hermano-cta a:hover { background: var(--green-deep); color: var(--cream-light); border-color: var(--green-deep); }
+    @media (max-width: 640px) { .hermano-cta { width: 100%; } .hermano-cta a { display: block; text-align: center; } }
+  </style>
+
+  <section class="hermano">
+    <div class="container">
+      <div class="hermano-inner reveal">
+        <div class="hermano-txt">
+          <h3>¿Y las piezas que salen de esos vehículos?</h3>
+          <p>
+            ReciclaCAT documenta lo que entra en el CAT. Para lo que sale existe
+            <strong>Red Desguace</strong>, un escaparate online exclusivo para centros
+            autorizados donde publicar tu stock y recibir pedidos. Sin cuota de alta
+            ni permanencia: solo comisión cuando vendes.
+          </p>
+        </div>
+        <div class="hermano-cta">
+          <a href="https://www.reddesguace.com" target="_blank" rel="noopener">Ver Red Desguace →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="roadmap" id="roadmap">
     <div class="container">
       <div class="reveal">
@@ -1344,6 +1379,12 @@
           </div>
         </div>
         <div class="faq-item reveal">
+          <button class="faq-q">¿ReciclaCAT vende mis piezas o mis vehículos?</button>
+          <div class="faq-a">
+            No. ReciclaCAT documenta y controla lo que entra en el CAT: boletín, acta, campa y plazos. Para la venta existe un proyecto hermano, <a href="https://www.reddesguace.com" target="_blank" rel="noopener">Red Desguace</a>, un escaparate online exclusivo para centros autorizados donde publicar tu stock y recibir pedidos, sin cuota de alta ni permanencia. Son productos independientes: puedes usar uno, el otro o los dos.
+          </div>
+        </div>
+        <div class="faq-item reveal">
           <button class="faq-q">¿Mis datos se suben a algún servidor de ReciclaCAT?</button>
           <div class="faq-a">
             No. ReciclaCAT no tiene servidores propios recogiendo datos. Todo vive en tu dispositivo y, si activas la sincronización, en tu propia cuenta de Google (tu Drive, tu hoja de Sheets). Tú eres el dueño y el único que decide qué hacer con esa información.
@@ -1374,6 +1415,11 @@
           <a href="mailto:info@reciclacat.es">info@reciclacat.es</a>
           <a href="politica-privacidad.html">Política de privacidad</a>
           <a href="terms.html">Términos de uso</a>
+        </div>
+        <div class="footer-col">
+          <h4>Proyecto hermano</h4>
+          <a href="https://www.reddesguace.com" target="_blank" rel="noopener">Red Desguace</a>
+          <a href="https://www.reddesguace.com" target="_blank" rel="noopener">Vende tus piezas online</a>
         </div>
       </div>
       <div class="footer-bottom">
