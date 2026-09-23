@@ -8,13 +8,19 @@ Bot **determinista**: sin IA externa, sin API keys, sin llamadas de red. Respond
 | Archivo | Función |
 |---|---|
 | `types.ts` | Tipos: `Ficha`, `EstadoConversacion`, `MensajeBot`… |
-| `knowledgeBase.ts` | **Fichas de conocimiento.** Es el único archivo que el técnico mantiene. |
+| `knowledgeBase.ts` | Fichas de **normativa y trámites**. |
+| `knowledgeBaseApp.ts` | Fichas de **uso de la aplicación** (guías paso a paso). |
+| `kbStore.ts` | Combina las fichas de código con las ediciones del técnico guardadas en el navegador; exportar/importar JSON. |
+| `intentClassifier.ts` | Clasifica cada mensaje en intención + entidad + acción antes de buscar. |
+| `PanelTecnico.tsx` | Panel «Biblioteca y reglas de SeproBot»: contadores por estado, filtros, crear/editar fichas, cambiar estado. |
 | `searchEngine.ts` | Normalización (minúsculas, tildes, plurales), búsqueda por título/etiquetas/sinónimos/materia y ranking. Solo devuelve fichas `Vigente`. |
 | `conversation.ts` | Máquina de estados: mantiene tema, ubicación, destino del agua y motivo entre mensajes. Función pura `procesar(estado, texto)`. |
 | `SeproBot.tsx` | Componente visual. No contiene respuestas ni lógica de negocio. |
 | `casos.test.ts` | Casos de prueba. Ejecutar: `npx tsx app/seprobot/casos.test.ts` |
 
 ## Cómo añadir o validar una ficha (técnico)
+
+Desde la interfaz: ver `GUIA_PANEL_TECNICO.md` (panel «Biblioteca y reglas de SeproBot», sin código). Desde código:
 
 1. Abrir `knowledgeBase.ts` y añadir un objeto `Ficha` al array `knowledgeBase`.
 2. Rellenar `sinonimos` con las formas en que un gerente de CAT preguntaría ("GICA", "baja vehículo", "DI"…). Sin tildes ni mayúsculas es indiferente: el motor normaliza.

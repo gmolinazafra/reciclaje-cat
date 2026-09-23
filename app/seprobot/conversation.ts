@@ -1,18 +1,29 @@
 /**
  * SeproBot — máquina de estados conversacional.
  *
- * Función pura: (estado, texto del usuario) → (nuevo estado, mensajes del bot).
- * Mantiene contexto entre mensajes (tema, ubicación, destino del agua, motivo).
- * Solo pregunta datos cuando son imprescindibles para el flujo activo.
- * No asume ubicación por defecto en ningún caso.
+ * Pipeline por mensaje:
+ *   1. Si hay flujo de trámite activo → rellenar el siguiente dato.
+ *   2. Si hay aclaración pendiente → resolver con la opción elegida.
+ *   3. Clasificar (intención + entidad + acción) con intentClassifier.ts.
+ *   4. Si es ambigua → preguntar con botones.
+ *   5. Resolver por dominio: app → ficha de aplicación; normativa → ficha legal; tramite → flujo.
+ *   6. Sin ficha Vigente → derivar al técnico.
+ *
+ * Función pura: (estado, texto) → (nuevo estado, mensajes). Nunca asume ubicación.
  */
 
-import { knowledgeBase, MENSAJE_SIN_FICHA } from "./knowledgeBase";
-import { coincideConFichaNoVigente, mejorFichaVigente, normalizar, tokenizar } from "./searchEngine";
+import { getFichas } from "./kbStore";
+import { MENSAJE_SIN_FICHA } from "./knowledgeBase";
+import { clasificar } from "./intentClassifier";
+import { buscar, normalizar, tokenizar } from "./searchEngine";
 import type {
+  Accion,
+  Clasificacion,
   DestinoAgua,
+  Entidad,
   EstadoConversacion,
   Ficha,
+  Intencion,
   MensajeBot,
   MotivoTramite,
   RespuestaMotor,
@@ -20,6 +31,7 @@ import type {
 
 export const estadoInicial: EstadoConversacion = {
   tema: null,
+  aclaracion: null,
   fichaActiva: null,
   flujoActivo: null,
   flujoSugerido: null,
@@ -28,6 +40,24 @@ export const estadoInicial: EstadoConversacion = {
   motivo: null,
   pasosCompletados: [],
 };
+
+/** Saludo según la hora local. */
+export function saludoPorHora(fecha: Date = new Date()): string {
+  const h = fecha.getHours();
+  if (h >= 6 && h < 14) return "Buenos días";
+  if (h >= 14 && h < 21) return "Buenas tardes";
+  return "Buenas noches";
+}
+
+/** Accesos iniciales del chat. Cada texto se envía tal cual y debe resolver a una ficha Vigente. */
+export const ACCESOS_INICIALES: { etiqueta: string; texto: string }[] = [
+  { etiqueta: "Registrar piezas vendidas", texto: "cómo registro las piezas vendidas" },
+  { etiqueta: "Importar Excel de ventas", texto: "cómo importo el Excel de ventas" },
+  { etiqueta: "Subir un documento", texto: "cómo subo un documento" },
+  { etiqueta: "Registrar un DI", texto: "registrar un DI en ReciclaCat_Gest" },
+  { etiqueta: "Situación anual", texto: "cómo consulto la situación anual" },
+  { etiqueta: "Renovar autorización de vertido", texto: "renovar autorización de vertido" },
+];
 
 // ─── Detectores de intención (deterministas) ────────────────────────────────
 
@@ -80,20 +110,6 @@ function capitalizar(texto: string): string {
 }
 
 // ─── Composición de mensajes ────────────────────────────────────────────────
-
-function pieFicha(f: Ficha): string {
-  return `Fuente: ${f.fuente} · Estado: ${f.estado} · Revisión ${f.fechaRevision} · v${f.version}`;
-}
-
-function respuestaFicha(f: Ficha): MensajeBot {
-  const partes = [`**${f.titulo}**`, f.resumen];
-  if (f.requisitos.length) partes.push("Puntos a revisar:\n" + f.requisitos.map((r) => `• ${r}`).join("\n"));
-  return {
-    texto: partes.join("\n\n"),
-    pie: pieFicha(f),
-    opciones: f.flujo ? f.preguntasSeguimiento : undefined,
-  };
-}
 
 const ETIQUETA_DESTINO: Record<DestinoAgua, string> = {
   red: "red de saneamiento",
@@ -161,22 +177,106 @@ function respuestaVertidos(e: EstadoConversacion, ficha: Ficha): MensajeBot {
   };
 }
 
-// ─── Motor principal ────────────────────────────────────────────────────────
+// ─── Selección de fichas por dominio ────────────────────────────────────────
 
-function fichaDeFlujo(): Ficha | null {
-  return knowledgeBase.find((f) => f.flujo === "vertidos" && f.estado === "Vigente") ?? null;
+const vigentes = (): Ficha[] => getFichas().filter((f) => f.estado === "Vigente");
+
+function puntuarFrases(f: Ficha, texto: string): number {
+  const q = new Set(tokenizar(texto));
+  let mejor = 0;
+  for (const fr of f.frasesEjemplo) {
+    const t = tokenizar(fr);
+    if (!t.length) continue;
+    const comunes = t.filter((x) => q.has(x)).length;
+    mejor = Math.max(mejor, comunes / t.length);
+  }
+  return mejor;
 }
 
-function avanzarFlujoVertidos(e: EstadoConversacion): RespuestaMotor {
-  const ficha = fichaDeFlujo();
-  if (!ficha) return { estado: estadoInicial, mensajes: [{ texto: MENSAJE_SIN_FICHA }] };
+/** Ficha de aplicación: entidad + acción deciden; frases de ejemplo desempatan. */
+function fichaApp(c: Clasificacion, texto: string): Ficha | null {
+  const cand = vigentes().filter((f) => f.dominio === "app");
+  const conEntidad = cand.filter((f) => f.entidades.includes(c.entidad));
+  const conAccion = conEntidad.filter((f) => !f.acciones.length || f.acciones.includes(c.accion));
+  const pool = conAccion.length ? conAccion : conEntidad.length ? conEntidad : cand;
+  if (!pool.length) return null;
+  // Desempate: frases de ejemplo, luego sinónimos/etiquetas (searchEngine), luego primera.
+  const ordenado = pool
+    .map((f) => ({ f, s: puntuarFrases(f, texto) * 100 + (buscar(texto, [f])[0]?.puntuacion ?? 0) }))
+    .sort((a, b) => b.s - a.s);
+  const top = ordenado[0];
+  if (!conEntidad.length && top.s === 0) return null;
+  return top.f;
+}
 
+/** Ficha normativa: entidad primero; si no hay, búsqueda por sinónimos. */
+function fichaNormativa(c: Clasificacion, texto: string): Ficha | null {
+  const cand = vigentes().filter((f) => f.dominio === "normativa");
+  const conEntidad = cand.filter((f) => f.entidades.includes(c.entidad));
+  if (conEntidad.length === 1) return conEntidad[0];
+  if (conEntidad.length > 1) return buscar(texto, conEntidad)[0]?.ficha ?? conEntidad[0];
+  // Entidad reconocida pero sin ficha vigente: no se responde con otra norma "parecida".
+  if (c.entidad !== "desconocida") return null;
+  return buscar(texto, cand)[0]?.ficha ?? null;
+}
+
+function fichaTramite(entidad: Entidad): Ficha | null {
+  return vigentes().find((f) => f.dominio === "tramite" && f.entidades.includes(entidad)) ?? null;
+}
+
+// ─── Composición ────────────────────────────────────────────────────────────
+
+function pieFicha(f: Ficha): string {
+  return `Fuente: ${f.fuente} · Estado: ${f.estado} · Revisión ${f.fechaRevision} · v${f.version}`;
+}
+
+function respuestaApp(f: Ficha): MensajeBot {
+  return {
+    texto: `**${f.titulo}**\n\n${f.respuesta || f.resumen}`,
+    pasos: f.pasos,
+    pie: `Ayuda de ReciclaCat_Gest · v${f.version}`,
+  };
+}
+
+function respuestaNormativa(f: Ficha): MensajeBot {
+  const partes = [`**${f.titulo}**`, f.resumen];
+  if (f.requisitos.length) partes.push("Puntos a revisar:\n" + f.requisitos.map((r) => `• ${r}`).join("\n"));
+  return { texto: partes.join("\n\n"), pie: pieFicha(f) };
+}
+
+function derivarAlTecnico(texto: string): MensajeBot {
+  const pendiente = buscar(texto, getFichas(), { estados: ["En revisión"] })[0]?.ficha;
+  const extra = pendiente ? ` Existe documentación sobre «${pendiente.titulo}» pendiente de validación.` : "";
+  return { texto: MENSAJE_SIN_FICHA + extra };
+}
+
+const ETIQUETA_ENTIDAD: Partial<Record<Entidad, string>> = {
+  DI: "un DI", residuo: "un residuo", baja: "una baja", vehiculo: "un vehículo", traslado: "un traslado",
+};
+
+function preguntaAclaracion(c: Clasificacion): { estado: Partial<EstadoConversacion>; mensaje: MensajeBot } {
+  const nombre = ETIQUETA_ENTIDAD[c.entidad] ?? "esto";
+  const opciones = [
+    { etiqueta: `Registrar ${nombre} en ReciclaCat_Gest`, intencion: "uso_app" as Intencion },
+    { etiqueta: `Consultar normativa de ${nombre.replace(/^(un|una) /, "")}`, intencion: "normativa" as Intencion },
+  ];
+  return {
+    estado: { aclaracion: { entidad: c.entidad, accion: c.accion, opciones } },
+    mensaje: {
+      texto: `¿Te refieres a registrar ${nombre} en ReciclaCat_Gest o a consultar la normativa de ${nombre.replace(/^(un|una) /, "")}?`,
+      opciones: opciones.map((o) => o.etiqueta),
+    },
+  };
+}
+
+// ─── Flujo de vertidos ──────────────────────────────────────────────────────
+
+function avanzarFlujoVertidos(e: EstadoConversacion): RespuestaMotor {
+  const ficha = fichaTramite("vertido");
+  if (!ficha) return { estado: estadoInicial, mensajes: [{ texto: MENSAJE_SIN_FICHA }] };
   if (!e.ubicacion) return { estado: e, mensajes: [preguntaUbicacion()] };
   if (!e.destinoAgua) return { estado: e, mensajes: [preguntaDestino(e.ubicacion)] };
   if (!e.motivo) return { estado: e, mensajes: [preguntaMotivo()] };
-
-  // Tras responder, el flujo queda "sugerido": si el usuario cambia el motivo o el destino,
-  // se reutilizan los datos ya dados sin repetir preguntas.
   const final: EstadoConversacion = {
     ...e,
     pasosCompletados: [...e.pasosCompletados, "respuesta"],
@@ -186,115 +286,139 @@ function avanzarFlujoVertidos(e: EstadoConversacion): RespuestaMotor {
   return { estado: final, mensajes: [respuestaVertidos(final, ficha)] };
 }
 
-function derivarAlTecnico(texto: string): MensajeBot {
-  const pendiente = coincideConFichaNoVigente(texto, knowledgeBase);
-  const extra = pendiente
-    ? ` Existe documentación sobre «${pendiente.titulo}» pendiente de validación por el técnico.`
-    : "";
-  return { texto: MENSAJE_SIN_FICHA + extra };
+function iniciarFlujoVertidos(base: EstadoConversacion, motivo: MotivoTramite | null, destino: DestinoAgua | null): RespuestaMotor {
+  const f = fichaTramite("vertido");
+  if (!f) return { estado: estadoInicial, mensajes: [{ texto: MENSAJE_SIN_FICHA }] };
+  return avanzarFlujoVertidos({
+    ...base,
+    tema: "Vertidos",
+    fichaActiva: f.id,
+    flujoActivo: "vertidos",
+    flujoSugerido: null,
+    aclaracion: null,
+    motivo: motivo ?? base.motivo,
+    destinoAgua: destino ?? base.destinoAgua,
+    pasosCompletados: [...base.pasosCompletados, "inicio"],
+  });
 }
 
-/**
- * Procesa un mensaje del usuario.
- */
+function continuarFlujoVertidos(estado: EstadoConversacion, texto: string): RespuestaMotor | null {
+  let e = { ...estado };
+  if (!e.ubicacion) {
+    if (pareceUbicacion(texto)) {
+      e = { ...e, ubicacion: capitalizar(texto), pasosCompletados: [...e.pasosCompletados, "ubicacion"] };
+      return avanzarFlujoVertidos(e);
+    }
+    const d = detectarDestinoAgua(texto);
+    const m = detectarMotivo(texto);
+    if (d || m) return avanzarFlujoVertidos({ ...e, destinoAgua: d ?? e.destinoAgua, motivo: m ?? e.motivo });
+    return { estado: e, mensajes: [{ texto: "Necesito la provincia o municipio del centro para orientarte." }] };
+  }
+  if (!e.destinoAgua) {
+    const d = detectarDestinoAgua(texto);
+    if (d) {
+      e = { ...e, destinoAgua: d, pasosCompletados: [...e.pasosCompletados, "destino"] };
+      const m = detectarMotivo(texto);
+      if (m) e = { ...e, motivo: m, pasosCompletados: [...e.pasosCompletados, "motivo"] };
+      return avanzarFlujoVertidos(e);
+    }
+    return { estado: e, mensajes: [{ texto: "Indica el destino del agua para continuar.", opciones: OPCIONES_DESTINO }] };
+  }
+  if (!e.motivo) {
+    const m = detectarMotivo(texto);
+    if (m) return avanzarFlujoVertidos({ ...e, motivo: m, pasosCompletados: [...e.pasosCompletados, "motivo"] });
+    return { estado: e, mensajes: [{ texto: "Indica el motivo para continuar.", opciones: OPCIONES_MOTIVO }] };
+  }
+  return null;
+}
+
+// ─── Resolución por intención ───────────────────────────────────────────────
+
+function resolver(estado: EstadoConversacion, c: Clasificacion, texto: string): RespuestaMotor {
+  const limpio: EstadoConversacion = { ...estadoInicial, ubicacion: estado.ubicacion };
+
+  if (c.intencion === "uso_app") {
+    const f = fichaApp(c, texto);
+    if (f) return { estado: { ...limpio, tema: f.materia, fichaActiva: f.id }, mensajes: [respuestaApp(f)] };
+    return { estado: limpio, mensajes: [derivarAlTecnico(texto)] };
+  }
+
+  if (c.intencion === "tramite") {
+    if (c.entidad === "vertido") return iniciarFlujoVertidos({ ...estadoInicial }, detectarMotivo(texto) ? null : null, null);
+    return { estado: limpio, mensajes: [derivarAlTecnico(texto)] };
+  }
+
+  if (c.intencion === "normativa") {
+    const f = fichaNormativa(c, texto);
+    if (f) return { estado: { ...limpio, tema: f.materia, fichaActiva: f.id }, mensajes: [respuestaNormativa(f)] };
+    // Pregunta general sobre vertidos: ficha de trámite en modo explicación.
+    if (c.entidad === "vertido") {
+      const t = fichaTramite("vertido");
+      if (t) {
+        return {
+          estado: { ...limpio, tema: t.materia, fichaActiva: t.id, flujoSugerido: "vertidos" },
+          mensajes: [{ ...respuestaNormativa(t), opciones: t.preguntasSeguimiento }],
+        };
+      }
+    }
+    return { estado: limpio, mensajes: [derivarAlTecnico(texto)] };
+  }
+
+  // desconocida: último intento por sinónimos en cualquier dominio vigente (sin fichas legales
+  // si la entidad es exclusiva de la app).
+  const f = buscar(texto, vigentes())[0]?.ficha ?? null;
+  if (f) {
+    const msg = f.dominio === "app" ? respuestaApp(f) : f.dominio === "tramite" ? { ...respuestaNormativa(f), opciones: f.preguntasSeguimiento } : respuestaNormativa(f);
+    return { estado: { ...limpio, tema: f.materia, fichaActiva: f.id, flujoSugerido: f.flujo ?? null }, mensajes: [msg] };
+  }
+  return { estado: limpio, mensajes: [derivarAlTecnico(texto)] };
+}
+
+// ─── Motor principal ────────────────────────────────────────────────────────
+
 export function procesar(estado: EstadoConversacion, textoUsuario: string): RespuestaMotor {
   const texto = textoUsuario.trim();
   if (!texto) return { estado, mensajes: [] };
+  const c = clasificar(texto);
 
-  // 1) Flujo de vertidos activo: intentar rellenar el siguiente dato.
+  // 1) Flujo de trámite activo.
   if (estado.flujoActivo === "vertidos") {
-    // Cambio de tema claro: si la consulta encaja con otra ficha vigente distinta, se atiende.
-    const otra = mejorFichaVigente(texto, knowledgeBase);
-    const cambioDeTema = otra && otra.ficha.id !== estado.fichaActiva && otra.puntuacion >= 12;
-
+    const cambioDeTema = c.intencion !== "desconocida" && c.entidad !== "vertido" && c.entidad !== "desconocida";
     if (!cambioDeTema) {
-      let e = { ...estado };
-      if (!e.ubicacion) {
-        if (pareceUbicacion(texto)) {
-          e = { ...e, ubicacion: capitalizar(texto), pasosCompletados: [...e.pasosCompletados, "ubicacion"] };
-          return avanzarFlujoVertidos(e);
-        }
-        // El usuario no ha dado ubicación pero puede haber dado otro dato; lo guardamos y repreguntamos.
-        const d = detectarDestinoAgua(texto);
-        const m = detectarMotivo(texto);
-        if (d || m) {
-          e = { ...e, destinoAgua: d ?? e.destinoAgua, motivo: m ?? e.motivo };
-          return avanzarFlujoVertidos(e);
-        }
-        return { estado: e, mensajes: [{ texto: "Necesito la provincia o municipio del centro para orientarte." }] };
-      }
-      if (!e.destinoAgua) {
-        const d = detectarDestinoAgua(texto);
-        if (d) {
-          e = { ...e, destinoAgua: d, pasosCompletados: [...e.pasosCompletados, "destino"] };
-          const m = detectarMotivo(texto);
-          if (m) e = { ...e, motivo: m, pasosCompletados: [...e.pasosCompletados, "motivo"] };
-          return avanzarFlujoVertidos(e);
-        }
-        return {
-          estado: e,
-          mensajes: [{ texto: "Indica el destino del agua para continuar.", opciones: OPCIONES_DESTINO }],
-        };
-      }
-      if (!e.motivo) {
-        const m = detectarMotivo(texto);
-        if (m) {
-          e = { ...e, motivo: m, pasosCompletados: [...e.pasosCompletados, "motivo"] };
-          return avanzarFlujoVertidos(e);
-        }
-        return { estado: e, mensajes: [{ texto: "Indica el motivo para continuar.", opciones: OPCIONES_MOTIVO }] };
-      }
+      const r = continuarFlujoVertidos(estado, texto);
+      if (r) return r;
     }
-    // Si hay cambio de tema, cae a la búsqueda general con estado limpio.
-    estado = estadoInicial;
   }
 
-  // 2) Flujo sugerido: el usuario acaba de recibir la ficha de vertidos y concreta un motivo o destino.
+  // 2) Aclaración pendiente: el usuario pulsa un botón o escribe algo equivalente.
+  if (estado.aclaracion) {
+    const n = normalizar(texto);
+    const elegida = estado.aclaracion.opciones.find((o) => normalizar(o.etiqueta) === n)
+      ?? (c.marcadorApp ? estado.aclaracion.opciones.find((o) => o.intencion === "uso_app") : null)
+      ?? (c.marcadorNormativa ? estado.aclaracion.opciones.find((o) => o.intencion === "normativa") : null);
+    if (elegida) {
+      const cc: Clasificacion = { ...c, intencion: elegida.intencion, entidad: estado.aclaracion.entidad, accion: estado.aclaracion.accion, ambigua: false };
+      return resolver({ ...estado, aclaracion: null }, cc, texto);
+    }
+    // Si escribe otra cosa, se descarta la aclaración y se procesa normalmente.
+    estado = { ...estado, aclaracion: null };
+  }
+
+  // 3) Flujo sugerido: tras la ficha de vertidos, el usuario concreta motivo/destino.
   if (estado.flujoSugerido === "vertidos") {
     const m = detectarMotivo(texto);
     const d = detectarDestinoAgua(texto);
-    if ((m || d) && !mejorFichaVigente(texto, knowledgeBase)) {
-      const e: EstadoConversacion = {
-        ...estado,
-        flujoActivo: "vertidos",
-        flujoSugerido: null,
-        tema: "Vertidos",
-        fichaActiva: fichaDeFlujo()?.id ?? estado.fichaActiva,
-        motivo: m ?? estado.motivo,
-        destinoAgua: d ?? estado.destinoAgua,
-      };
-      return avanzarFlujoVertidos(e);
+    if ((m || d) && (c.entidad === "vertido" || c.entidad === "desconocida" || c.intencion === "tramite")) {
+      return iniciarFlujoVertidos(estado, m, d);
     }
   }
 
-  // 3) Búsqueda general en fichas vigentes.
-  const mejor = mejorFichaVigente(texto, knowledgeBase);
-  if (!mejor) return { estado: { ...estado, flujoSugerido: null }, mensajes: [derivarAlTecnico(texto)] };
-
-  const f = mejor.ficha;
-
-  // 3a) Ficha con flujo y consulta de trámite → entrar en flujo, aprovechando datos ya dados.
-  if (f.flujo === "vertidos" && esConsultaDeTramite(texto)) {
-    // Se piden los tres datos en orden (ubicación, destino, motivo) aunque la frase
-    // inicial insinúe alguno: así el usuario confirma cada paso.
-    const e: EstadoConversacion = {
-      ...estadoInicial,
-      tema: f.materia,
-      fichaActiva: f.id,
-      flujoActivo: "vertidos",
-      pasosCompletados: ["inicio"],
-    };
-    return avanzarFlujoVertidos(e);
+  // 4) Ambigüedad real → preguntar.
+  if (c.ambigua) {
+    const { estado: parcial, mensaje } = preguntaAclaracion(c);
+    return { estado: { ...estadoInicial, ...parcial }, mensajes: [mensaje] };
   }
 
-  // 3b) Respuesta directa con la ficha.
-  return {
-    estado: {
-      ...estadoInicial,
-      tema: f.materia,
-      fichaActiva: f.id,
-      flujoSugerido: f.flujo ?? null,
-    },
-    mensajes: [respuestaFicha(f)],
-  };
+  // 5) Resolver.
+  return resolver(estado, c, texto);
 }

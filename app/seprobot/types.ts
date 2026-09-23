@@ -3,7 +3,70 @@
  * Sin dependencias de React ni de servicios externos.
  */
 
-export type EstadoFicha = "Vigente" | "En revisión" | "Obsoleta";
+export type EstadoFicha = "Vigente" | "En revisión" | "Obsoleta" | "No aplica";
+export const ESTADOS: EstadoFicha[] = ["Vigente", "En revisión", "Obsoleta", "No aplica"];
+
+/** Dominio de la ficha: decide qué tipo de consulta puede responder. */
+export type Dominio = "app" | "normativa" | "tramite";
+export const DOMINIOS: { id: Dominio; etiqueta: string }[] = [
+  { id: "app", etiqueta: "Uso de la aplicación" },
+  { id: "normativa", etiqueta: "Normativa" },
+  { id: "tramite", etiqueta: "Trámite" },
+];
+
+/** Intención detectada en el mensaje del usuario. */
+export type Intencion = "uso_app" | "normativa" | "tramite" | "desconocida";
+
+/** Entidades reconocidas (vocabulario cerrado, ampliable en intentClassifier.ts). */
+export type Entidad =
+  | "DI"
+  | "piezas_vendidas"
+  | "excel_ventas"
+  | "vehiculo"
+  | "baja"
+  | "foto_baja"
+  | "residuo"
+  | "vertido"
+  | "informe"
+  | "situacion_anual"
+  | "documento"
+  | "ocr"
+  | "GICA"
+  | "VFU"
+  | "traslado"
+  | "neumaticos"
+  | "baterias"
+  | "garantias"
+  | "aguas"
+  | "LER"
+  | "economia_circular"
+  | "PIREC"
+  | "desconocida";
+
+export type Accion =
+  | "registrar"
+  | "importar"
+  | "subir"
+  | "consultar"
+  | "renovar"
+  | "modificar"
+  | "revisar"
+  | "eliminar"
+  | "corregir"
+  | "generar"
+  | "explicar"
+  | "ninguna";
+
+export interface Clasificacion {
+  intencion: Intencion;
+  entidad: Entidad;
+  accion: Accion;
+  /** true cuando hay dos lecturas plausibles (app vs normativa) y hay que preguntar. */
+  ambigua: boolean;
+  /** Marcadores explícitos detectados. */
+  marcadorApp: boolean;
+  marcadorNormativa: boolean;
+}
 
 export type TipoDocumento =
   | "Ley"
@@ -35,6 +98,18 @@ export type FlujoId = "vertidos";
 export interface Ficha {
   id: string;
   titulo: string;
+  /** app | normativa | tramite. Obligatorio. */
+  dominio: Dominio;
+  /** Entidades que responde esta ficha (p. ej. ["DI"]). */
+  entidades: Entidad[];
+  /** Acciones que responde (p. ej. ["registrar"]). Vacío = cualquiera. */
+  acciones: Accion[];
+  /** Frases de ejemplo que un gerente escribiría. Se usan para desempatar. */
+  frasesEjemplo: string[];
+  /** Respuesta directa (introducción) para fichas de aplicación. */
+  respuesta?: string;
+  /** Pasos numerados (fichas de aplicación y trámites). */
+  pasos: string[];
   tipoDocumento: TipoDocumento;
   ambitoTerritorial: string;
   materia: Materia;
@@ -62,8 +137,16 @@ export interface ResultadoBusqueda {
 export type DestinoAgua = "red" | "cauce" | "sin";
 export type MotivoTramite = "alta" | "renovacion" | "modificacion" | "inspeccion";
 
+export interface AclaracionPendiente {
+  entidad: Entidad;
+  accion: Accion;
+  opciones: { etiqueta: string; intencion: Intencion }[];
+}
+
 export interface EstadoConversacion {
   tema: Materia | null;
+  /** Pregunta de aclaración pendiente de respuesta. */
+  aclaracion: AclaracionPendiente | null;
   fichaActiva: string | null;
   flujoActivo: FlujoId | null;
   /** Ficha con flujo recién respondida en modo general; permite entrar al flujo si el usuario concreta. */
@@ -76,6 +159,8 @@ export interface EstadoConversacion {
 
 export interface MensajeBot {
   texto: string;
+  /** Pasos numerados a renderizar como lista. */
+  pasos?: string[];
   /** Opciones sugeridas (chips); nunca son obligatorias, el usuario puede escribir libremente. */
   opciones?: string[];
   /** Pie con fuente y estado de validación. */
