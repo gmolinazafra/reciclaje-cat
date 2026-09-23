@@ -61,6 +61,14 @@ export const fichasNormativa: Ficha[] = [
     fechaRevision: "2026-09-23",
     fuente: "Ficha técnica de la asociación (elaboración propia a partir de RDL 1/2001 y ordenanzas municipales de vertido).",
     version: "1.0",
+    aplicabilidad: {
+      aplica: "depende",
+      porque: "Un CAT necesita autorización de vertido si sus aguas (lavado, descontaminación, pluviales de campa) salen a red de saneamiento o a cauce/terreno. Si no hay vertido y el agua se gestiona íntegramente como residuo, no se requiere autorización de vertido.",
+      condiciones: [
+        "A dónde van las aguas del centro: red de saneamiento, cauce/terreno o sin vertido.",
+        "Si existe autorización vigente y su fecha de caducidad.",
+      ],
+    },
     preguntasSeguimiento: ["Alta nueva", "Renovación", "Modificación", "Inspección"],
     flujo: "vertidos",
   },
@@ -151,6 +159,14 @@ export const fichasNormativa: Ficha[] = [
     fechaRevision: "2026-09-23",
     fuente: "BOJA núm. 143, de 20/07/2007. BOE núm. 190, de 09/08/2007. Texto consolidado en BOE.",
     version: "1.0",
+    aplicabilidad: {
+      aplica: "si",
+      porque: "Todo CAT es una instalación de gestión de residuos incluida en el Anexo I de la GICA, por lo que está sometido a uno de sus instrumentos de prevención ambiental (AAU, AAUS o Calificación Ambiental) según capacidad y ubicación.",
+      condiciones: [
+        "Qué instrumento tiene el centro: AAU, AAUS o Calificación Ambiental (consta en la resolución ambiental).",
+        "Si ha habido modificaciones sustanciales de la actividad desde esa resolución.",
+      ],
+    },
     notasTecnico:
       "Validada provisionalmente para el caso de prueba «¿Qué es la Ley GICA?». El técnico debe confirmar contra el texto consolidado y modificaciones posteriores (Ley 3/2023, Decreto-ley 2/2020).",
   },
@@ -256,6 +272,14 @@ export const fichasNormativa: Ficha[] = [
     fechaRevision: "2026-09-23",
     fuente: "BOE núm. 171, de 19/06/2020.",
     version: "1.0",
+    aplicabilidad: {
+      aplica: "si",
+      porque: "Todo CAT entrega residuos a gestores externos y por tanto interviene en traslados que deben ir amparados por DI y, en residuos peligrosos, por notificación previa y contrato de tratamiento.",
+      condiciones: [
+        "Que cada salida de residuos lleve su DI y se conserve en el archivo cronológico.",
+        "Que los residuos peligrosos (aceites, baterías, filtros) tengan NT vigente y contrato con el gestor de destino.",
+      ],
+    },
     notasTecnico: "Validada provisionalmente para el caso de prueba «consultar normativa del DI». Confirmar contra texto consolidado.",
   },
   {

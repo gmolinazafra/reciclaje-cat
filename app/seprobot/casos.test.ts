@@ -122,4 +122,37 @@ caso("pregunta general de vertidos responde sin interrogatorio", () => {
   assert.match(r.texto, /Consultas generales/); assert.doesNotMatch(r.texto, /provincia/i);
 });
 
-console.log(`\n✔ ${n} casos de SeproBot pasan`);
+
+caso("'cómo funciona la aplicación' (acceso) → ficha de funcionamiento", () => {
+  reset(); const r = di("cómo funciona la aplicación");
+  assert.match(r.texto, /Funcionamiento de ReciclaCat_Gest/); assert.match(r.texto, /«Piezas»/);
+});
+
+caso("'me aplica la ley gica?' → pide ubicación (norma andaluza) y razona con ella", () => {
+  reset(); let r = di("me aplica la ley gica?");
+  assert.match(r.texto, /provincia o municipio/i); assert.doesNotMatch(r.texto, /norma marco de Andalucía/);
+  r = di("Sevilla");
+  assert.match(r.texto, /¿Aplica la Ley 7\/2007/); assert.match(r.texto, /Sí, aplica/); assert.match(r.texto, /Sevilla/); assert.match(r.texto, /ámbito \*\*andaluz\*\*/);
+  assert.match(r.texto, /AAU, AAUS o Calificación/);
+});
+
+caso("'me aplica la ley gica?' con centro fuera de Andalucía → no aplica directamente", () => {
+  reset(); di("me aplica la ley gica?"); const r = di("Murcia");
+  assert.match(r.texto, /No aplica directamente/); assert.match(r.texto, /Murcia/);
+});
+
+caso("'estoy obligado a cumplir el RD 553/2020?' (estatal) → responde sin pedir ubicación", () => {
+  reset(); const r = di("estoy obligado a cumplir el RD 553/2020?");
+  assert.match(r.texto, /Sí, aplica/); assert.match(r.texto, /estatal/); assert.doesNotMatch(r.texto, /provincia/i);
+});
+
+caso("'me aplica la autorización de vertido?' → depende, con condiciones", () => {
+  reset(); const r = di("me aplica la autorización de vertido?");
+  assert.match(r.texto, /Depende/); assert.match(r.texto, /red de saneamiento/);
+});
+
+caso("'me aplica el reglamento de baterías?' sin ficha vigente → deriva", () => {
+  reset(); assert.ok(di("me aplica el reglamento de baterías?").texto.startsWith(MENSAJE_SIN_FICHA));
+});
+
+console.log(`\n✔ ${n} casos de SeproBot pasan (total)`);

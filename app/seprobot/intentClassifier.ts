@@ -37,12 +37,16 @@ const ACCIONES_CONSULTA: [Accion, RegExp][] = [
   ["explicar", /\b(que es|que son|que dice|que significa|en que consiste|explica\w*|resumen de|cuales son|cual es)\b/],
 ];
 
+/** Pregunta de aplicabilidad: "¿me aplica…?", "¿estoy obligado…?", "¿tengo que cumplir…?". */
+const PREGUNTA_APLICA = /\b(me aplica|nos aplica|le aplica|aplica a mi|es aplicable|estoy obligad\w*|estamos obligad\w*|tengo que cumplir|debo cumplir|tenemos que cumplir|me afecta|nos afecta|afecta a mi|es obligatori\w* para|tengo que tener|necesito tener|me obliga|nos obliga)\b/;
+
 /** Marcadores explícitos de dominio. */
 const MARCADOR_APP = /\b(reciclacat|reciclacat_gest|reciclacatgest|la aplicacion|la app|el programa|en el programa|en la app|pestaña|pestana|boton|pantalla|formulario|ocr)\b/;
 const MARCADOR_NORMATIVA = /\b(normativa|norma|ley|leyes|real decreto|rd \d|decreto|reglamento|directiva|orden|boe|boja|obligacion\w*|plazo\w*|requisito\w*|legal\w*|juridic\w*|que dice|que es|que son|sancion\w*|multa\w*)\b/;
 
 /** Entidades: patrón → entidad. El orden importa (más específico primero). */
 const ENTIDADES: [Entidad, RegExp][] = [
+  ["aplicacion", /\b(como funciona|funcionamiento|que puedo hacer|para que sirve|como se usa|como se maneja|que hace)\b.*\b(app|aplicacion|programa|reciclacat\w*)\b|\b(app|aplicacion|programa|reciclacat\w*)\b.*\b(funciona|funcionamiento|que puedo hacer|para que sirve|como se usa)\b/],
   ["excel_ventas", /\b(excel|csv|hoja de calculo|listado)\b.*\b(venta\w*|pieza\w*)\b|\b(venta\w*|pieza\w*)\b.*\b(excel|csv|hoja de calculo)\b/],
   ["piezas_vendidas", /\b(pieza\w*|recambio\w*|repuesto\w*)\b.*\b(vend\w*|venta\w*)\b|\b(vend\w*|venta\w*)\b.*\b(pieza\w*|recambio\w*|repuesto\w*)\b|\bventa\w*\b|\bpieza\w*\b/],
   ["foto_baja", /\b(foto|imagen|pdf)\b.*\b(baja|destruccion)\b|\b(baja|destruccion)\b.*\b(foto|imagen)\b/],
@@ -71,7 +75,7 @@ const ENTIDADES: [Entidad, RegExp][] = [
 const ENTIDADES_AMBIGUAS = new Set<Entidad>(["DI", "residuo", "baja", "vehiculo", "traslado"]);
 
 /** Entidades exclusivas de la aplicación (nunca se responden con normativa). */
-const ENTIDADES_SOLO_APP = new Set<Entidad>(["piezas_vendidas", "excel_ventas", "foto_baja", "ocr", "situacion_anual", "informe", "documento"]);
+const ENTIDADES_SOLO_APP = new Set<Entidad>(["aplicacion", "piezas_vendidas", "excel_ventas", "foto_baja", "ocr", "situacion_anual", "informe", "documento"]);
 
 // ─── Clasificación ──────────────────────────────────────────────────────────
 
@@ -98,6 +102,11 @@ export function clasificar(texto: string): Clasificacion {
   let intencion: Intencion = "desconocida";
   let accion: Accion = accionApp ?? accionTramite ?? accionConsulta ?? "ninguna";
   let ambigua = false;
+
+  // 0) Pregunta de aplicabilidad sobre una norma → normativa / aplicar.
+  if (PREGUNTA_APLICA.test(n) && !ENTIDADES_SOLO_APP.has(entidad)) {
+    return { intencion: "normativa", entidad, accion: "aplicar", ambigua: false, marcadorApp, marcadorNormativa: true };
+  }
 
   // 1) Marcador explícito de aplicación → uso_app.
   if (marcadorApp) {

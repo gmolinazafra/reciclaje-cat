@@ -23,6 +23,27 @@ const base = {
 export const fichasApp: Ficha[] = [
   {
     ...base,
+    id: "app-funcionamiento-general",
+    titulo: "Funcionamiento de ReciclaCat_Gest",
+    entidades: ["aplicacion"],
+    acciones: [],
+    etiquetas: ["aplicación", "funcionamiento", "pestañas", "empezar"],
+    sinonimos: ["como funciona la aplicacion", "como funciona la app", "funcionamiento de la app", "que puedo hacer con la aplicacion", "para que sirve la aplicacion", "como se usa el programa", "empezar a usar"],
+    frasesEjemplo: ["cómo funciona la aplicación", "qué puedo hacer en ReciclaCat_Gest", "por dónde empiezo"],
+    resumen: "Visión general de las pestañas y el flujo de trabajo del centro.",
+    respuesta: "ReciclaCat_Gest organiza la gestión documental del CAT por ejercicio. Así funciona:",
+    pasos: [
+      "«Resumen»: situación del año, documentos pendientes y alertas de vencimientos.",
+      "«Documentos»: sube cualquier archivo (Excel, CSV, PDF, imagen o foto); la aplicación lo lee por OCR y lo clasifica.",
+      "«Vehículos»: alta de vehículos recibidos y asociación de la foto o PDF de baja.",
+      "«Piezas»: registro de piezas vendidas (manual o importando el Excel mensual) con cálculo de kilos gestionados.",
+      "«Residuos»: salidas de residuos por código LER y registro de los DI.",
+      "«Informes»: memoria anual, informes de vehículos, piezas y residuos en PDF o Excel.",
+      "SeproBot (abajo a la derecha) responde dudas de uso, normativa y trámites; solo usa fichas validadas por el técnico.",
+    ],
+  },
+  {
+    ...base,
     id: "app-registrar-piezas-vendidas",
     titulo: "Registrar piezas vendidas",
     entidades: ["piezas_vendidas"],

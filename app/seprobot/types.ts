@@ -41,6 +41,7 @@ export type Entidad =
   | "LER"
   | "economia_circular"
   | "PIREC"
+  | "aplicacion"
   | "desconocida";
 
 export type Accion =
@@ -55,6 +56,7 @@ export type Accion =
   | "corregir"
   | "generar"
   | "explicar"
+  | "aplicar"
   | "ninguna";
 
 export interface Clasificacion {
@@ -127,6 +129,17 @@ export interface Ficha {
   flujo?: FlujoId;
   /** Notas internas para el técnico (no se muestran al usuario). */
   notasTecnico?: string;
+  /** Regla de aplicabilidad para responder "¿me aplica esta norma?" sin IA. */
+  aplicabilidad?: Aplicabilidad;
+}
+
+export interface Aplicabilidad {
+  /** si = aplica a todo CAT dentro del ámbito; depende = según condiciones; no = no aplica a CAT. */
+  aplica: "si" | "depende" | "no";
+  /** Explicación en una o dos frases. */
+  porque: string;
+  /** Condiciones que el centro debe comprobar (para "depende"). */
+  condiciones?: string[];
 }
 
 export interface ResultadoBusqueda {
@@ -147,6 +160,8 @@ export interface EstadoConversacion {
   tema: Materia | null;
   /** Pregunta de aclaración pendiente de respuesta. */
   aclaracion: AclaracionPendiente | null;
+  /** Ficha cuya aplicabilidad se responderá cuando el usuario indique la ubicación. */
+  aplicabilidadPendiente: string | null;
   fichaActiva: string | null;
   flujoActivo: FlujoId | null;
   /** Ficha con flujo recién respondida en modo general; permite entrar al flujo si el usuario concreta. */

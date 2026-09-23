@@ -32,6 +32,7 @@ import type {
 export const estadoInicial: EstadoConversacion = {
   tema: null,
   aclaracion: null,
+  aplicabilidadPendiente: null,
   fichaActiva: null,
   flujoActivo: null,
   flujoSugerido: null,
@@ -56,7 +57,7 @@ export const ACCESOS_INICIALES: { etiqueta: string; texto: string }[] = [
   { etiqueta: "Subir un documento", texto: "cómo subo un documento" },
   { etiqueta: "Registrar un DI", texto: "registrar un DI en ReciclaCat_Gest" },
   { etiqueta: "Situación anual", texto: "cómo consulto la situación anual" },
-  { etiqueta: "Renovar autorización de vertido", texto: "renovar autorización de vertido" },
+  { etiqueta: "Funcionamiento de la app", texto: "cómo funciona la aplicación" },
 ];
 
 // ─── Detectores de intención (deterministas) ────────────────────────────────
@@ -269,6 +270,70 @@ function preguntaAclaracion(c: Clasificacion): { estado: Partial<EstadoConversac
   };
 }
 
+// ─── Aplicabilidad (razonamiento determinista) ──────────────────────────────
+
+const PROVINCIAS_ANDALUCIA = ["almeria", "cadiz", "cordoba", "granada", "huelva", "jaen", "malaga", "sevilla", "andalucia"];
+const MUNICIPIOS_ANDALUCIA = ["marbella", "jerez", "algeciras", "dos hermanas", "roquetas", "el ejido", "mijas", "fuengirola", "torremolinos", "velez", "estepona", "motril", "linares", "utrera", "alcala de guadaira", "chiclana", "san fernando", "el puerto", "sanlucar", "cartama", "alhaurin", "antequera", "ronda", "lucena", "andujar", "ubeda"];
+
+function ambitoDe(f: Ficha): "andalucia" | "espana" | "ue" | "municipal" | "otro" {
+  const a = normalizar(f.ambitoTerritorial);
+  if (a.includes("andalucia")) return "andalucia";
+  if (a.includes("municipal")) return "municipal";
+  if (a.includes("union europea") || a === "ue") return "ue";
+  if (a.includes("españa") || a.includes("espana") || a.includes("estado")) return "espana";
+  return "otro";
+}
+
+function estaEnAndalucia(ubicacion: string): boolean | null {
+  const u = normalizar(ubicacion);
+  if (PROVINCIAS_ANDALUCIA.some((p) => u.includes(p)) || MUNICIPIOS_ANDALUCIA.some((m) => u.includes(m))) return true;
+  // Comunidades / capitales claramente fuera.
+  const fuera = ["madrid", "barcelona", "valencia", "murcia", "extremadura", "badajoz", "caceres", "castilla", "toledo", "galicia", "asturias", "cantabria", "pais vasco", "euskadi", "bilbao", "navarra", "aragon", "zaragoza", "cataluna", "catalunya", "baleares", "canarias", "rioja", "leon", "burgos", "salamanca", "valladolid", "alicante", "castellon", "ceuta", "melilla", "portugal"];
+  if (fuera.some((f) => u.includes(f))) return false;
+  return null; // no se puede determinar
+}
+
+/** ¿Necesita ubicación para decidir? Solo las normas autonómicas o municipales. */
+function necesitaUbicacion(f: Ficha): boolean {
+  const a = ambitoDe(f);
+  return a === "andalucia" || a === "municipal";
+}
+
+function respuestaAplicabilidad(f: Ficha, ubicacion: string | null): MensajeBot {
+  const ambito = ambitoDe(f);
+  const lineas: string[] = [];
+  let veredicto = "";
+
+  // 1) Razonamiento territorial.
+  if (ambito === "andalucia") {
+    const en = ubicacion ? estaEnAndalucia(ubicacion) : null;
+    if (en === false) {
+      veredicto = `No aplica directamente: es una norma de ámbito andaluz y el centro está en ${ubicacion}, fuera de Andalucía. En su comunidad rige la norma autonómica equivalente.`;
+      return { texto: `**¿Aplica la ${f.titulo}?**\n\n${veredicto}`, pie: pieFicha(f) };
+    }
+    lineas.push(`Es una norma de ámbito **andaluz** y el centro está en ${ubicacion}, dentro de Andalucía.`);
+  } else if (ambito === "espana") {
+    lineas.push("Es una norma **estatal**: aplica en todo el territorio español, con independencia de la comunidad autónoma.");
+  } else if (ambito === "ue") {
+    lineas.push("Es un **reglamento europeo** de aplicación directa en España, sin necesidad de transposición.");
+  } else if (ambito === "municipal") {
+    lineas.push(`Es normativa **municipal**: depende de la ordenanza del municipio del centro${ubicacion ? ` (${ubicacion})` : ""}.`);
+  }
+
+  // 2) Razonamiento por actividad (ficha).
+  const ap = f.aplicabilidad;
+  if (ap) {
+    if (ap.aplica === "si") veredicto = "**Sí, aplica a tu centro.** " + ap.porque;
+    else if (ap.aplica === "depende") veredicto = "**Depende.** " + ap.porque;
+    else veredicto = "**No aplica a un CAT.** " + ap.porque;
+    if (ap.condiciones?.length) lineas.push("Comprueba en tu centro:\n" + ap.condiciones.map((c) => `• ${c}`).join("\n"));
+  } else {
+    veredicto = `**Está dentro de su ámbito.** La ficha validada no detalla condiciones de aplicación a CAT; el técnico debe completarlas. Mientras tanto, revisa en la fuente si tu actividad está en su ámbito de aplicación.`;
+  }
+
+  return { texto: `**¿Aplica la ${f.titulo}?**\n\n${veredicto}\n\n${lineas.join("\n\n")}`, pie: pieFicha(f) };
+}
+
 // ─── Flujo de vertidos ──────────────────────────────────────────────────────
 
 function avanzarFlujoVertidos(e: EstadoConversacion): RespuestaMotor {
@@ -349,8 +414,17 @@ function resolver(estado: EstadoConversacion, c: Clasificacion, texto: string): 
   }
 
   if (c.intencion === "normativa") {
-    const f = fichaNormativa(c, texto);
-    if (f) return { estado: { ...limpio, tema: f.materia, fichaActiva: f.id }, mensajes: [respuestaNormativa(f)] };
+    const f = fichaNormativa(c, texto) ?? (c.entidad === "vertido" ? fichaTramite("vertido") : null);
+    if (f && c.accion === "aplicar") {
+      if (necesitaUbicacion(f) && !estado.ubicacion) {
+        return {
+          estado: { ...limpio, tema: f.materia, fichaActiva: f.id, aplicabilidadPendiente: f.id },
+          mensajes: [{ texto: `Para saber si te aplica necesito un dato: ¿en qué provincia o municipio está el centro?` }],
+        };
+      }
+      return { estado: { ...limpio, tema: f.materia, fichaActiva: f.id }, mensajes: [respuestaAplicabilidad(f, estado.ubicacion)] };
+    }
+    if (f && f.dominio === "normativa") return { estado: { ...limpio, tema: f.materia, fichaActiva: f.id }, mensajes: [respuestaNormativa(f)] };
     // Pregunta general sobre vertidos: ficha de trámite en modo explicación.
     if (c.entidad === "vertido") {
       const t = fichaTramite("vertido");
@@ -388,6 +462,16 @@ export function procesar(estado: EstadoConversacion, textoUsuario: string): Resp
       const r = continuarFlujoVertidos(estado, texto);
       if (r) return r;
     }
+  }
+
+  // 1b) Aplicabilidad pendiente de ubicación.
+  if (estado.aplicabilidadPendiente) {
+    const f = vigentes().find((x) => x.id === estado.aplicabilidadPendiente);
+    if (f && pareceUbicacion(texto)) {
+      const ubic = capitalizar(texto);
+      return { estado: { ...estado, ubicacion: ubic, aplicabilidadPendiente: null }, mensajes: [respuestaAplicabilidad(f, ubic)] };
+    }
+    estado = { ...estado, aplicabilidadPendiente: null };
   }
 
   // 2) Aclaración pendiente: el usuario pulsa un botón o escribe algo equivalente.
