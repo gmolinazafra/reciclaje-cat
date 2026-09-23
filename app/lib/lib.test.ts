@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { clasificarPorNombre, DemoOcrProvider, camposPorTipo } from "./ocr";
 import { mapeoAutomatico, parsearCSV, validarFilas } from "./importExcel";
-import { pesoDiccionario, taraEstimada } from "./pesos";
+import { buscarPeso, pesoDiccionario, taraEstimada } from "./pesos";
+import { DICCIONARIO_PESOS } from "./diccionarioPesos";
 import { alertas, memoriaAnualTexto, resumenAnual } from "./informes";
 import { datosDemo, ops } from "./repo";
 import type { Venta } from "./types";
@@ -31,27 +32,43 @@ const caso = (nombre: string, fn: () => void | Promise<void>) => Promise.resolve
     assert.ok(v.error);
   });
 
-  await caso("diccionario de pesos: coincidencia más larga y sin coincidencia", () => {
-    assert.equal(pesoDiccionario("Puerta delantera izquierda"), 22);
-    assert.equal(pesoDiccionario("Motor completo 1.6"), 160);
-    assert.equal(pesoDiccionario("Alternador"), 6);
-    assert.equal(pesoDiccionario("Kit embrague"), null);
+  await caso("diccionario de pesos (pesos.xls): exacto, aproximado, mayúsculas/tildes, sin coincidencia", () => {
+    const faro = DICCIONARIO_PESOS.find((a) => a.articulo === "FARO DERECHO")!;
+    assert.equal(pesoDiccionario("faro derecho"), faro.kg);
+    assert.equal(pesoDiccionario("Faro derecho Clio 2015"), faro.kg);
+    assert.ok((pesoDiccionario("MOTOR COMPLETO") ?? 0) > 50);
+    assert.equal(pesoDiccionario("Kit chuchería inexistente"), null);
+    assert.ok(DICCIONARIO_PESOS.length > 1000);
+    assert.ok(buscarPeso("faro derecho")?.exacta);
   });
 
-  await caso("taras: Clio urbano, Transit furgón, desconocido por defecto", () => {
-    assert.equal(taraEstimada("Renault", "Clio").kg, 950);
-    assert.equal(taraEstimada("Ford", "Transit").kg, 2100);
-    assert.match(taraEstimada("Marca", "Rara").segmento, /defecto/);
+  await caso("taras: tabla (Clio 1050), segmento (Hilux pickup 2000), desconocido por defecto; tabla del usuario prevalece", () => {
+    assert.equal(taraEstimada("Renault", "Clio").kg, 1050);
+    assert.equal(taraEstimada("Renault", "Clio").origen, "tabla");
+    assert.equal(taraEstimada("Toyota", "Hilux").kg, 2000);
+    assert.equal(taraEstimada("Marca", "Rara").origen, "defecto");
+    assert.equal(taraEstimada("Renault", "Clio", [{ id: "x", marca: "Renault", modelo: "Clio", tara: 999, origen: "usuario" }]).kg, 999);
+  });
+
+  await caso("residuos: peligrosos y no peligrosos nunca se mezclan en totales ni memoria", () => {
+    const db = datosDemo(2026);
+    const r = resumenAnual(db);
+    assert.equal(r.kgPeligrosos, 800); // 320 baterías + 480 aceite
+    assert.equal(r.kgNoPeligrosos, 640); // neumáticos
+    assert.equal(+(r.kgPeligrosos + r.kgNoPeligrosos).toFixed(2), r.kgResiduos);
+    assert.ok(r.porLER.every((x) => x.peligroso === x.ler.endsWith("*")));
+    const txt = memoriaAnualTexto(db);
+    assert.match(txt, /Residuos peligrosos: 800/); assert.match(txt, /Residuos no peligrosos: 640/); assert.match(txt, /Kilos gestionados piezas/);
   });
 
   await caso("importación CSV: mapeo automático, filas con error, pesos real/estimado/pendiente", () => {
-    const csv = "Referencia;Descripcion;Cantidad;Importe;Kg\nK9K;Motor 1.5 dCi;1;650;\nX1;Puerta delantera;2;90;44\n;;1;10;\nZZ;Kit embrague;1;120;";
+    const csv = "Referencia;Descripcion;Cantidad;Importe;Kg\nK9K;MOTOR COMPLETO;1;650;\nX1;PUERTA DELANTERA DERECHA;2;90;44\n;;1;10;\nZZ;Chuchería inexistente;1;120;";
     const { encabezados, filas } = parsearCSV(csv);
     const m = mapeoAutomatico(encabezados);
     assert.equal(m.descripcion, "Descripcion"); assert.equal(m.cantidad, "Cantidad"); assert.equal(m.peso, "Kg"); assert.equal(m.precio, "Importe");
     const v = validarFilas(filas, m, 2026, 3);
     assert.equal(v.length, 4);
-    assert.equal(v[0].venta?.origenPeso, "estimado"); assert.equal(v[0].venta?.pesoKg, 140);
+    assert.equal(v[0].venta?.origenPeso, "estimado"); assert.ok((v[0].venta?.pesoKg ?? 0) > 0);
     assert.equal(v[1].venta?.origenPeso, "real"); assert.equal(v[1].venta?.pesoKg, 44);
     assert.equal(v[2].venta, null); assert.match(v[2].errores.join(), /descripción/i);
     assert.equal(v[3].venta?.origenPeso, "pendiente");
@@ -61,7 +78,7 @@ const caso = (nombre: string, fn: () => void | Promise<void>) => Promise.resolve
   await caso("resumen anual e informes: ventas alimentan kilos, alertas de completitud, memoria en texto", () => {
     let db = datosDemo(2026);
     const antes = resumenAnual(db);
-    const venta: Venta = { id: "t1", ejercicio: 2026, fecha: "2026-05-05", mes: 5, pieza: "Radiador", referencia: "", descripcion: "Radiador", cantidad: 1, precio: 40, pesoKg: 5, origenPeso: "estimado", origen: "manual" };
+    const venta: Venta = { id: "t1", ejercicio: 2026, fecha: "2026-05-05", mes: 5, pieza: "Radiador", referencia: "", descripcion: "Radiador", cantidad: 1, precio: 40, pesoKg: 5, origenPeso: "estimado", origen: "factura" };
     db = ops.addVentas(db, [venta]);
     const despues = resumenAnual(db);
     assert.equal(despues.kgPiezas, +(antes.kgPiezas + 5).toFixed(2));

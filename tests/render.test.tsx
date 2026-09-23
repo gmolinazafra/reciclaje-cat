@@ -27,7 +27,7 @@ const Resumen = def(R), Documentos = def(D), Vehiculos = def(V), Piezas = def(P)
 chk("Resumen", <Resumen db={db} ir={() => {}} />, /DEMO/);
 chk("Documentos", <Documentos db={db} set={set} />, /Pendiente de revisar/);
 chk("Vehículos", <Vehiculos db={db} set={set} />, /1234 ABC/);
-chk("Piezas", <Piezas db={db} set={set} />, /Importar ventas desde Excel/);
+chk("Piezas", <Piezas db={db} set={set} />, /Importar desde Excel de facturación/);
 chk("Residuos", <Residuos db={db} set={set} />, /16 06 01/);
 chk("Informes", <Informes db={db} />, /MEMORIA ANUAL 2026/);
 chk("Home", <Home />, /ReciclaCat_/);

@@ -52,8 +52,8 @@ export function saludoPorHora(fecha: Date = new Date()): string {
 
 /** Accesos iniciales del chat. Cada texto se envía tal cual y debe resolver a una ficha Vigente. */
 export const ACCESOS_INICIALES: { etiqueta: string; texto: string }[] = [
-  { etiqueta: "Registrar venta manual", texto: "cómo registro una venta manual" },
-  { etiqueta: "Importar ventas desde Excel", texto: "cómo importo las ventas desde Excel" },
+  { etiqueta: "Piezas desde factura", texto: "cómo registro las piezas vendidas" },
+  { etiqueta: "Importar Excel de facturación", texto: "cómo importo las ventas desde Excel" },
   { etiqueta: "Subir y revisar documento", texto: "cómo subo y reviso un documento" },
   { etiqueta: "Registrar un DI", texto: "registrar un DI en ReciclaCat_Gest" },
   { etiqueta: "Situación anual", texto: "cómo consulto la situación anual" },

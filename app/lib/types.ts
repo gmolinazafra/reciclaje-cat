@@ -67,7 +67,8 @@ export interface Venta {
   origenPeso: OrigenPeso;
   observaciones?: string;
   vehiculoId?: Id;
-  origen: "manual" | "excel";
+  /** factura = línea registrada desde una factura; excel = importación de listado. */
+  origen: "factura" | "excel";
   documentoId?: Id;
   demo?: boolean;
 }
@@ -121,6 +122,17 @@ export interface DI {
   demo?: boolean;
 }
 
+export interface TaraVehiculo {
+  id: Id;
+  marca: string;
+  modelo: string;
+  tara: number; // kg
+  origen: "defecto" | "usuario";
+}
+
+/** Un residuo es peligroso si su código LER lleva asterisco. */
+export const esPeligroso = (ler: string) => ler.trim().endsWith("*");
+
 export interface Centro {
   nombre: string;
   nima: string;
@@ -136,4 +148,5 @@ export interface BaseDatos {
   vehiculos: Vehiculo[];
   residuos: Residuo[];
   dis: DI[];
+  taras: TaraVehiculo[];
 }

@@ -54,3 +54,9 @@
 
 ## Verificación
 `npm test` ejecuta: `app/lib/lib.test.ts` (7), `app/seprobot/casos.test.ts` (26), `tests/render.test.tsx` (7 pantallas con datos demo). `tsc --strict` sin errores. Ver PR_DESCRIPTION.md.
+
+## Revisión 2 (correcciones de Gustavo)
+1. **Residuos peligrosos y no peligrosos separados** en todo: categoría obligatoria en los formularios (LER filtrados por categoría, `*` = peligroso), dos columnas en la pestaña Residuos con sus DI, totales y tarjetas separados, memoria e informe por LER en dos bloques, CSV con columna Categoría. Un residuo ya registrado solo puede vincularse a un DI de su misma categoría.
+2. **Piezas desde factura, no «manual»**: la línea se registra con nº de factura y el nombre de la pieza tal como aparece en la factura (con autocompletado del diccionario). Lo que cuenta es «Kilos gestionados piezas»; resumen, informes y memoria muestran ese total sin describir piezas. Origen de datos: `factura` | `excel`.
+3. **Diccionario de pesos oficial** (`app/lib/diccionarioPesos.ts`, generado de `pesos.xls`: 1.147 artículos, 19 familias). Al importar el Excel de facturación o registrar una línea, si no hay kilos se toman del diccionario (exacto → aproximado por contención) y se marcan «estimado»; sin coincidencia → «sin peso».
+4. **Tabla de taras editable** («Vehículos → Tabla de taras»): marca/modelo/tara guardada en la base de datos, con 29 modelos iniciales; en el alta de vehículo la tara se toma de la tabla (o por segmento si falta), es editable y puede guardarse en la tabla para la próxima vez. La baja no indica peso: se avisa en el propio campo.

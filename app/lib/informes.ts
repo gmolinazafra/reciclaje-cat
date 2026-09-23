@@ -1,4 +1,5 @@
 /** Agregaciones para Resumen e Informes. Funciones puras. */
+import { esPeligroso } from "./types";
 import type { BaseDatos, Documento } from "./types";
 
 export interface ResumenAnual {
@@ -12,11 +13,13 @@ export interface ResumenAnual {
   kgPiezasPendiente: number;
   importeVentas: number;
   kgResiduos: number;
+  kgPeligrosos: number;
+  kgNoPeligrosos: number;
   dis: number;
   documentosPendientes: number;
   documentosError: number;
   porMes: { mes: number; kgPiezas: number; ventas: number; kgResiduos: number; vehiculos: number }[];
-  porLER: { ler: string; descripcion: string; kg: number }[];
+  porLER: { ler: string; descripcion: string; kg: number; peligroso: boolean }[];
 }
 
 export function resumenAnual(db: BaseDatos, ejercicio = db.ejercicio): ResumenAnual {
@@ -53,11 +56,13 @@ export function resumenAnual(db: BaseDatos, ejercicio = db.ejercicio): ResumenAn
     kgPiezasPendiente: v.filter((x) => x.origenPeso === "pendiente").length,
     importeVentas: suma(v.map((x) => x.precio * x.cantidad)),
     kgResiduos: suma(res.map((x) => x.cantidadKg)),
+    kgPeligrosos: suma(res.filter((x) => esPeligroso(x.ler)).map((x) => x.cantidadKg)),
+    kgNoPeligrosos: suma(res.filter((x) => !esPeligroso(x.ler)).map((x) => x.cantidadKg)),
     dis: dis.length,
     documentosPendientes: docs.filter((d) => d.estado === "Pendiente de revisar").length,
     documentosError: docs.filter((d) => d.estado === "Error de lectura").length,
     porMes,
-    porLER: [...lerMap.entries()].map(([ler, e]) => ({ ler, ...e })).sort((a, b) => b.kg - a.kg),
+    porLER: [...lerMap.entries()].map(([ler, e]) => ({ ler, ...e, peligroso: esPeligroso(ler) })).sort((a, b) => Number(b.peligroso) - Number(a.peligroso) || b.kg - a.kg),
   };
 }
 
@@ -81,11 +86,16 @@ export function memoriaAnualTexto(db: BaseDatos, ejercicio = db.ejercicio): stri
   l.push(`MEMORIA ANUAL ${ejercicio} — ${db.centro.nombre} (NIMA ${db.centro.nima})`);
   l.push("");
   l.push(`Vehículos recibidos: ${r.vehiculos} (sin baja: ${r.vehiculosSinBaja})`);
-  l.push(`Piezas vendidas: ${r.ventas} líneas · ${r.kgPiezas} kg (reales ${r.kgPiezasReal} · estimados ${r.kgPiezasEstimado})`);
-  l.push(`Residuos gestionados: ${r.kgResiduos} kg en ${r.dis} DI`);
+  l.push(`Kilos gestionados piezas: ${r.kgPiezas} kg (reales ${r.kgPiezasReal} · estimados por diccionario ${r.kgPiezasEstimado})`);
+  l.push(`Residuos peligrosos: ${r.kgPeligrosos} kg`);
+  l.push(`Residuos no peligrosos: ${r.kgNoPeligrosos} kg`);
+  l.push(`DI registrados: ${r.dis}`);
   l.push("");
-  l.push("Residuos por código LER:");
-  for (const x of r.porLER) l.push(`  ${x.ler}  ${x.descripcion}  ${x.kg} kg`);
+  l.push("Residuos PELIGROSOS por código LER:");
+  for (const x of r.porLER.filter((x) => x.peligroso)) l.push(`  ${x.ler}  ${x.descripcion}  ${x.kg} kg`);
+  l.push("");
+  l.push("Residuos NO PELIGROSOS por código LER:");
+  for (const x of r.porLER.filter((x) => !x.peligroso)) l.push(`  ${x.ler}  ${x.descripcion}  ${x.kg} kg`);
   l.push("");
   l.push("Por mes (kg piezas / kg residuos / vehículos):");
   for (const m of r.porMes) if (m.kgPiezas || m.kgResiduos || m.vehiculos) l.push(`  ${String(m.mes).padStart(2, "0")}  ${m.kgPiezas} / ${m.kgResiduos} / ${m.vehiculos}`);

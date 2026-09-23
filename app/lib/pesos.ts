@@ -1,54 +1,101 @@
-/** Diccionario de pesos de piezas (kg por unidad) y taras de vehículos (kg). Editables por el usuario en Ajustes en el futuro. */
+/**
+ * Pesos de piezas y taras de vehículos.
+ * - Piezas: diccionario oficial generado desde pesos.xls (diccionarioPesos.ts). Coincidencia exacta por
+ *   nombre de artículo normalizado; si no, el artículo más largo contenido en el texto; pesos 0 se ignoran.
+ * - Taras: tabla editable por el usuario (guardada en la base de datos) + valores por defecto por segmento.
+ */
 
-export const PESOS_PIEZAS: Record<string, number> = {
-  motor: 140, "motor completo": 160, "caja de cambios": 45, "caja cambios": 45, cambio: 45, alternador: 6, "motor de arranque": 4,
-  arranque: 4, turbo: 8, radiador: 5, "bomba de agua": 2, "bomba inyectora": 6, inyector: 0.4, culata: 25, "colector": 6,
-  catalizador: 4, "tubo de escape": 8, escape: 8, puerta: 22, "puerta delantera": 22, "puerta trasera": 20, capo: 15, capó: 15,
-  porton: 18, portón: 18, "porton trasero": 18, aleta: 4, paragolpes: 7, parachoques: 7, faro: 2, piloto: 1, retrovisor: 1,
-  luna: 12, parabrisas: 12, "luneta": 8, asiento: 15, "asiento delantero": 15, "asiento trasero": 20, volante: 2, airbag: 1.5,
-  "cuadro de instrumentos": 1.5, "centralita": 0.6, "ecu": 0.6, "unidad de control": 0.6, "bomba abs": 2, abs: 2,
-  llanta: 9, neumatico: 8, neumático: 8, rueda: 17, "rueda completa": 17, amortiguador: 3, "brazo suspension": 3,
-  "brazo de suspension": 3, "buje": 4, "palier": 5, "transmision": 5, "transmisión": 5, "pinza de freno": 3, "disco de freno": 6,
-  "disco freno": 6, "bomba de freno": 1, "compresor aire acondicionado": 6, compresor: 6, "compresor a/a": 6, "bateria": 18,
-  "batería": 18, "deposito": 9, "depósito": 9, "deposito combustible": 9, "puente trasero": 60, "eje trasero": 60, "subchasis": 25,
-  "cremallera": 6, "direccion": 6, "dirección": 6, "electroventilador": 3, "ventilador": 3, "climatizador": 3,
-  "cinturon": 1, "cinturón": 1, "elevalunas": 2, "cerradura": 0.5, "manilla": 0.2, "antena": 0.2, "radio": 1, "navegador": 1.5,
-};
+import { DICCIONARIO_PESOS } from "./diccionarioPesos";
+import type { TaraVehiculo } from "./types";
 
-/** Devuelve peso por unidad si hay coincidencia (normalizada) en el diccionario, o null. */
-export function pesoDiccionario(pieza: string, descripcion = ""): number | null {
-  const n = (pieza + " " + descripcion).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  // Coincidencia más larga primero.
-  const claves = Object.keys(PESOS_PIEZAS).sort((a, b) => b.length - a.length);
-  for (const k of claves) {
-    const kn = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (n.includes(kn)) return PESOS_PIEZAS[k];
+const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
+const ARTICULOS = DICCIONARIO_PESOS.filter((a) => a.kg > 0).map((a) => ({ ...a, n: norm(a.articulo) })).sort((a, b) => b.n.length - a.n.length);
+const EXACTO = new Map(ARTICULOS.map((a) => [a.n, a.kg]));
+
+export interface CoincidenciaPeso { kg: number; articulo: string; familia: string; exacta: boolean }
+
+/** Busca el peso unitario de una pieza en el diccionario. */
+export function buscarPeso(pieza: string, descripcion = ""): CoincidenciaPeso | null {
+  const textos = [norm(pieza), norm(descripcion), norm(pieza + " " + descripcion)].filter(Boolean);
+  for (const t of textos) {
+    const kg = EXACTO.get(t);
+    if (kg !== undefined) { const a = ARTICULOS.find((x) => x.n === t)!; return { kg, articulo: a.articulo, familia: a.familia, exacta: true }; }
   }
+  const t = textos[textos.length - 1] ?? "";
+  for (const a of ARTICULOS) if (a.n.length >= 4 && (" " + t + " ").includes(" " + a.n + " ")) return { kg: a.kg, articulo: a.articulo, familia: a.familia, exacta: false };
+  for (const a of ARTICULOS) if (a.n.length >= 5 && t.includes(a.n)) return { kg: a.kg, articulo: a.articulo, familia: a.familia, exacta: false };
   return null;
 }
 
-/** Taras orientativas por segmento (kg). Se usa cuando no hay peso de báscula. */
-export const TARAS_VEHICULOS: Record<string, number> = {
-  "moto": 180, "ciclomotor": 90, "microcoche": 450, "urbano": 950, "compacto": 1200, "berlina": 1400, "familiar": 1450,
-  "suv": 1550, "todoterreno": 1900, "monovolumen": 1500, "furgoneta": 1700, "furgon": 2100, "pickup": 2000, "camion ligero": 3000,
+/** Peso unitario o null (compatibilidad). */
+export function pesoDiccionario(pieza: string, descripcion = ""): number | null {
+  return buscarPeso(pieza, descripcion)?.kg ?? null;
+}
+
+export const FAMILIAS = [...new Set(DICCIONARIO_PESOS.map((a) => a.familia))].sort();
+
+// ─── Taras ──────────────────────────────────────────────────────────────────
+
+export const TARAS_SEGMENTO: Record<string, number> = {
+  moto: 180, ciclomotor: 90, microcoche: 450, urbano: 950, compacto: 1200, berlina: 1400, familiar: 1450,
+  suv: 1550, todoterreno: 1900, monovolumen: 1500, furgoneta: 1700, furgon: 2100, pickup: 2000, "camion ligero": 3000,
 };
+
+/** Tabla de taras inicial (editable por el usuario). Valores orientativos de tara en orden de marcha. */
+export const TARAS_INICIALES: TaraVehiculo[] = [
+  { id: "t-renault-clio", marca: "Renault", modelo: "Clio", tara: 1050, origen: "defecto" },
+  { id: "t-renault-megane", marca: "Renault", modelo: "Megane", tara: 1280, origen: "defecto" },
+  { id: "t-seat-ibiza", marca: "Seat", modelo: "Ibiza", tara: 1080, origen: "defecto" },
+  { id: "t-seat-leon", marca: "Seat", modelo: "León", tara: 1250, origen: "defecto" },
+  { id: "t-vw-golf", marca: "Volkswagen", modelo: "Golf", tara: 1290, origen: "defecto" },
+  { id: "t-vw-polo", marca: "Volkswagen", modelo: "Polo", tara: 1100, origen: "defecto" },
+  { id: "t-peugeot-208", marca: "Peugeot", modelo: "208", tara: 1050, origen: "defecto" },
+  { id: "t-peugeot-308", marca: "Peugeot", modelo: "308", tara: 1250, origen: "defecto" },
+  { id: "t-citroen-c3", marca: "Citroën", modelo: "C3", tara: 1050, origen: "defecto" },
+  { id: "t-ford-fiesta", marca: "Ford", modelo: "Fiesta", tara: 1100, origen: "defecto" },
+  { id: "t-ford-focus", marca: "Ford", modelo: "Focus", tara: 1300, origen: "defecto" },
+  { id: "t-ford-transit", marca: "Ford", modelo: "Transit", tara: 2100, origen: "defecto" },
+  { id: "t-opel-corsa", marca: "Opel", modelo: "Corsa", tara: 1080, origen: "defecto" },
+  { id: "t-opel-astra", marca: "Opel", modelo: "Astra", tara: 1300, origen: "defecto" },
+  { id: "t-toyota-yaris", marca: "Toyota", modelo: "Yaris", tara: 1050, origen: "defecto" },
+  { id: "t-toyota-corolla", marca: "Toyota", modelo: "Corolla", tara: 1300, origen: "defecto" },
+  { id: "t-nissan-qashqai", marca: "Nissan", modelo: "Qashqai", tara: 1450, origen: "defecto" },
+  { id: "t-hyundai-i30", marca: "Hyundai", modelo: "i30", tara: 1300, origen: "defecto" },
+  { id: "t-kia-ceed", marca: "Kia", modelo: "Ceed", tara: 1300, origen: "defecto" },
+  { id: "t-dacia-sandero", marca: "Dacia", modelo: "Sandero", tara: 1050, origen: "defecto" },
+  { id: "t-fiat-punto", marca: "Fiat", modelo: "Punto", tara: 1050, origen: "defecto" },
+  { id: "t-bmw-serie3", marca: "BMW", modelo: "Serie 3", tara: 1500, origen: "defecto" },
+  { id: "t-audi-a3", marca: "Audi", modelo: "A3", tara: 1300, origen: "defecto" },
+  { id: "t-audi-a4", marca: "Audi", modelo: "A4", tara: 1500, origen: "defecto" },
+  { id: "t-mercedes-clase-c", marca: "Mercedes-Benz", modelo: "Clase C", tara: 1550, origen: "defecto" },
+  { id: "t-citroen-berlingo", marca: "Citroën", modelo: "Berlingo", tara: 1450, origen: "defecto" },
+  { id: "t-peugeot-partner", marca: "Peugeot", modelo: "Partner", tara: 1450, origen: "defecto" },
+  { id: "t-mercedes-sprinter", marca: "Mercedes-Benz", modelo: "Sprinter", tara: 2300, origen: "defecto" },
+  { id: "t-fiat-ducato", marca: "Fiat", modelo: "Ducato", tara: 2100, origen: "defecto" },
+];
 
 const MODELOS: [RegExp, string][] = [
   [/\b(yaris|ibiza|polo|clio|208|207|c3|fiesta|micra|corsa|i20|swift|jazz|fabia|sandero|aygo|c1|107|108|up|ka|twingo|panda|500)\b/i, "urbano"],
-  [/\b(golf|leon|astra|focus|megane|308|307|civic|corolla|auris|i30|octavia|ceed|308|bravo|stilo|tipo|a3|serie 1|clase a)\b/i, "compacto"],
+  [/\b(golf|leon|astra|focus|megane|308|307|civic|corolla|auris|i30|octavia|ceed|bravo|stilo|tipo|a3|serie 1|clase a)\b/i, "compacto"],
   [/\b(passat|mondeo|insignia|laguna|talisman|508|407|accord|avensis|a4|a6|serie 3|serie 5|clase c|clase e|toledo|exeo|superb|mazda6|camry)\b/i, "berlina"],
   [/\b(qashqai|tucson|sportage|tiguan|ateca|3008|2008|5008|kuga|rav4|cr-v|hr-v|x1|x3|q3|q5|kadjar|captur|juke|arona|kona|yeti|karoq|kodiaq|c-hr|duster)\b/i, "suv"],
   [/\b(land cruiser|pajero|montero|patrol|discovery|defender|range rover|x5|x-trail|santa fe|sorento|touareg|cayenne|terrano|vitara|jimny)\b/i, "todoterreno"],
-  [/\b(scenic|picasso|touran|sharan|alhambra|galaxy|s-max|zafira|verso|espace|carens|c4 picasso)\b/i, "monovolumen"],
+  [/\b(scenic|picasso|touran|sharan|alhambra|galaxy|s-max|zafira|verso|espace|carens)\b/i, "monovolumen"],
   [/\b(caddy|berlingo|partner|kangoo|doblo|combo|connect|courier|bipper|nemo|fiorino|dokker)\b/i, "furgoneta"],
   [/\b(transit|sprinter|ducato|boxer|jumper|crafter|master|trafic|vivaro|daily|transporter|t5|t6|hiace|nv300|nv400|h1)\b/i, "furgon"],
   [/\b(hilux|navara|ranger|l200|amarok|d-max)\b/i, "pickup"],
 ];
 
-/** Estima la tara a partir de marca/modelo. Devuelve {kg, segmento}. */
-export function taraEstimada(marca: string, modelo: string): { kg: number; segmento: string } {
+export interface TaraResultado { kg: number; origen: "tabla" | "segmento" | "defecto"; detalle: string }
+
+/** Estima la tara: 1) tabla del usuario (marca+modelo), 2) segmento por modelo, 3) compacto por defecto. */
+export function taraEstimada(marca: string, modelo: string, tabla: TaraVehiculo[] = TARAS_INICIALES): TaraResultado {
+  const m = norm(marca), mo = norm(modelo);
+  const fila = tabla.find((t) => norm(t.marca) === m && norm(t.modelo) === mo) ?? tabla.find((t) => mo && norm(t.modelo) === mo);
+  if (fila) return { kg: fila.tara, origen: "tabla", detalle: `${fila.marca} ${fila.modelo} (tabla de taras)` };
   const t = `${marca} ${modelo}`;
-  for (const [re, seg] of MODELOS) if (re.test(t)) return { kg: TARAS_VEHICULOS[seg], segmento: seg };
-  if (/\b(moto|motocicleta|scooter)\b/i.test(t)) return { kg: TARAS_VEHICULOS.moto, segmento: "moto" };
-  return { kg: TARAS_VEHICULOS.compacto, segmento: "compacto (por defecto)" };
+  for (const [re, seg] of MODELOS) if (re.test(t)) return { kg: TARAS_SEGMENTO[seg], origen: "segmento", detalle: `segmento ${seg}` };
+  if (/\b(moto|motocicleta|scooter)\b/i.test(t)) return { kg: TARAS_SEGMENTO.moto, origen: "segmento", detalle: "moto" };
+  return { kg: TARAS_SEGMENTO.compacto, origen: "defecto", detalle: "compacto por defecto: revisa la tabla de taras" };
 }

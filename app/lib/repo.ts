@@ -5,7 +5,8 @@
  * - Datos demo: se cargan la primera vez y van marcados con demo: true (visibles como tal en la UI).
  */
 
-import type { BaseDatos, DI, Documento, Residuo, Vehiculo, Venta } from "./types";
+import { TARAS_INICIALES } from "./pesos";
+import type { BaseDatos, DI, Documento, Residuo, TaraVehiculo, Vehiculo, Venta } from "./types";
 
 const CLAVE = "reciclacat.db.v1";
 const EVENTO = "reciclacat:db";
@@ -39,7 +40,7 @@ export function datosDemo(ejercicio = new Date().getFullYear()): BaseDatos {
     { id: "demo-veh-3", ejercicio: e, matricula: "9012 GHI", marca: "Ford", modelo: "Transit", fechaEntrada: f(4, 5), estado: "Recibido", pesoEstimadoKg: 2100, demo: true },
   ];
   const ventas: Venta[] = [
-    { id: "demo-ven-1", ejercicio: e, fecha: f(2, 20), mes: 2, pieza: "Motor", referencia: "K9K-702", descripcion: "Motor 1.5 dCi", cantidad: 1, precio: 650, pesoKg: 140, origenPeso: "estimado", vehiculoId: "demo-veh-1", origen: "manual", demo: true },
+    { id: "demo-ven-1", ejercicio: e, fecha: f(2, 20), mes: 2, pieza: "Motor", referencia: "K9K-702", descripcion: "Motor 1.5 dCi", cantidad: 1, precio: 650, pesoKg: 140, origenPeso: "estimado", vehiculoId: "demo-veh-1", origen: "factura", demo: true },
     { id: "demo-ven-2", ejercicio: e, fecha: f(3, 4), mes: 3, pieza: "Puerta delantera", referencia: "", descripcion: "Puerta delantera izquierda", cantidad: 1, precio: 90, pesoKg: 22, origenPeso: "real", origen: "excel", demo: true },
     { id: "demo-ven-3", ejercicio: e, fecha: f(3, 18), mes: 3, pieza: "Alternador", referencia: "A13VI", descripcion: "Alternador", cantidad: 2, precio: 60, pesoKg: 12, origenPeso: "estimado", origen: "excel", demo: true },
     { id: "demo-ven-4", ejercicio: e, fecha: f(4, 2), mes: 4, pieza: "Kit embrague", referencia: "", descripcion: "Kit embrague", cantidad: 1, precio: 120, pesoKg: 0, origenPeso: "pendiente", origen: "excel", demo: true },
@@ -55,7 +56,7 @@ export function datosDemo(ejercicio = new Date().getFullYear()): BaseDatos {
   return {
     centro: { nombre: "Centro demo", nima: "2900012345", provincia: "", usuario: "demo" },
     ejercicio: e,
-    documentos: [docBaja, docDI], ventas, vehiculos, residuos, dis,
+    documentos: [docBaja, docDI], ventas, vehiculos, residuos, dis, taras: TARAS_INICIALES,
   };
 }
 
@@ -73,7 +74,9 @@ export class LocalRepositorio implements Repositorio {
     if (this.cache) return this.cache;
     try {
       const raw = typeof window !== "undefined" ? window.localStorage.getItem(CLAVE) : null;
-      this.cache = raw ? (JSON.parse(raw) as BaseDatos) : datosDemo();
+      const db = raw ? (JSON.parse(raw) as BaseDatos) : datosDemo();
+      if (!db.taras) db.taras = TARAS_INICIALES; // migración de versiones anteriores
+      this.cache = db;
     } catch { this.cache = datosDemo(); }
     return this.cache;
   }
@@ -87,7 +90,7 @@ export class LocalRepositorio implements Repositorio {
     return () => window.removeEventListener(EVENTO, fn);
   }
   reiniciarDemo() { this.guardar(datosDemo()); }
-  borrarTodo() { const d = datosDemo(); this.guardar({ ...d, documentos: [], ventas: [], vehiculos: [], residuos: [], dis: [], centro: { ...d.centro, nombre: "Mi centro", usuario: "usuario" } }); }
+  borrarTodo() { const d = datosDemo(); this.guardar({ ...d, documentos: [], ventas: [], vehiculos: [], residuos: [], dis: [], taras: TARAS_INICIALES, centro: { ...d.centro, nombre: "Mi centro", usuario: "usuario" } }); }
 }
 
 let repo: Repositorio = new LocalRepositorio();
@@ -107,4 +110,7 @@ export const ops = {
   addResiduo: (db: BaseDatos, r: Residuo): BaseDatos => ({ ...db, residuos: [r, ...db.residuos] }),
   addDI: (db: BaseDatos, d: DI): BaseDatos => ({ ...db, dis: [d, ...db.dis] }),
   setEjercicio: (db: BaseDatos, e: number): BaseDatos => ({ ...db, ejercicio: e }),
+  addTara: (db: BaseDatos, t: TaraVehiculo): BaseDatos => ({ ...db, taras: [t, ...db.taras] }),
+  updTara: (db: BaseDatos, t: TaraVehiculo): BaseDatos => ({ ...db, taras: db.taras.map((x) => (x.id === t.id ? t : x)) }),
+  delTara: (db: BaseDatos, id: string): BaseDatos => ({ ...db, taras: db.taras.filter((x) => x.id !== id) }),
 };

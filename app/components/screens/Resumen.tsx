@@ -15,8 +15,8 @@ export default function Resumen({ db, ir }: Props) {
       {hayDemo && <Aviso tipo="info">Estás viendo <b>datos de demostración</b> (etiquetados DEMO). Puedes borrarlos desde Ajustes cuando empieces con datos reales.</Aviso>}
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Tarjeta titulo="Vehículos recibidos" valor={r.vehiculos} nota={r.vehiculosSinBaja ? `${r.vehiculosSinBaja} sin baja` : "todos con baja"} onClick={() => ir(2)} tono={r.vehiculosSinBaja ? "aviso" : "ok"} />
-        <Tarjeta titulo="Kilos de piezas" valor={kg(r.kgPiezas)} nota={`${r.kgPiezasEstimado} kg estimados${r.kgPiezasPendiente ? ` · ${r.kgPiezasPendiente} sin peso` : ""}`} onClick={() => ir(3)} />
-        <Tarjeta titulo="Residuos gestionados" valor={kg(r.kgResiduos)} nota={`${r.dis} DI`} onClick={() => ir(4)} />
+        <Tarjeta titulo="Kilos gestionados piezas" valor={kg(r.kgPiezas)} nota={`${r.kgPiezasEstimado} kg por diccionario${r.kgPiezasPendiente ? ` · ${r.kgPiezasPendiente} sin peso` : ""}`} onClick={() => ir(3)} />
+        <Tarjeta titulo="Residuos peligrosos / no peligrosos" valor={`${kg(r.kgPeligrosos)} / ${kg(r.kgNoPeligrosos)}`} nota={`${r.dis} DI`} onClick={() => ir(4)} />
         <Tarjeta titulo="Documentos pendientes" valor={r.documentosPendientes + r.documentosError} nota={r.documentosError ? `${r.documentosError} con error` : "de revisar"} onClick={() => ir(1)} tono={r.documentosPendientes + r.documentosError ? "aviso" : "ok"} />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
@@ -29,8 +29,8 @@ export default function Resumen({ db, ir }: Props) {
           <h3 className="text-sm font-bold text-[#567067]">Acciones rápidas</h3>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <Boton tipo="secundario" onClick={() => ir(1, "subir")}>Subir documento</Boton>
-            <Boton tipo="secundario" onClick={() => ir(3, "manual")}>Venta manual</Boton>
-            <Boton tipo="secundario" onClick={() => ir(3, "excel")}>Importar Excel</Boton>
+            <Boton tipo="secundario" onClick={() => ir(3, "excel")}>Piezas desde Excel</Boton>
+            <Boton tipo="secundario" onClick={() => ir(3, "manual")}>Línea de factura</Boton>
             <Boton tipo="secundario" onClick={() => ir(4, "di")}>Registrar DI</Boton>
           </div>
         </section>

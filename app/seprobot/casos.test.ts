@@ -29,7 +29,7 @@ caso("clasificador: 'como registro las piezas vendidas' → uso_app / piezas_ven
 
 caso("'como registro las piezas vendidas' → guía de piezas, sin RD 553/2020", () => {
   reset(); const r = di("como registro las piezas vendidas");
-  assert.match(r.texto, /venta manual/i); assert.match(r.texto, /pestaña «Piezas»/);
+  assert.match(r.texto, /factura/i); assert.match(r.texto, /pestaña «Piezas»/); assert.match(r.texto, /diccionario de pesos/);
   assert.match(r.texto, /diccionario de pesos/); assert.match(r.texto, /Guardar/);
   assert.doesNotMatch(r.texto, /553\/2020/); assert.doesNotMatch(r.texto, /Real Decreto/);
 });
