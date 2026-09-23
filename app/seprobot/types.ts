@@ -11,6 +11,7 @@ export type TipoDocumento =
   | "Real Decreto Legislativo"
   | "Reglamento UE"
   | "Orden"
+  | "Decreto"
   | "Plan"
   | "Ficha técnica"
   | "Ayuda de la aplicación";
@@ -24,6 +25,8 @@ export type Materia =
   | "Baterías"
   | "Garantías financieras"
   | "Planificación"
+  | "Actividad y sector"
+  | "Prevención de riesgos y datos"
   | "Uso de la aplicación";
 
 /** Flujos conversacionales guiados que una ficha puede activar. */
