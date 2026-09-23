@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { clasificarPorNombre, DemoOcrProvider, camposPorTipo } from "./ocr";
 import { mapeoAutomatico, parsearCSV, validarFilas } from "./importExcel";
-import { buscarPeso, pesoDiccionario, taraEstimada } from "./pesos";
+import { buscarPeso, pesoDiccionario, taraEstimada, TARAS_INICIALES } from "./pesos";
 import { DICCIONARIO_PESOS } from "./diccionarioPesos";
 import { alertas, memoriaAnualTexto, resumenAnual } from "./informes";
 import { datosDemo, ops } from "./repo";
@@ -36,16 +36,23 @@ const caso = (nombre: string, fn: () => void | Promise<void>) => Promise.resolve
     const faro = DICCIONARIO_PESOS.find((a) => a.articulo === "FARO DERECHO")!;
     assert.equal(pesoDiccionario("faro derecho"), faro.kg);
     assert.equal(pesoDiccionario("Faro derecho Clio 2015"), faro.kg);
-    assert.ok((pesoDiccionario("MOTOR COMPLETO") ?? 0) > 50);
+    assert.equal(pesoDiccionario("MOTOR COMPLETO"), 150);
+    assert.equal(pesoDiccionario("PUERTA DELANTERA DERECHA"), 20);
     assert.equal(pesoDiccionario("Kit chuchería inexistente"), null);
     assert.ok(DICCIONARIO_PESOS.length > 1000);
+    assert.ok(DICCIONARIO_PESOS.every((a) => a.kg < 200), "ningún peso volumétrico absurdo");
     assert.ok(buscarPeso("faro derecho")?.exacta);
+    // corrección del usuario prevalece
+    assert.equal(pesoDiccionario("FARO DERECHO", "", [{ articulo: "FARO DERECHO", kg: 3.2 }]), 3.2);
+    assert.equal(buscarPeso("FARO DERECHO", "", [{ articulo: "FARO DERECHO", kg: 3.2 }])?.origen, "usuario");
   });
 
   await caso("taras: tabla (Clio 1050), segmento (Hilux pickup 2000), desconocido por defecto; tabla del usuario prevalece", () => {
     assert.equal(taraEstimada("Renault", "Clio").kg, 1050);
     assert.equal(taraEstimada("Renault", "Clio").origen, "tabla");
     assert.equal(taraEstimada("Toyota", "Hilux").kg, 2000);
+    assert.equal(taraEstimada("Toyota", "Hilux").origen, "tabla");
+    assert.ok(TARAS_INICIALES.length > 150);
     assert.equal(taraEstimada("Marca", "Rara").origen, "defecto");
     assert.equal(taraEstimada("Renault", "Clio", [{ id: "x", marca: "Renault", modelo: "Clio", tara: 999, origen: "usuario" }]).kg, 999);
   });

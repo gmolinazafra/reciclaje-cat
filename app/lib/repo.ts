@@ -6,7 +6,7 @@
  */
 
 import { TARAS_INICIALES } from "./pesos";
-import type { BaseDatos, DI, Documento, Residuo, TaraVehiculo, Vehiculo, Venta } from "./types";
+import type { BaseDatos, DI, Documento, PesoUsuario, Residuo, TaraVehiculo, Vehiculo, Venta } from "./types";
 
 const CLAVE = "reciclacat.db.v1";
 const EVENTO = "reciclacat:db";
@@ -56,7 +56,7 @@ export function datosDemo(ejercicio = new Date().getFullYear()): BaseDatos {
   return {
     centro: { nombre: "Centro demo", nima: "2900012345", provincia: "", usuario: "demo" },
     ejercicio: e,
-    documentos: [docBaja, docDI], ventas, vehiculos, residuos, dis, taras: TARAS_INICIALES,
+    documentos: [docBaja, docDI], ventas, vehiculos, residuos, dis, taras: TARAS_INICIALES, pesosUsuario: [],
   };
 }
 
@@ -76,6 +76,7 @@ export class LocalRepositorio implements Repositorio {
       const raw = typeof window !== "undefined" ? window.localStorage.getItem(CLAVE) : null;
       const db = raw ? (JSON.parse(raw) as BaseDatos) : datosDemo();
       if (!db.taras) db.taras = TARAS_INICIALES; // migración de versiones anteriores
+      if (!db.pesosUsuario) db.pesosUsuario = [];
       this.cache = db;
     } catch { this.cache = datosDemo(); }
     return this.cache;
@@ -90,7 +91,7 @@ export class LocalRepositorio implements Repositorio {
     return () => window.removeEventListener(EVENTO, fn);
   }
   reiniciarDemo() { this.guardar(datosDemo()); }
-  borrarTodo() { const d = datosDemo(); this.guardar({ ...d, documentos: [], ventas: [], vehiculos: [], residuos: [], dis: [], taras: TARAS_INICIALES, centro: { ...d.centro, nombre: "Mi centro", usuario: "usuario" } }); }
+  borrarTodo() { const d = datosDemo(); this.guardar({ ...d, documentos: [], ventas: [], vehiculos: [], residuos: [], dis: [], taras: TARAS_INICIALES, pesosUsuario: [], centro: { ...d.centro, nombre: "Mi centro", usuario: "usuario" } }); }
 }
 
 let repo: Repositorio = new LocalRepositorio();
@@ -113,4 +114,6 @@ export const ops = {
   addTara: (db: BaseDatos, t: TaraVehiculo): BaseDatos => ({ ...db, taras: [t, ...db.taras] }),
   updTara: (db: BaseDatos, t: TaraVehiculo): BaseDatos => ({ ...db, taras: db.taras.map((x) => (x.id === t.id ? t : x)) }),
   delTara: (db: BaseDatos, id: string): BaseDatos => ({ ...db, taras: db.taras.filter((x) => x.id !== id) }),
+  setPesoUsuario: (db: BaseDatos, p: PesoUsuario): BaseDatos => ({ ...db, pesosUsuario: [{ ...p, fecha: new Date().toISOString().slice(0, 10) }, ...db.pesosUsuario.filter((x) => x.articulo.toLowerCase() !== p.articulo.toLowerCase())] }),
+  delPesoUsuario: (db: BaseDatos, articulo: string): BaseDatos => ({ ...db, pesosUsuario: db.pesosUsuario.filter((x) => x.articulo.toLowerCase() !== articulo.toLowerCase()) }),
 };

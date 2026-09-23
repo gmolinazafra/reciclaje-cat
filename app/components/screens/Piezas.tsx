@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CAMPOS_MAPEO, leerArchivo, mapeoAutomatico, validarFilas } from "../../lib/importExcel";
 import type { Fila, FilaValidada, Mapeo } from "../../lib/importExcel";
-import { buscarPeso } from "../../lib/pesos";
+import { buscarPeso, diccionarioEfectivo, FAMILIAS } from "../../lib/pesos";
 import { ops, uid } from "../../lib/repo";
 import type { BaseDatos, OrigenPeso, Venta } from "../../lib/types";
 import { Aviso, Boton, Campo, Cargando, Chip, ChipDemo, Modal, Select, Vacio, eur, hoy, kg } from "../ui";
@@ -19,7 +19,7 @@ export function LineaFactura({ db, set, onCerrar }: { db: BaseDatos; set: Props[
   const [f, setF] = useState({ pieza: "", referencia: "", descripcion: "", cantidad: "1", fecha: hoy(), precio: "", peso: "", observaciones: "", vehiculoId: "", factura: "" });
   const [ok, setOk] = useState(false);
   const u = (k: keyof typeof f, v: string) => setF({ ...f, [k]: v });
-  const coincidencia = buscarPeso(f.pieza, f.descripcion);
+  const coincidencia = buscarPeso(f.pieza, f.descripcion, db.pesosUsuario);
   const estimado = coincidencia?.kg ?? null;
   const cantidad = parseFloat(f.cantidad) || 0;
   const pesoReal = parseFloat(f.peso.replace(",", "."));
@@ -57,7 +57,7 @@ export function LineaFactura({ db, set, onCerrar }: { db: BaseDatos; set: Props[
           <Campo label="Observaciones" value={f.observaciones} onChange={(v) => u("observaciones", v)} />
           <div className="flex items-center gap-2 text-sm">
             <span className="text-[#657a72]">Peso que se registrará:</span><b>{kg(pesoKg)}</b><Chip>{origenPeso}</Chip>
-            {origenPeso === "estimado" && coincidencia && <span className="text-xs text-[#657a72]">({coincidencia.kg} kg/ud · diccionario: {coincidencia.articulo}{coincidencia.exacta ? "" : ", aproximado"})</span>}
+            {origenPeso === "estimado" && coincidencia && <span className="text-xs text-[#657a72]">({coincidencia.kg} kg/ud · {coincidencia.origen === "usuario" ? "peso de báscula" : "diccionario"}: {coincidencia.articulo}{coincidencia.exacta ? "" : ", aproximado"})</span>}
             {origenPeso === "pendiente" && <span className="text-xs text-[#9b2c2c]">Sin coincidencia en el diccionario: indica el peso o quedará pendiente.</span>}
           </div>
           <datalist id="articulos-pesos">{ARTICULOS_LISTA.map((a) => <option key={a} value={a} />)}</datalist>
@@ -76,7 +76,7 @@ export function ImportarExcel({ db, set, onCerrar }: { db: BaseDatos; set: Props
   const [filas, setFilas] = useState<Fila[]>([]);
   const [mapeo, setMapeo] = useState<Mapeo>({});
   const [mes, setMes] = useState(new Date().getMonth() + 1);
-  const validadas: FilaValidada[] = fase === "mapeo" ? validarFilas(filas, mapeo, db.ejercicio, mes) : [];
+  const validadas: FilaValidada[] = fase === "mapeo" ? validarFilas(filas, mapeo, db.ejercicio, mes, db.pesosUsuario) : [];
   const ok = validadas.filter((v) => v.venta);
   const conError = validadas.filter((v) => !v.venta);
   const cnt = (o: OrigenPeso) => ok.filter((v) => v.venta!.origenPeso === o).length;
@@ -100,7 +100,7 @@ export function ImportarExcel({ db, set, onCerrar }: { db: BaseDatos; set: Props
     <Modal titulo="Importar piezas desde Excel de facturación" onCerrar={onCerrar} ancho="max-w-4xl">
       {fase === "archivo" && (
         <div className="space-y-3">
-          <Aviso tipo="info">Excel (.xlsx/.xls) o CSV exportado de facturación, con encabezado en la primera fila. Si el listado no trae kilos, se completan con el <b>diccionario de pesos</b> ({ARTICULOS_LISTA.length} artículos). Verás la vista previa antes de guardar.</Aviso>
+          <Aviso tipo="info">Excel (.xlsx/.xls) o CSV exportado de facturación, con encabezado en la primera fila. Si el listado no trae kilos <b>reales</b>, se completan con el diccionario de pesos ({ARTICULOS_LISTA.length} artículos). No uses la columna de peso volumétrico de facturación: déjala sin mapear.</Aviso>
           <label className="block min-h-[96px] cursor-pointer rounded-2xl border-2 border-dashed border-[#a9d2c4] bg-[#f7faf8] p-6 text-center text-sm font-bold text-[#096653] hover:bg-[#e5f3ed]">
             📊 Elegir Excel o CSV
             <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => e.target.files?.[0] && cargar(e.target.files[0])} />
@@ -150,8 +150,52 @@ export function ImportarExcel({ db, set, onCerrar }: { db: BaseDatos; set: Props
   );
 }
 
+export function DiccionarioPesos({ db, set, onCerrar }: { db: BaseDatos; set: Props["set"]; onCerrar: () => void }) {
+  const [q, setQ] = useState("");
+  const [familia, setFamilia] = useState("todas");
+  const [soloPendientes, setSoloPendientes] = useState(false);
+  const [nuevo, setNuevo] = useState({ articulo: "", kg: "", familia: FAMILIAS[0] });
+  const dic = diccionarioEfectivo(db.pesosUsuario);
+  const esUsuario = (a: string) => db.pesosUsuario.some((p) => p.articulo.toLowerCase() === a.toLowerCase());
+  const pendientes = dic.filter((a) => a.kg <= 0).length;
+  const lista = dic.filter((a) => (familia === "todas" || a.familia === familia) && (!soloPendientes || a.kg <= 0) && (!q || a.articulo.toLowerCase().includes(q.toLowerCase()))).slice(0, 300);
+  const guardar = (articulo: string, v: string, fam?: string) => { const n = parseFloat(v.replace(",", ".")); if (n > 0) set((d) => ops.setPesoUsuario(d, { articulo, kg: n, familia: fam })); };
+  return (
+    <Modal titulo="Diccionario de pesos de piezas" onCerrar={onCerrar} ancho="max-w-4xl">
+      <div className="space-y-3">
+        <Aviso tipo="info">Pesos <b>reales</b> aproximados por tipo de pieza (los volumétricos de facturación no valen para la memoria). Corrige con báscula: tu valor prevalece y queda marcado. {pendientes} artículos sin peso.</Aviso>
+        <div className="grid gap-2 sm:grid-cols-4">
+          <Campo label="Nuevo artículo" value={nuevo.articulo} onChange={(v) => setNuevo({ ...nuevo, articulo: v.toUpperCase() })} />
+          <Select label="Familia" value={nuevo.familia} onChange={(v) => setNuevo({ ...nuevo, familia: v })} opciones={FAMILIAS} />
+          <Campo label="Peso real (kg)" value={nuevo.kg} onChange={(v) => setNuevo({ ...nuevo, kg: v })} type="number" step="0.1" />
+          <div className="flex items-end"><Boton onClick={() => { guardar(nuevo.articulo.trim(), nuevo.kg, nuevo.familia); setNuevo({ articulo: "", kg: "", familia: nuevo.familia }); }} disabled={!(nuevo.articulo.trim() && parseFloat(nuevo.kg) > 0)}>Añadir</Boton></div>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Campo label="Buscar artículo" value={q} onChange={setQ} />
+          <Select label="Familia" value={familia} onChange={setFamilia} opciones={["todas", ...FAMILIAS]} />
+          <label className="flex items-end gap-2 pb-3 text-sm"><input type="checkbox" checked={soloPendientes} onChange={(e) => setSoloPendientes(e.target.checked)} className="h-5 w-5" />Solo sin peso</label>
+        </div>
+        <div className="max-h-[50dvh] overflow-auto rounded-xl border">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-[#f7faf8] text-xs text-[#567067]"><tr><th className="px-3 py-2 text-left">Familia</th><th className="px-3 py-2 text-left">Artículo</th><th className="px-3 py-2 text-right">kg/ud</th><th className="px-3 py-2">Origen</th><th /></tr></thead>
+            <tbody>{lista.map((a) => (
+              <tr key={a.articulo} className={"border-t " + (a.kg <= 0 ? "bg-[#fffbea]" : "")}>
+                <td className="px-3 py-1 text-xs text-[#657a72]">{a.familia}</td><td className="px-3 py-1">{a.articulo}</td>
+                <td className="px-3 py-1 text-right"><input type="number" step="0.1" defaultValue={a.kg || ""} placeholder="—" onBlur={(e) => e.target.value && parseFloat(e.target.value) !== a.kg && guardar(a.articulo, e.target.value, a.familia)} className="w-20 rounded-lg border border-[#cfe0d7] px-2 py-1 text-right" /></td>
+                <td className="px-3 py-1 text-center">{esUsuario(a.articulo) ? <Chip tono="Revisado">báscula</Chip> : a.kg <= 0 ? <Chip tono="pendiente">sin peso</Chip> : <Chip>aprox.</Chip>}</td>
+                <td className="px-3 py-1 text-right">{esUsuario(a.articulo) && <button type="button" onClick={() => set((d) => ops.delPesoUsuario(d, a.articulo))} className="min-h-[36px] px-2 text-xs text-[#9b2c2c]">Restaurar</button>}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+          {lista.length >= 300 && <p className="p-2 text-xs text-[#657a72]">Mostrando 300; afina la búsqueda.</p>}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export default function Piezas({ db, set, abrir, onAbierto }: Props) {
-  const [modal, setModal] = useState<"manual" | "excel" | null>(abrir ?? null);
+  const [modal, setModal] = useState<"manual" | "excel" | "diccionario" | null>(abrir ?? null);
   const kgPiezas = db.ventas.filter((v) => v.ejercicio === db.ejercicio).reduce((a, v) => a + v.pesoKg, 0);
   if (abrir && !modal) { setModal(abrir); onAbierto?.(); }
   const ventas = db.ventas.filter((v) => v.ejercicio === db.ejercicio).sort((a, b) => b.fecha.localeCompare(a.fecha));
@@ -167,7 +211,7 @@ export default function Piezas({ db, set, abrir, onAbierto }: Props) {
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-[#657a72]">{ventas.length} línea(s) de factura · lo que cuenta es el total de kilos</p>
-        <div className="flex gap-2"><Boton onClick={() => setModal("excel")}>Importar desde Excel de facturación</Boton><Boton tipo="secundario" onClick={() => setModal("manual")}>+ Línea de factura</Boton></div>
+        <div className="flex flex-wrap gap-2"><Boton tipo="texto" onClick={() => setModal("diccionario")}>Diccionario de pesos</Boton><Boton tipo="secundario" onClick={() => setModal("manual")}>+ Línea de factura</Boton><Boton onClick={() => setModal("excel")}>Importar desde Excel de facturación</Boton></div>
       </div>
       {!ventas.length ? (
         <Vacio titulo="Sin piezas registradas" texto="Importa el Excel de facturación del mes o registra líneas de factura. Solo los kilos gestionados pasan a la memoria anual." />
@@ -190,6 +234,7 @@ export default function Piezas({ db, set, abrir, onAbierto }: Props) {
       )}
       {modal === "manual" && <LineaFactura db={db} set={set} onCerrar={() => setModal(null)} />}
       {modal === "excel" && <ImportarExcel db={db} set={set} onCerrar={() => setModal(null)} />}
+      {modal === "diccionario" && <DiccionarioPesos db={db} set={set} onCerrar={() => setModal(null)} />}
     </div>
   );
 }

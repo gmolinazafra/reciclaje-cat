@@ -130,6 +130,14 @@ export interface TaraVehiculo {
   origen: "defecto" | "usuario";
 }
 
+/** Corrección de peso de una pieza hecha por el usuario (báscula). */
+export interface PesoUsuario {
+  articulo: string;
+  kg: number;
+  familia?: string;
+  fecha?: string;
+}
+
 /** Un residuo es peligroso si su código LER lleva asterisco. */
 export const esPeligroso = (ler: string) => ler.trim().endsWith("*");
 
@@ -149,4 +157,5 @@ export interface BaseDatos {
   residuos: Residuo[];
   dis: DI[];
   taras: TaraVehiculo[];
+  pesosUsuario: PesoUsuario[];
 }

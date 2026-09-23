@@ -2,7 +2,7 @@
 
 import * as XLSX from "xlsx";
 import { pesoDiccionario } from "./pesos";
-import type { OrigenPeso, Venta } from "./types";
+import type { OrigenPeso, PesoUsuario, Venta } from "./types";
 
 export type Fila = Record<string, string>;
 
@@ -85,7 +85,7 @@ export interface FilaValidada {
 }
 
 /** Aplica el mapeo, valida por fila y estima pesos que falten con el diccionario. */
-export function validarFilas(filas: Fila[], mapeo: Mapeo, ejercicio: number, mes: number): FilaValidada[] {
+export function validarFilas(filas: Fila[], mapeo: Mapeo, ejercicio: number, mes: number, pesosUsuario: PesoUsuario[] = []): FilaValidada[] {
   return filas.map((f, i) => {
     const errores: string[] = [];
     const descripcion = mapeo.descripcion ? f[mapeo.descripcion] : "";
@@ -99,7 +99,7 @@ export function validarFilas(filas: Fila[], mapeo: Mapeo, ejercicio: number, mes
     let origenPeso: OrigenPeso = "pendiente";
     if (pesoCol !== null && pesoCol > 0) { pesoKg = pesoCol; origenPeso = "real"; }
     else {
-      const d = pesoDiccionario(descripcion, referencia);
+      const d = pesoDiccionario(descripcion, referencia, pesosUsuario);
       if (d !== null && cantidad) { pesoKg = +(d * cantidad).toFixed(2); origenPeso = "estimado"; }
     }
     if (errores.length) return { indice: i, venta: null, errores };
