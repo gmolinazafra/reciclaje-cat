@@ -29,14 +29,14 @@ caso("clasificador: 'como registro las piezas vendidas' → uso_app / piezas_ven
 
 caso("'como registro las piezas vendidas' → guía de piezas, sin RD 553/2020", () => {
   reset(); const r = di("como registro las piezas vendidas");
-  assert.match(r.texto, /Registrar piezas vendidas/); assert.match(r.texto, /pestaña «Piezas»/);
+  assert.match(r.texto, /venta manual/i); assert.match(r.texto, /pestaña «Piezas»/);
   assert.match(r.texto, /diccionario de pesos/); assert.match(r.texto, /Guardar/);
   assert.doesNotMatch(r.texto, /553\/2020/); assert.doesNotMatch(r.texto, /Real Decreto/);
 });
 
 caso("'cómo importo el Excel de ventas' → importación / revisión / pesos", () => {
   reset(); const r = di("cómo importo el Excel de ventas");
-  assert.match(r.texto, /Importar el Excel mensual/); assert.match(r.texto, /vista previa/i); assert.match(r.texto, /pesos/);
+  assert.match(r.texto, /Importar ventas desde Excel/); assert.match(r.texto, /vista previa/i); assert.match(r.texto, /pesos/);
 });
 
 caso("'cómo doy de alta un DI' → aclaración con dos botones", () => {
@@ -153,6 +153,18 @@ caso("'me aplica la autorización de vertido?' → depende, con condiciones", ()
 
 caso("'me aplica el reglamento de baterías?' sin ficha vigente → deriva", () => {
   reset(); assert.ok(di("me aplica el reglamento de baterías?").texto.startsWith(MENSAJE_SIN_FICHA));
+});
+
+caso("'cómo importo ventas' → importación desde Excel", () => {
+  reset(); assert.match(di("cómo importo ventas").texto, /Importar ventas desde Excel/);
+});
+caso("'cómo subo y reviso un documento' → flujo de revisión", () => {
+  reset(); const r = di("cómo subo y reviso un documento"); assert.match(r.texto, /Subir y revisar/); assert.match(r.texto, /amarillo/);
+});
+caso("los seis accesos son distintos entre sí", () => {
+  const titulos = new Set<string>();
+  for (const a of ACCESOS_INICIALES) { reset(); titulos.add(di(a.texto).texto.split("\n")[0]); }
+  assert.equal(titulos.size, ACCESOS_INICIALES.length);
 });
 
 console.log(`\n✔ ${n} casos de SeproBot pasan (total)`);
