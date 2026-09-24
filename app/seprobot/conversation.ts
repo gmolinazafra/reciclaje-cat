@@ -472,7 +472,10 @@ export function procesar(estado: EstadoConversacion, textoUsuario: string): Resp
 
   // 1) Flujo de trámite activo.
   if (estado.flujoActivo === "vertidos") {
-    const cambioDeTema = c.intencion !== "desconocida" && c.entidad !== "vertido" && c.entidad !== "desconocida";
+    // Una respuesta a un dato del flujo ("cauce", "renovación", "Sevilla") nunca es un cambio de tema,
+    // aunque el clasificador la asocie a otra entidad (p. ej. "cauce" → Ley de Aguas).
+    const esRespuestaDeFlujo = !!(detectarDestinoAgua(texto) || detectarMotivo(texto) || pareceUbicacion(texto));
+    const cambioDeTema = !esRespuestaDeFlujo && c.intencion !== "desconocida" && c.entidad !== "vertido" && c.entidad !== "desconocida";
     if (!cambioDeTema) {
       const r = continuarFlujoVertidos(estado, texto);
       if (r) return r;
