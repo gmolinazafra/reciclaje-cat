@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+:root {
+  --verde: #0d7969;
+  --verde-oscuro: #096653;
+  --verde-claro: #e5f3ed;
+  --texto: #17372f;
+}
+
+html, body { height: 100%; background: #f4f7f5; color: var(--texto); -webkit-tap-highlight-color: transparent; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow-x: hidden; }
+input, select, textarea, button { font: inherit; }

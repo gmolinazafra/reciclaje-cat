@@ -66,3 +66,11 @@
 - **Editor del diccionario en la app** (Piezas → Diccionario de pesos): buscar por artículo/familia, filtro «solo sin peso», corregir con báscula (el valor del usuario prevalece y se marca «báscula»), añadir artículos, restaurar. Las correcciones se aplican en la importación de Excel y en las líneas de factura.
 - **Tabla de taras**: 199 modelos (turismos, SUV, furgonetas, industriales ligeros y motos habituales en CAT) con masa en orden de marcha orientativa; editable desde Vehículos.
 - En la importación de Excel se advierte que no se mapee la columna de peso volumétrico.
+
+## Revisión 4 (repaso final)
+- **Compilación completa**: añadidos `app/globals.css` (Tailwind 4), `postcss.config.mjs`, `next.config.ts`, `public/favicon.svg` y scripts `dev`/`build` estándar. `next build` compila, pasa TypeScript y prerenderiza `/`.
+- **SeproBot**: «¿Qué me aplica en Sevilla sobre vertidos?» extrae la ubicación del texto y entra en el flujo (destino → motivo) sin preguntar lo ya dicho ni asumir Málaga; «me aplica la GICA en Cádiz» responde directamente con la ubicación citada. Tres casos nuevos (29).
+- **Residuos**: cada residuo puede vincular vehículo, DI y documento (adjunto desde el propio formulario); chips «DI / doc / vehículo» en la lista.
+- **Documentos**: el detalle muestra proveedor OCR y la entidad vinculada (vehículo, DI, residuo).
+- **Móvil**: el personaje y el chat de SeproBot ya no pisan la barra inferior; alto del chat ajustado al espacio real; `overflow-x-hidden` global; tablas de informes sin desbordar; memoria con `pre-wrap`.
+- **Informes**: texto honesto sobre exportación (TXT/CSV; sin PDF oficial).

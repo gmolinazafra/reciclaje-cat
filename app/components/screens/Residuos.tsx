@@ -84,15 +84,18 @@ export function FormDI({ db, set, onCerrar }: { db: BaseDatos; set: Props["set"]
 function FormResiduo({ db, set, onCerrar }: { db: BaseDatos; set: Props["set"]; onCerrar: () => void }) {
   const [categoria, setCategoria] = useState<"Peligroso" | "No peligroso">("Peligroso");
   const [f, setF] = useState({ fecha: hoy(), ler: LER_PELIGROSOS[0], cantidad: "", gestor: "", vehiculoId: "" });
+  const [adjunto, setAdjunto] = useState<Documento | null>(null);
+  const [subir, setSubir] = useState(false);
   const u = (k: keyof typeof f, v: string) => setF({ ...f, [k]: v });
   const cantidad = parseFloat(f.cantidad.replace(",", "."));
   const { cod, desc: descTxt } = separarLER(f.ler);
   const desc = [descTxt];
   const guardar = () => {
-    const r: Residuo = { id: uid(), ejercicio: db.ejercicio, fecha: f.fecha, ler: cod, descripcion: desc.join(" "), cantidadKg: cantidad, gestor: f.gestor.trim(), vehiculoId: f.vehiculoId || undefined };
-    set((d) => ops.addResiduo(d, r)); onCerrar();
+    const r: Residuo = { id: uid(), ejercicio: db.ejercicio, fecha: f.fecha, ler: cod, descripcion: desc.join(" "), cantidadKg: cantidad, gestor: f.gestor.trim(), vehiculoId: f.vehiculoId || undefined, documentoId: adjunto?.id };
+    set((d) => { let d2 = ops.addResiduo(d, r); if (adjunto) d2 = ops.updDocumento(d2, { ...adjunto, notas: adjunto.notas, estado: "Guardado" }); return d2; }); onCerrar();
   };
   return (
+    <>
     <Modal titulo="Registrar salida de residuo" onCerrar={onCerrar}>
       <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -103,10 +106,16 @@ function FormResiduo({ db, set, onCerrar }: { db: BaseDatos; set: Props["set"]; 
           <Campo label="Gestor de destino" value={f.gestor} onChange={(v) => u("gestor", v)} required />
           <Select label="Vehículo relacionado" value={f.vehiculoId} onChange={(v) => u("vehiculoId", v)} opciones={["", ...db.vehiculos.filter((x) => x.ejercicio === db.ejercicio).map((x) => x.id)]} />
         </div>
+        <div className="rounded-xl border border-[#cfe0d7] p-3">
+          <p className="text-xs font-bold text-[#567067]">Documento (albarán, contrato, factura…)</p>
+          {adjunto ? <p className="mt-1 flex items-center gap-2 text-sm">📎 {adjunto.nombreArchivo} <Chip>{adjunto.estado}</Chip><Boton tipo="texto" onClick={() => setAdjunto(null)}>Quitar</Boton></p> : <div className="mt-2"><Boton tipo="secundario" onClick={() => setSubir(true)}>Adjuntar</Boton></div>}
+        </div>
         <p className="text-xs text-[#657a72]">Podrás asociar el DI después desde «+ DI».</p>
         <div className="flex justify-end gap-2"><Boton tipo="texto" onClick={onCerrar}>Cancelar</Boton><Boton onClick={guardar} disabled={!(cantidad > 0 && f.gestor.trim())}>Guardar</Boton></div>
       </div>
     </Modal>
+    {subir && <SubirDocumento db={db} set={set} onCerrar={() => setSubir(false)} onGuardado={setAdjunto} />}
+    </>
   );
 }
 
@@ -123,7 +132,7 @@ export default function Residuos({ db, set, abrirDI, onAbierto }: Props) {
   const Fila = ({ r }: { r: Residuo }) => (
     <div className="mb-2 flex items-center justify-between rounded-xl border bg-white p-3 text-sm">
       <div><p className="font-bold">{r.ler} · {r.descripcion}</p><p className="text-xs text-[#657a72]">{r.fecha} · {r.gestor} · {kg(r.cantidadKg)}</p></div>
-      <div className="flex flex-col items-end gap-1">{r.diId ? <Chip tono="Guardado">DI</Chip> : <Chip tono="pendiente">sin DI</Chip>}{r.demo && <ChipDemo />}</div>
+      <div className="flex flex-col items-end gap-1">{r.diId ? <Chip tono="Guardado">DI</Chip> : <Chip tono="pendiente">sin DI</Chip>}{r.documentoId && <Chip tono="Revisado">doc</Chip>}{r.vehiculoId && <Chip>vehículo</Chip>}{r.demo && <ChipDemo />}</div>
     </div>
   );
   const FilaDI = ({ d }: { d: DI }) => (

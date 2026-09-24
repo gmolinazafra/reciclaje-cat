@@ -36,7 +36,7 @@ export default function Informes({ db }: Props) {
       {al.length > 0 && <Aviso tipo="aviso">Faltan datos para cerrar el ejercicio: {al.join(" · ")}</Aviso>}
       {tipo === "memoria" && (
         <div className="grid gap-4 md:grid-cols-2">
-          <pre className="overflow-auto rounded-2xl border bg-white p-4 text-xs leading-5">{memoriaAnualTexto(db)}</pre>
+          <pre className="max-w-full overflow-x-auto whitespace-pre-wrap rounded-2xl border bg-white p-4 text-xs leading-5">{memoriaAnualTexto(db)}</pre>
           <div className="space-y-2 text-sm">
             <div className="rounded-2xl border bg-white p-4"><p className="text-xs text-[#657a72]">Importe de ventas</p><p className="text-2xl font-bold text-[#0d7969]">{eur(r.importeVentas)}</p></div>
             <div className="rounded-2xl border bg-white p-4"><p className="text-xs text-[#657a72]">Kilos gestionados piezas</p><p className="text-2xl font-bold text-[#0d7969]">{kg(r.kgPiezas)}</p><p className="text-xs text-[#657a72]">reales {kg(r.kgPiezasReal)} · estimados {kg(r.kgPiezasEstimado)}</p></div>
@@ -48,7 +48,7 @@ export default function Informes({ db }: Props) {
       {tipo === "residuos" && (
         <div className="grid gap-4 md:grid-cols-2">
           {([["Peligrosos", true], ["No peligrosos", false]] as const).map(([t, p]) => (
-            <table key={t} className={"w-full rounded-xl border bg-white text-sm " + (p ? "border-[#f2c2c2]" : "")}><thead className={"text-xs " + (p ? "bg-[#fffafa] text-[#9b2c2c]" : "bg-[#f7faf8] text-[#567067]")}><tr><th className="px-3 py-2 text-left" colSpan={2}>{t}</th><th className="px-3 py-2 text-right">{kg(p ? r.kgPeligrosos : r.kgNoPeligrosos)}</th></tr></thead>
+            <table key={t} className={"w-full min-w-0 rounded-xl border bg-white text-sm " + (p ? "border-[#f2c2c2]" : "")}><thead className={"text-xs " + (p ? "bg-[#fffafa] text-[#9b2c2c]" : "bg-[#f7faf8] text-[#567067]")}><tr><th className="px-3 py-2 text-left" colSpan={2}>{t}</th><th className="px-3 py-2 text-right">{kg(p ? r.kgPeligrosos : r.kgNoPeligrosos)}</th></tr></thead>
               <tbody>{r.porLER.filter((x) => x.peligroso === p).map((x) => <tr key={x.ler} className="border-t"><td className="px-3 py-2">{x.ler}</td><td className="px-3 py-2">{x.descripcion}</td><td className="px-3 py-2 text-right">{kg(x.kg)}</td></tr>)}</tbody></table>
           ))}
         </div>
@@ -58,7 +58,7 @@ export default function Informes({ db }: Props) {
           <tbody>{r.porMes.map((m) => <tr key={m.mes} className="border-t"><td className="px-3 py-2">{m.mes}</td><td className="px-3 py-2 text-right">{tipo === "piezas" ? kg(m.kgPiezas) : m.vehiculos}</td><td className="px-3 py-2 text-right">{tipo === "piezas" ? m.ventas : ""}</td></tr>)}</tbody></table>
       )}
       <div className="flex justify-end"><Boton onClick={exportar}>Descargar {tipo === "memoria" ? "memoria (TXT)" : "CSV"}</Boton></div>
-      <p className="text-xs text-[#657a72]">La exportación a PDF con formato oficial llegará con el backend. Mientras tanto, TXT/CSV son importables en Excel.</p>
+      <p className="text-xs text-[#657a72]">Hoy se exporta en TXT y CSV (importables en Excel). No existe todavía un PDF con formato oficial: requerirá backend y la plantilla de la administración.</p>
     </div>
   );
 }

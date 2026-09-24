@@ -100,6 +100,7 @@ export interface Residuo {
   gestor: string;
   diId?: Id;
   vehiculoId?: Id;
+  documentoId?: Id;
   demo?: boolean;
 }
 

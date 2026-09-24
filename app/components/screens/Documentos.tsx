@@ -105,14 +105,19 @@ export function SubirDocumento({ db, set, onCerrar, onGuardado }: { db: BaseDato
   );
 }
 
-function DetalleDocumento({ doc, set, onCerrar }: { doc: Documento; set: Props["set"]; onCerrar: () => void }) {
+function DetalleDocumento({ doc, db, set, onCerrar }: { doc: Documento; db: BaseDatos; set: Props["set"]; onCerrar: () => void }) {
   const [d, setD] = useState(doc);
   const editar = (clave: string, v: string) => setD({ ...d, campos: d.campos.map((c) => (c.clave === clave ? { ...c, valorFinal: v, corregido: v !== c.valorDetectado } : c)) });
   return (
     <Modal titulo={d.nombreArchivo} onCerrar={onCerrar}>
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2"><Chip>{d.estado}</Chip><Chip>{d.tipo}</Chip>{d.demo && <ChipDemo />}{d.origenOCR === "demo" && <Chip tono="demo">OCR demo</Chip>}</div>
-        <p className="text-xs text-[#657a72]">Subido {new Date(d.fechaSubida).toLocaleString("es-ES")} por {d.usuario}</p>
+        <p className="text-xs text-[#657a72]">Subido {new Date(d.fechaSubida).toLocaleString("es-ES")} por {d.usuario} · OCR: {d.origenOCR === "demo" ? "demo (simulado)" : "real"}</p>
+        <p className="text-xs text-[#657a72]">Vinculado a: {[
+          d.vehiculoId && `vehículo ${db.vehiculos.find((v) => v.id === d.vehiculoId)?.matricula ?? d.vehiculoId}`,
+          d.diId && `DI ${db.dis.find((x) => x.id === d.diId)?.numero ?? d.diId}`,
+          db.residuos.find((r) => r.documentoId === d.id) && "residuo",
+        ].filter(Boolean).join(", ") || "nada todavía"}</p>
         {d.notas && <Aviso tipo="error">{d.notas}</Aviso>}
         <div className="grid gap-3 sm:grid-cols-2">
           {d.campos.map((c) => (
@@ -173,7 +178,7 @@ export default function Documentos({ db, set, abrirSubida, onSubidaAbierta }: Pr
         </div>
       )}
       {subir && <SubirDocumento db={db} set={set} onCerrar={() => setSubir(false)} />}
-      {detalle && <DetalleDocumento doc={detalle} set={set} onCerrar={() => setDetalle(null)} />}
+      {detalle && <DetalleDocumento doc={detalle} db={db} set={set} onCerrar={() => setDetalle(null)} />}
     </div>
   );
 }

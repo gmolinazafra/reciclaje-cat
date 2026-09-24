@@ -146,9 +146,9 @@ caso("'estoy obligado a cumplir el RD 553/2020?' (estatal) → responde sin pedi
   assert.match(r.texto, /Sí, aplica/); assert.match(r.texto, /estatal/); assert.doesNotMatch(r.texto, /provincia/i);
 });
 
-caso("'me aplica la autorización de vertido?' → depende, con condiciones", () => {
+caso("'me aplica la autorización de vertido?' → entra en el flujo (ubicación, destino, motivo) sin asumir nada", () => {
   reset(); const r = di("me aplica la autorización de vertido?");
-  assert.match(r.texto, /Depende/); assert.match(r.texto, /red de saneamiento/);
+  assert.match(r.texto, /provincia o municipio/i); assert.equal(e.ubicacion, null); assert.equal(e.flujoActivo, "vertidos");
 });
 
 caso("'me aplica el reglamento de baterías?' sin ficha vigente → deriva", () => {
@@ -165,6 +165,19 @@ caso("los seis accesos son distintos entre sí", () => {
   const titulos = new Set<string>();
   for (const a of ACCESOS_INICIALES) { reset(); titulos.add(di(a.texto).texto.split("\n")[0]); }
   assert.equal(titulos.size, ACCESOS_INICIALES.length);
+});
+
+caso("'qué me aplica en Sevilla sobre vertidos' → toma Sevilla del texto y pide destino (nunca Málaga)", () => {
+  reset(); let r = di("qué me aplica en Sevilla sobre vertidos");
+  assert.match(r.texto, /Sevilla/); assert.match(r.texto, /aguas/); assert.doesNotMatch(r.texto, /Málaga/); assert.doesNotMatch(r.texto, /provincia o municipio/i);
+  r = di("cauce"); assert.match(r.texto, /motivo/i);
+  r = di("inspección"); assert.match(r.texto, /Sevilla/); assert.match(r.texto, /organismo de cuenca/i); assert.doesNotMatch(r.texto, /Málaga/);
+});
+caso("'qué me aplica sobre vertidos' sin ubicación → la pide", () => {
+  reset(); assert.match(di("qué me aplica sobre vertidos").texto, /provincia o municipio/i); assert.equal(e.ubicacion, null);
+});
+caso("'me aplica la GICA en Cádiz' → responde sin preguntar", () => {
+  reset(); const r = di("me aplica la ley GICA en Cádiz"); assert.match(r.texto, /Sí, aplica/); assert.match(r.texto, /Cadiz|Cádiz/);
 });
 
 console.log(`\n✔ ${n} casos de SeproBot pasan (total)`);

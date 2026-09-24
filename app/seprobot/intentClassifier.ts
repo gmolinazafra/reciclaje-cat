@@ -38,7 +38,7 @@ const ACCIONES_CONSULTA: [Accion, RegExp][] = [
 ];
 
 /** Pregunta de aplicabilidad: "¿me aplica…?", "¿estoy obligado…?", "¿tengo que cumplir…?". */
-const PREGUNTA_APLICA = /\b(me aplica|nos aplica|le aplica|aplica a mi|es aplicable|estoy obligad\w*|estamos obligad\w*|tengo que cumplir|debo cumplir|tenemos que cumplir|me afecta|nos afecta|afecta a mi|es obligatori\w* para|tengo que tener|necesito tener|me obliga|nos obliga)\b/;
+const PREGUNTA_APLICA = /\b(que me aplica|que nos aplica|que aplica|que normativa me aplica|me aplica|nos aplica|le aplica|aplica a mi|es aplicable|estoy obligad\w*|estamos obligad\w*|tengo que cumplir|debo cumplir|tenemos que cumplir|me afecta|nos afecta|afecta a mi|es obligatori\w* para|tengo que tener|necesito tener|me obliga|nos obliga)\b/;
 
 /** Marcadores explícitos de dominio. */
 const MARCADOR_APP = /\b(reciclacat|reciclacat_gest|reciclacatgest|la aplicacion|la app|el programa|en el programa|en la app|pestaña|pestana|boton|pantalla|formulario|ocr)\b/;

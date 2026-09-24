@@ -14,3 +14,7 @@ google-play-key.json
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+
+.next/
+tsconfig.tsbuildinfo
+next-env.d.ts

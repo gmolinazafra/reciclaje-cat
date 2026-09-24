@@ -284,6 +284,14 @@ function ambitoDe(f: Ficha): "andalucia" | "espana" | "ue" | "municipal" | "otro
   return "otro";
 }
 
+/** Extrae una provincia/municipio conocido citado en el texto ("en Sevilla", "centro de Cádiz"). */
+export function extraerUbicacion(texto: string): string | null {
+  const n = normalizar(texto);
+  const conocidas = [...PROVINCIAS_ANDALUCIA.filter((p) => p !== "andalucia"), ...MUNICIPIOS_ANDALUCIA, "madrid", "barcelona", "valencia", "murcia", "badajoz", "caceres", "toledo", "bilbao", "zaragoza", "alicante", "castellon", "ceuta", "melilla", "valladolid", "salamanca", "leon", "burgos", "santander", "oviedo", "gijon", "vigo", "a coruna", "pamplona", "logrono", "palma", "las palmas", "tenerife"];
+  const hit = conocidas.sort((a, b) => b.length - a.length).find((c) => new RegExp(`\\b${c}\\b`).test(n));
+  return hit ? capitalizar(hit) : null;
+}
+
 function estaEnAndalucia(ubicacion: string): boolean | null {
   const u = normalizar(ubicacion);
   if (PROVINCIAS_ANDALUCIA.some((p) => u.includes(p)) || MUNICIPIOS_ANDALUCIA.some((m) => u.includes(m))) return true;
@@ -409,13 +417,20 @@ function resolver(estado: EstadoConversacion, c: Clasificacion, texto: string): 
   }
 
   if (c.intencion === "tramite") {
-    if (c.entidad === "vertido") return iniciarFlujoVertidos({ ...estadoInicial }, detectarMotivo(texto) ? null : null, null);
+    if (c.entidad === "vertido") return iniciarFlujoVertidos({ ...estadoInicial, ubicacion: extraerUbicacion(texto) }, null, null);
     return { estado: limpio, mensajes: [derivarAlTecnico(texto)] };
   }
 
   if (c.intencion === "normativa") {
     const f = fichaNormativa(c, texto) ?? (c.entidad === "vertido" ? fichaTramite("vertido") : null);
+    // "¿Qué me aplica en Sevilla sobre vertidos?" → el flujo guiado (ubicación, destino, motivo) decide qué aplica.
+    if (f && c.accion === "aplicar" && c.entidad === "vertido") {
+      const ubic = extraerUbicacion(texto);
+      return iniciarFlujoVertidos({ ...estadoInicial, ubicacion: ubic }, detectarMotivo(texto), detectarDestinoAgua(texto));
+    }
     if (f && c.accion === "aplicar") {
+      const ubicTexto = extraerUbicacion(texto);
+      if (ubicTexto) return { estado: { ...limpio, ubicacion: ubicTexto, tema: f.materia, fichaActiva: f.id }, mensajes: [respuestaAplicabilidad(f, ubicTexto)] };
       if (necesitaUbicacion(f) && !estado.ubicacion) {
         return {
           estado: { ...limpio, tema: f.materia, fichaActiva: f.id, aplicabilidadPendiente: f.id },

@@ -119,13 +119,13 @@ export default function SeproBot() {
   const hayConversacion = mensajes.some((m) => m.autor === "usuario");
 
   return (
-    <div className="fixed bottom-2 right-2 z-40 flex flex-col items-end gap-1 sm:bottom-3 sm:right-3">
+    <div className="fixed bottom-[68px] right-2 z-40 flex flex-col items-end gap-1 md:bottom-3 md:right-3" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
       {abierto && (
         <section
           role="dialog"
           aria-label="SeproBot"
           className="flex w-[calc(100vw-16px)] max-w-[420px] flex-col overflow-hidden rounded-2xl border border-[#cce3d8] bg-white shadow-2xl sm:w-[400px] md:w-[420px]"
-          style={{ height: "min(620px, calc(100dvh - 140px))" }}
+          style={{ height: "min(640px, calc(100dvh - 190px))" }}
         >
           {/* Cabecera */}
           <header className="flex shrink-0 items-center justify-between border-b border-[#e3efe9] px-4 py-3">
