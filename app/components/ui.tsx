@@ -87,7 +87,7 @@ export function Tarjeta({ titulo, valor, nota, onClick, tono }: { titulo: string
 
 export function Modal({ titulo, onCerrar, children, ancho = "max-w-2xl" }: { titulo: string; onCerrar: () => void; children: ReactNode; ancho?: string }) {
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-[45] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={onCerrar}>
       <div role="dialog" aria-label={titulo} onClick={(e) => e.stopPropagation()}
         className={"flex max-h-[95dvh] w-full flex-col rounded-t-2xl bg-white sm:rounded-2xl " + ancho}>
         <div className="flex shrink-0 items-center justify-between border-b border-[#e3efe9] px-4 py-3">

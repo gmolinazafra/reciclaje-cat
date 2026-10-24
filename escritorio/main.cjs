@@ -346,8 +346,8 @@ function crearVentana() {
   });
   ventana.once("ready-to-show", () => ventana.show());
   // Los enlaces externos se abren en el navegador; la app nunca navega fuera de app://
-  ventana.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: "deny" }; });
-  ventana.webContents.on("will-navigate", (e, url) => { if (!url.startsWith(`${ESQUEMA}://${HOST}`)) { e.preventDefault(); if (/^https?:/.test(url)) shell.openExternal(url); } });
+  ventana.webContents.setWindowOpenHandler(({ url }) => { if (/^(https?:|mailto:)/.test(url)) shell.openExternal(url); return { action: "deny" }; });
+  ventana.webContents.on("will-navigate", (e, url) => { if (!url.startsWith(`${ESQUEMA}://${HOST}`)) { e.preventDefault(); if (/^(https?:|mailto:)/.test(url)) shell.openExternal(url); } });
   registrarIPC(ventana);
   ventana.loadURL(`${ESQUEMA}://${HOST}/index.html`);
   return ventana;

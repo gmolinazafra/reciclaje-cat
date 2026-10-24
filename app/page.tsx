@@ -9,6 +9,7 @@ import { puente } from "./lib/escritorio";
 import type { InfoEscritorio } from "./lib/escritorio";
 import { BloqueLegal, VisorLegal } from "./components/Legal";
 import DobleFactor from "./components/DobleFactor";
+import Ayuda from "./components/Ayuda";
 import type { DocLegal } from "./components/Legal";
 import SeproBot from "./seprobot/SeproBot";
 import { useDb } from "./lib/useDb";
@@ -79,6 +80,7 @@ export default function Home() {
   const [ajustes, setAjustes] = useState(false);
   const [accion, setAccion] = useState<string | null>(null);
   const [legal, setLegal] = useState<DocLegal | null>(null);
+  const [ayuda, setAyuda] = useState(false);
   // Abierto al principio si faltan los datos; después lo controla el usuario (no se cierra al escribir).
   const [siraAbierto, setSiraAbierto] = useState<boolean | null>(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,6 +101,7 @@ export default function Home() {
               {anios.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           )}
+          <button type="button" onClick={() => setAyuda(true)} aria-label="Ayuda" title="Ayuda y preguntas frecuentes" className="min-h-[40px] min-w-[40px] rounded-xl border border-[#cfe0d7] text-base font-bold text-[#096653] hover:bg-[#f0f5f2]">?</button>
           <button type="button" onClick={() => { setSiraAbierto(null); setAjustes(true); }} aria-label="Ajustes" className="min-h-[40px] min-w-[40px] rounded-xl text-lg hover:bg-[#f0f5f2]">⚙️</button>
         </div>
       </header>
@@ -122,6 +125,7 @@ export default function Home() {
             {tab === 5 && <Informes db={db} set={set} />}
             <footer className="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-[#dce8e1] pt-3 text-[11px] text-[#8aa39a]">
               <span>ReciclaCat_Gest · © Limonada Web</span>
+              <button type="button" className="underline hover:text-[#096653]" onClick={() => setAyuda(true)}>Ayuda y preguntas frecuentes</button>
               <button type="button" className="underline hover:text-[#096653]" onClick={() => setLegal("condiciones")}>Condiciones y privacidad</button>
               <button type="button" className="underline hover:text-[#096653]" onClick={() => setLegal("terceros")}>Avisos de terceros</button>
               <a href="https://www.limonadaweb.com/" target="_blank" rel="noopener" className="hover:text-[#096653]">Powered by Limonada Web</a>
@@ -167,6 +171,7 @@ export default function Home() {
           </div>
         </Modal>
       )}
+      {ayuda && <Ayuda onCerrar={() => setAyuda(false)} abrirLegal={() => setLegal("condiciones")} />}
       {legal && <VisorLegal doc={legal} onCerrar={() => setLegal(null)} />}
       <SeproBot />
     </main>
