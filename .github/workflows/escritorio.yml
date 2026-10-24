@@ -3,8 +3,8 @@
 # - Al crear una etiqueta vX.Y.Z (igual a la versión de escritorio/package.json): se sube a Cloudflare R2
 #   (bucket nubrya-descargas, carpeta reciclacat/ → https://descargas.limonadaweb.com/reciclacat/)
 #   y los programas instalados se actualizan solos.
-#   Necesita los secretos del repositorio CLOUDFLARE_API_TOKEN (permiso «Workers R2 Storage: Edit»)
-#   y CLOUDFLARE_ACCOUNT_ID.
+#   Usa el entorno de GitHub «CLOUDFLARE_API_TOKEN»: secreto CLOUDFLARE_API_TOKEN (permiso «Workers R2 Storage: Edit»)
+#   y variable CLOUDFLARE_ACCOUNT_ID.
 name: Instalador Windows
 
 on:
@@ -19,6 +19,8 @@ permissions:
 jobs:
   instalador:
     runs-on: windows-latest
+    # Entorno de GitHub donde están el token (secreto) y el Account ID (variable) de Cloudflare.
+    environment: CLOUDFLARE_API_TOKEN
     steps:
       - uses: actions/checkout@v4
 
