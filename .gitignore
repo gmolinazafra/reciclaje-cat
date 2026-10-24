@@ -26,3 +26,7 @@ escritorio/app/
 escritorio/dist/
 escritorio/node_modules/
 package-lock.json
+
+# Clave privada de licencias: NUNCA en el repositorio
+*.pem
+registro-licencias.csv

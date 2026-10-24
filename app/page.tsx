@@ -8,7 +8,6 @@ import { useEffect, useState } from "react";
 import { puente } from "./lib/escritorio";
 import type { InfoEscritorio } from "./lib/escritorio";
 import SeproBot from "./seprobot/SeproBot";
-import PanelTecnico from "./seprobot/PanelTecnico";
 import { useDb } from "./lib/useDb";
 import { ops } from "./lib/repo";
 import Resumen from "./components/screens/Resumen";
@@ -40,7 +39,13 @@ function AjustesEscritorio() {
         <Boton tipo="secundario" onClick={async () => { if (!confirm("Restaurar una copia sustituye los datos actuales por los de la copia (antes se guarda una copia de los actuales). ¿Continuar?")) return; const ok = await p.restaurarCopia(); if (!ok) setMsg({ tipo: "error", t: "No se ha restaurado ninguna copia." }); }}>Restaurar copia…</Boton>
         <Boton tipo="texto" onClick={() => p.abrirCarpetaDatos()}>Abrir carpeta de datos</Boton>
       </div>
-      {info && <p className="text-[11px] text-[#8aa39a]">ReciclaCat_Gest para Windows · versión {info.version}</p>}
+      {info?.licencia && <p className="text-xs text-[#567067]"><b>Licencia</b> {info.licencia.numero} · {info.licencia.cliente} · {info.licencia.caduca ? `válida hasta ${info.licencia.caduca.split("-").reverse().join("/")}` : "sin caducidad"} · equipo {info.equipo}</p>}
+      {info && (
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#8aa39a]">
+          <span>ReciclaCat_Gest para Windows · versión {info.version} · actualizaciones: {info.actualizacion}</span>
+          <button type="button" className="font-bold text-[#096653] underline" onClick={async () => { const e = await p.buscarActualizacion(); setInfo({ ...info, actualizacion: e }); setTimeout(() => p.info().then(setInfo), 4000); }}>Buscar actualizaciones</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -51,7 +56,6 @@ export default function Home() {
   const [montado, setMontado] = useState(false);
   useEffect(() => setMontado(true), []);
   const [tab, setTab] = useState(0);
-  const [tech, setTech] = useState(false);
   const [ajustes, setAjustes] = useState(false);
   const [accion, setAccion] = useState<string | null>(null);
   const ir = (t: number, a?: string) => { setTab(t); setAccion(a ?? null); };
@@ -64,17 +68,16 @@ export default function Home() {
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-[#dce8e1] bg-white px-3 sm:px-4">
         <b className="flex items-center gap-2 text-base sm:text-lg"><img src="/logo-simbolo.png" alt="" className="h-8 w-8" />ReciclaCat_<span className="-ml-2 text-[#0d7969]">Gest</span></b>
         <div className="flex items-center gap-2">
-          {!tech && (
+          {(
             <select aria-label="Ejercicio" value={db.ejercicio} onChange={(e) => set((d) => ops.setEjercicio(d, parseInt(e.target.value, 10)))} className="min-h-[40px] rounded-xl border border-[#cfe0d7] bg-white px-2 text-sm">
               {anios.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           )}
           <button type="button" onClick={() => setAjustes(true)} aria-label="Ajustes" className="min-h-[40px] min-w-[40px] rounded-xl text-lg hover:bg-[#f0f5f2]">⚙️</button>
-          <button type="button" onClick={() => setTech(!tech)} className="min-h-[40px] rounded-xl bg-[#e5f3ed] px-3 text-sm font-bold text-[#096653]">{tech ? "Volver al centro" : "Área técnica"}</button>
         </div>
       </header>
 
-      {tech ? <PanelTecnico /> : (
+      {(
         <div className="md:grid md:grid-cols-[200px_1fr]">
           <aside className="hidden border-r bg-white p-3 md:block md:min-h-[calc(100dvh-56px)]">
             <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-[.12em] text-[#779087]">Gestión</p>

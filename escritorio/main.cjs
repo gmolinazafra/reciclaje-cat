@@ -8,10 +8,31 @@
  *     adjuntos\AAAA\       originales de los documentos subidos
  *     copias\              copia automática diaria (se guardan las 30 últimas)
  * - Copias de seguridad manuales y restauración desde Ajustes.
+ * - Licencia: sin llave válida para este equipo solo se muestra la pantalla de activación (licencia.cjs).
+ * - Actualizaciones automáticas desde GitHub Releases (electron-updater): se descargan solas y se instalan al cerrar.
  */
 const { app, BrowserWindow, Menu, dialog, ipcMain, protocol, shell, session } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
+const { codigoEquipo, verificarLlave } = require("./licencia.cjs");
+
+// ─── Licencia ────────────────────────────────────────────────────────────────
+const archivoLicencia = () => path.join(app.getPath("userData"), "licencia.json");
+let licencia = { ok: false, error: null, datos: null };
+
+function comprobarLicencia() {
+  try {
+    if (!fs.existsSync(archivoLicencia())) { licencia = { ok: false, error: null, datos: null }; return licencia; }
+    const { llave } = JSON.parse(fs.readFileSync(archivoLicencia(), "utf8"));
+    const r = verificarLlave(llave);
+    licencia = { ok: r.ok, error: r.ok ? null : r.error, datos: r.datos ?? null };
+  } catch {
+    licencia = { ok: false, error: "No se ha podido leer la licencia guardada. Vuelve a introducir tu llave.", datos: null };
+  }
+  return licencia;
+}
+
+const resumenLicencia = () => (licencia.datos ? { cliente: licencia.datos.c, caduca: licencia.datos.v, numero: licencia.datos.n } : null);
 
 const ESQUEMA = "app";
 const HOST = "reciclacat";
@@ -100,9 +121,14 @@ function registrarProtocolo() {
       const url = new URL(req.url);
       let rel = decodeURIComponent(url.pathname).replace(/^\/+/, "");
       if (!rel || rel.endsWith("/")) rel += "index.html";
-      let abs = dentroDe(DIR_APP, rel);
-      if (!fs.existsSync(abs) && fs.existsSync(abs + ".html")) abs += ".html";
-      if (!fs.existsSync(abs) || fs.statSync(abs).isDirectory()) abs = path.join(DIR_APP, "index.html");
+      let abs;
+      // Sin licencia válida, cualquier página lleva a la activación (los recursos estáticos sí se sirven).
+      if (rel === "activar.html" || (!licencia.ok && /\.html?$/.test(rel))) abs = path.join(__dirname, "activar.html");
+      else {
+        abs = dentroDe(DIR_APP, rel);
+        if (!fs.existsSync(abs) && fs.existsSync(abs + ".html")) abs += ".html";
+        if (!fs.existsSync(abs) || fs.statSync(abs).isDirectory()) abs = path.join(DIR_APP, licencia.ok ? "index.html" : "../activar.html");
+      }
       const datos = await fs.promises.readFile(abs);
       return new Response(datos, { headers: { "content-type": MIME[path.extname(abs).toLowerCase()] ?? "application/octet-stream", "x-robots-tag": "noindex, noai" } });
     } catch {
@@ -113,7 +139,24 @@ function registrarProtocolo() {
 
 // ─── IPC ─────────────────────────────────────────────────────────────────────
 function registrarIPC(ventana) {
-  ipcMain.on("db:leer", (e) => { e.returnValue = leerDB(); });
+  ipcMain.handle("licencia:estado", () => ({ ok: licencia.ok, error: licencia.error, equipo: codigoEquipo(), ...resumenLicencia() }));
+  ipcMain.handle("licencia:activar", (_e, llave) => {
+    const r = verificarLlave(llave);
+    if (!r.ok) return { ok: false, error: r.error };
+    fs.mkdirSync(path.dirname(archivoLicencia()), { recursive: true });
+    fs.writeFileSync(archivoLicencia(), JSON.stringify({ llave: String(llave).replace(/\s+/g, ""), activada: new Date().toISOString() }), "utf8");
+    comprobarLicencia();
+    setTimeout(() => { ventana.loadURL(`${ESQUEMA}://${HOST}/index.html`); buscarActualizaciones(ventana, false); }, 1200);
+    return { ok: true, datos: r.datos };
+  });
+  ipcMain.handle("act:buscar", () => buscarActualizaciones(ventana, true));
+
+  // A partir de aquí, nada funciona sin licencia válida.
+  const conLicencia = (fn) => (...a) => { if (!licencia.ok) throw new Error("Licencia no activada"); return fn(...a); };
+  const handleOriginal = ipcMain.handle.bind(ipcMain);
+  ipcMain.handle = (canal, fn) => handleOriginal(canal, conLicencia(fn));
+
+  ipcMain.on("db:leer", (e) => { e.returnValue = licencia.ok ? leerDB() : null; });
   ipcMain.handle("db:guardar", (_e, json) => guardarDB(json));
 
   ipcMain.handle("adj:guardar", (_e, id, nombre, datos) => {
@@ -171,9 +214,39 @@ function registrarIPC(ventana) {
       const f = fs.readdirSync(dirCopias()).filter((x) => x.endsWith(".json")).map((x) => fs.statSync(path.join(dirCopias(), x)).mtime).sort((a, b) => b - a)[0];
       if (f) ultimaCopia = f.toISOString();
     } catch { /* sin copias */ }
-    return { version: app.getVersion(), carpetaDatos: dirDatos(), ultimaCopia };
+    return { version: app.getVersion(), carpetaDatos: dirDatos(), ultimaCopia, licencia: resumenLicencia(), equipo: codigoEquipo(), actualizacion: estadoActualizacion };
   });
+  ipcMain.handle = handleOriginal;
 }
+
+// ─── Actualizaciones ─────────────────────────────────────────────────────────
+let estadoActualizacion = "sin comprobar";
+let actualizador = null;
+function buscarActualizaciones(ventana, manual) {
+  if (!app.isPackaged) { estadoActualizacion = "solo en la versión instalada"; return estadoActualizacion; }
+  try {
+    if (!actualizador) {
+      actualizador = require("electron-updater").autoUpdater;
+      actualizador.autoDownload = true;
+      actualizador.autoInstallOnAppQuit = true;
+      actualizador.on("checking-for-update", () => { estadoActualizacion = "buscando…"; });
+      actualizador.on("update-not-available", () => { estadoActualizacion = "al día"; });
+      actualizador.on("update-available", (i) => { estadoActualizacion = `descargando la versión ${i.version}…`; });
+      actualizador.on("error", () => { estadoActualizacion = "no se ha podido comprobar (¿sin internet?)"; });
+      actualizador.on("update-downloaded", async (i) => {
+        estadoActualizacion = `versión ${i.version} lista: se instalará al cerrar`;
+        const r = await dialog.showMessageBox(ventana, { type: "info", buttons: ["Reiniciar ahora", "Al cerrar"], defaultId: 0, cancelId: 1, title: "Actualización de ReciclaCat_Gest", message: `Hay una versión nueva (${i.version}) lista para instalar.`, detail: "Tus datos no se tocan. Si eliges «Al cerrar», se instalará la próxima vez que cierres el programa." });
+        if (r.response === 0) actualizador.quitAndInstall();
+      });
+    }
+    actualizador.checkForUpdates().catch(() => { estadoActualizacion = "no se ha podido comprobar (¿sin internet?)"; });
+  } catch { estadoActualizacion = "no disponible"; }
+  if (manual) estadoActualizacion = "buscando…";
+  return estadoActualizacion;
+}
+
+/** Únicos destinos de red permitidos: los de las actualizaciones. */
+const RED_PERMITIDA = /^https:\/\/([a-z0-9-]+\.)*(github\.com|githubusercontent\.com)\//i;
 
 // ─── Ventana ─────────────────────────────────────────────────────────────────
 function crearVentana() {
@@ -201,10 +274,12 @@ if (!app.requestSingleInstanceLock()) {
     asegurarCarpetas();
     try { copiaDiaria(); } catch { /* sin datos todavía */ }
     Menu.setApplicationMenu(null);
-    // Sin conexiones de red salientes: todo funciona en el equipo.
-    session.defaultSession.webRequest.onBeforeRequest((det, cb) => cb({ cancel: /^(https?|wss?):/.test(det.url) && !det.url.startsWith("devtools") }));
+    // Sin conexiones de red salientes salvo las de actualización: todo funciona en el equipo.
+    session.defaultSession.webRequest.onBeforeRequest((det, cb) => cb({ cancel: /^(https?|wss?):/.test(det.url) && !RED_PERMITIDA.test(det.url) }));
+    comprobarLicencia();
     registrarProtocolo();
     principal = crearVentana();
+    if (licencia.ok) setTimeout(() => buscarActualizaciones(principal, false), 5000);
   });
   app.on("window-all-closed", () => app.quit());
 }

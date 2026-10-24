@@ -9,7 +9,8 @@
   "main": "main.cjs",
   "scripts": {
     "iniciar": "electron .",
-    "instalador": "electron-builder --win nsis --x64 --publish never"
+    "instalador": "electron-builder --win nsis --x64 --publish never",
+    "publicar": "electron-builder --win nsis --x64 --publish always"
   },
   "devDependencies": {
     "electron": "38.2.2",
@@ -20,10 +21,28 @@
     "productName": "ReciclaCat_Gest",
     "copyright": "© Limonada Web",
     "asar": true,
-    "files": ["main.cjs", "preload.cjs", "app/**/*", "recursos/icono.png"],
-    "directories": { "output": "dist", "buildResources": "recursos" },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "licencia.cjs",
+      "activar.html",
+      "app/**/*",
+      "recursos/icono.png",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "recursos"
+    },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "recursos/icono.ico",
       "artifactName": "ReciclaCat_Gest-instalador-${version}.${ext}"
     },
@@ -35,8 +54,22 @@
       "createStartMenuShortcut": true,
       "shortcutName": "ReciclaCat_Gest",
       "deleteAppDataOnUninstall": false,
-      "installerLanguages": ["es_ES"],
-      "language": "3082"
-    }
+      "installerLanguages": [
+        "es_ES"
+      ],
+      "language": "3082",
+      "differentialPackage": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "gmolinazafra",
+        "repo": "reciclaje-cat",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "6.6.2"
   }
 }

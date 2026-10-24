@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, noai">
+<title>Activar ReciclaCat_Gest</title>
+<!-- © Limonada Web. Todos los derechos reservados. -->
+<style>
+  :root { --verde:#0d7969; --verde-o:#096653; --claro:#e5f3ed; --texto:#17372f; --suave:#657a72; --borde:#cfe0d7; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #f4f7f5; color: var(--texto); font-family: "Segoe UI", system-ui, sans-serif; }
+  main { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+  .tarjeta { width: 100%; max-width: 560px; background: #fff; border: 1px solid #dce8e1; border-radius: 20px; padding: 28px; box-shadow: 0 10px 30px rgba(23,55,47,.08); }
+  .logo { display: block; width: 220px; max-width: 70%; margin: 0 auto 8px; }
+  h1 { font-size: 20px; margin: 8px 0 4px; text-align: center; }
+  p { font-size: 14px; line-height: 1.5; color: var(--suave); margin: 6px 0; }
+  .paso { margin-top: 18px; }
+  .paso b.n { display: inline-flex; width: 24px; height: 24px; border-radius: 50%; background: var(--claro); color: var(--verde-o); align-items: center; justify-content: center; font-size: 13px; margin-right: 6px; }
+  .codigo { display: flex; gap: 8px; margin-top: 8px; }
+  .codigo code { flex: 1; font-size: 20px; letter-spacing: .08em; font-weight: 700; background: #f7faf8; border: 1px solid var(--borde); border-radius: 12px; padding: 10px 12px; text-align: center; color: var(--verde-o); user-select: all; }
+  button { min-height: 44px; border: 0; border-radius: 12px; padding: 0 16px; font: inherit; font-weight: 700; cursor: pointer; }
+  .sec { background: var(--claro); color: var(--verde-o); }
+  .pri { background: var(--verde); color: #fff; width: 100%; margin-top: 10px; }
+  .pri:disabled { opacity: .6; cursor: default; }
+  textarea { width: 100%; min-height: 96px; margin-top: 8px; border: 1px solid var(--borde); border-radius: 12px; padding: 10px 12px; font: 13px/1.4 Consolas, monospace; resize: vertical; outline: none; }
+  textarea:focus { border-color: var(--verde); }
+  .msg { margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; display: none; }
+  .msg.error { display: block; background: #fdecec; color: #9b2c2c; }
+  .msg.ok { display: block; background: #e7f6ee; color: #0b6b4f; }
+  footer { margin-top: 20px; text-align: center; font-size: 11px; color: #8aa39a; }
+</style>
+</head>
+<body>
+<main>
+  <div class="tarjeta">
+    <img class="logo" src="/logo.png" alt="ReciclaCat_Gest">
+    <h1>Activa tu licencia</h1>
+    <p style="text-align:center">ReciclaCat_Gest necesita una llave de activación para este ordenador.</p>
+
+    <div class="paso">
+      <p><b class="n">1</b><b style="color:var(--texto)">Envía este código de equipo a Limonada Web</b></p>
+      <div class="codigo"><code id="codigo">…</code><button class="sec" id="copiar" type="button">Copiar</button></div>
+    </div>
+
+    <div class="paso">
+      <p><b class="n">2</b><b style="color:var(--texto)">Pega aquí la llave que te enviemos</b></p>
+      <textarea id="llave" placeholder="RCG1.…" spellcheck="false" autocomplete="off"></textarea>
+      <button class="pri" id="activar" type="button">Activar</button>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <p id="aviso" style="margin-top:16px"></p>
+    <footer>© Limonada Web · Powered by Limonada Web</footer>
+  </div>
+</main>
+<script>
+  const api = window.reciclacat;
+  const $ = (id) => document.getElementById(id);
+  const msg = (tipo, t) => { const m = $("msg"); m.className = "msg " + tipo; m.textContent = t; };
+  api.licencia().then((e) => {
+    $("codigo").textContent = e.equipo;
+    if (e.error) $("aviso").textContent = e.error;
+  });
+  $("copiar").onclick = async () => {
+    try { await navigator.clipboard.writeText($("codigo").textContent); $("copiar").textContent = "Copiado"; }
+    catch { getSelection().selectAllChildren($("codigo")); }
+    setTimeout(() => ($("copiar").textContent = "Copiar"), 1500);
+  };
+  $("activar").onclick = async () => {
+    const llave = $("llave").value.trim();
+    if (!llave) return msg("error", "Pega la llave que te hemos enviado.");
+    $("activar").disabled = true;
+    const r = await api.activar(llave);
+    $("activar").disabled = false;
+    if (r.ok) msg("ok", "Licencia activada para " + r.datos.c + ". Abriendo ReciclaCat_Gest…");
+    else msg("error", r.error);
+  };
+</script>
+</body>
+</html>

@@ -7,6 +7,9 @@ export interface InfoEscritorio {
   version: string;
   carpetaDatos: string;
   ultimaCopia: string | null;
+  licencia: { cliente: string; caduca: string | null; numero: string } | null;
+  equipo: string;
+  actualizacion: string;
 }
 
 export interface PuenteEscritorio {
@@ -24,6 +27,8 @@ export interface PuenteEscritorio {
   restaurarCopia(): Promise<boolean>;
   abrirCarpetaDatos(): Promise<void>;
   info(): Promise<InfoEscritorio>;
+  /** Busca una versión nueva; devuelve el estado («buscando…», «al día»…). */
+  buscarActualizacion(): Promise<string>;
 }
 
 declare global {
