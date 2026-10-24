@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, noai">
+<title>Acceso a ReciclaCat_Gest</title>
+<!-- © Limonada Web. Todos los derechos reservados. -->
+<style>
+  :root { --verde:#0d7969; --verde-o:#096653; --claro:#e5f3ed; --texto:#17372f; --suave:#657a72; --borde:#cfe0d7; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #f4f7f5; color: var(--texto); font-family: "Segoe UI", system-ui, sans-serif; }
+  main { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+  .tarjeta { width: 100%; max-width: 420px; background: #fff; border: 1px solid #dce8e1; border-radius: 20px; padding: 28px; box-shadow: 0 10px 30px rgba(23,55,47,.08); }
+  .logo { display: block; width: 200px; max-width: 70%; margin: 0 auto 8px; }
+  h1 { font-size: 20px; margin: 8px 0 4px; text-align: center; }
+  p { font-size: 14px; line-height: 1.5; color: var(--suave); margin: 6px 0; text-align: center; }
+  label { display: block; margin-top: 16px; font-size: 13px; font-weight: 700; }
+  input { width: 100%; min-height: 46px; margin-top: 6px; border: 1px solid var(--borde); border-radius: 12px; padding: 0 12px; font: inherit; font-size: 16px; outline: none; }
+  input:focus { border-color: var(--verde); }
+  #codigo { font-size: 24px; letter-spacing: .3em; text-align: center; font-weight: 700; }
+  #codigo.rec { font-size: 18px; letter-spacing: .12em; text-transform: uppercase; }
+  button { min-height: 46px; border: 0; border-radius: 12px; padding: 0 16px; font: inherit; font-weight: 700; cursor: pointer; }
+  .pri { background: var(--verde); color: #fff; width: 100%; margin-top: 18px; }
+  .pri:disabled { opacity: .6; cursor: default; }
+  .enlace { background: none; padding: 0; min-height: 0; color: var(--verde-o); text-decoration: underline; font-size: 13px; margin-top: 12px; display: block; margin-left: auto; margin-right: auto; }
+  .msg { margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; display: none; }
+  .msg.error { display: block; background: #fdecec; color: #9b2c2c; }
+  .msg.ok { display: block; background: #e7f6ee; color: #0b6b4f; }
+  .ayuda { margin-top: 16px; font-size: 12px; color: #8aa39a; text-align: left; }
+  footer { margin-top: 20px; text-align: center; font-size: 11px; color: #8aa39a; }
+</style>
+</head>
+<body>
+<main>
+  <form class="tarjeta" id="form" autocomplete="off">
+    <img class="logo" src="/logo.png" alt="ReciclaCat_Gest">
+    <h1>🔒 Acceso protegido</h1>
+    <p id="intro">Escribe tu contraseña y el código de 6 cifras de tu app autenticadora.</p>
+
+    <label for="clave">Contraseña</label>
+    <input id="clave" type="password" autocomplete="current-password" required autofocus>
+
+    <label for="codigo" id="etiqueta-codigo">Código de la app autenticadora</label>
+    <input id="codigo" inputmode="numeric" maxlength="7" placeholder="000000" required spellcheck="false">
+
+    <button class="pri" id="entrar" type="submit">Entrar</button>
+    <button class="enlace" id="cambiar" type="button">No tengo el móvil: usar un código de recuperación</button>
+    <div class="msg" id="msg"></div>
+
+    <p class="ayuda" id="ayuda">El código cambia cada 30 segundos. Si no lo acepta, comprueba que la fecha y la hora de Windows y del móvil están bien.</p>
+    <footer>ReciclaCat_Gest · © Limonada Web<br>Powered by Limonada Web</footer>
+  </form>
+</main>
+<script>
+  const api = window.reciclacat;
+  const $ = (id) => document.getElementById(id);
+  let recuperacion = false;
+  const msg = (tipo, t) => { const m = $("msg"); m.className = "msg " + tipo; m.textContent = t; };
+
+  $("cambiar").onclick = () => {
+    recuperacion = !recuperacion;
+    const c = $("codigo");
+    c.value = ""; c.classList.toggle("rec", recuperacion);
+    c.inputMode = recuperacion ? "text" : "numeric";
+    c.maxLength = recuperacion ? 9 : 7;
+    c.placeholder = recuperacion ? "XXXX-XXXX" : "000000";
+    $("etiqueta-codigo").textContent = recuperacion ? "Código de recuperación" : "Código de la app autenticadora";
+    $("cambiar").textContent = recuperacion ? "Usar el código de la app autenticadora" : "No tengo el móvil: usar un código de recuperación";
+    $("ayuda").textContent = recuperacion
+      ? "Cada código de recuperación sirve una sola vez. Son los que guardaste al activar la doble autenticación."
+      : "El código cambia cada 30 segundos. Si no lo acepta, comprueba que la fecha y la hora de Windows y del móvil están bien.";
+    c.focus();
+  };
+
+  $("codigo").addEventListener("input", (e) => {
+    if (!recuperacion) e.target.value = e.target.value.replace(/\D/g, "").slice(0, 6);
+  });
+
+  $("form").onsubmit = async (e) => {
+    e.preventDefault();
+    const clave = $("clave").value, codigo = $("codigo").value.trim();
+    if (!clave || !codigo) return msg("error", "Escribe la contraseña y el código.");
+    if (!recuperacion && codigo.length !== 6) return msg("error", "El código de la app tiene 6 cifras.");
+    if (recuperacion && /^\d+$/.test(codigo)) return msg("error", "El código de recuperación tiene letras y números (XXXX-XXXX).");
+    $("entrar").disabled = true;
+    let r;
+    try { r = await api.desbloquear(clave, codigo); } catch { r = { ok: false, error: "No se ha podido comprobar. Vuelve a intentarlo." }; }
+    $("entrar").disabled = false;
+    if (r.ok) {
+      msg("ok", r.usadoRecuperacion
+        ? "Correcto. Te quedan " + r.recuperacionRestantes + " códigos de recuperación. Si pierdes el móvil, genera códigos nuevos en Ajustes."
+        : "Correcto. Abriendo ReciclaCat_Gest…");
+    } else {
+      msg("error", r.error || "Contraseña o código incorrectos.");
+      $("codigo").value = ""; $("codigo").focus();
+    }
+  };
+</script>
+</body>
+</html>

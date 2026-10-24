@@ -1,0 +1,101 @@
+# Compila el instalador de Windows de ReciclaCat_Gest (.exe) en un equipo Windows de GitHub.
+# - Al subir cambios: instalador de prueba en «Artifacts».
+# - Para PUBLICAR (subir a Cloudflare y que los programas se actualicen): subir los cambios a la rama
+#   «publicar», crear una etiqueta vX.Y.Z, o lanzarlo a mano desde Actions marcando «Publicar».
+#   La versión publicada es la de escritorio/package.json (tiene que ser mayor que la anterior).
+# - Al publicar se sube a Cloudflare R2
+#   (bucket nubrya-descargas, carpeta reciclacat/ → https://descargas.limonadaweb.com/reciclacat/)
+#   y los programas instalados se actualizan solos.
+#   Usa el entorno de GitHub «CLOUDFLARE_API_TOKEN»: secreto CLOUDFLARE_API_TOKEN (permiso «Workers R2 Storage: Edit»)
+#   y variable CLOUDFLARE_ACCOUNT_ID.
+name: Instalador Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Publicar en Cloudflare (los programas instalados se actualizarán)"
+        type: boolean
+        default: false
+  push:
+    branches: [feature/reciclacat-gest-v2, main, publicar]
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+jobs:
+  instalador:
+    runs-on: windows-latest
+    # Entorno de GitHub donde están el token (secreto) y el Account ID (variable) de Cloudflare.
+    environment: CLOUDFLARE_API_TOKEN
+    env:
+      PUBLICAR: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/publicar' || inputs.publicar == true }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias de la app
+        run: npm install --no-audit --no-fund
+
+      - name: Pruebas
+        run: npm test
+
+      - name: Compilar la app (exportación estática)
+        run: npm run build
+
+      - name: Preparar la carpeta del programa
+        run: npm run escritorio:preparar
+
+      - name: Instalar Electron y electron-builder
+        working-directory: escritorio
+        run: npm install --no-audit --no-fund
+
+      - name: Crear instalador .exe
+        working-directory: escritorio
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run instalador
+
+      - name: Comprobar que la etiqueta coincide con la versión
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          V=$(node -p "require('./escritorio/package.json').version")
+          [ "v$V" = "${GITHUB_REF_NAME}" ] || { echo "La etiqueta ${GITHUB_REF_NAME} no coincide con la versión $V de escritorio/package.json"; exit 1; }
+
+      - name: Publicar en Cloudflare (actualización automática)
+        if: env.PUBLICAR == 'true'
+        shell: bash
+        working-directory: escritorio/dist
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "Faltan los secretos CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          V=$(node -p "require('../package.json').version")
+          # No se vuelve a publicar una versión igual o anterior a la que ya está en Cloudflare.
+          ACTUAL=$(curl -fsS "https://descargas.limonadaweb.com/reciclacat/latest.yml?t=$(date +%s)" 2>/dev/null | sed -n 's/^version: *//p' | tr -d "'\"\r" || true)
+          if [ -n "$ACTUAL" ] && [ "$(printf '%s\n%s\n' "$ACTUAL" "$V" | sort -V | tail -1)" != "$V" -o "$ACTUAL" = "$V" ]; then
+            echo "Ya está publicada la versión $ACTUAL. Sube «version» en escritorio/package.json (ahora $V) antes de publicar."; exit 1
+          fi
+          EXE="ReciclaCat_Gest-instalador-$V.exe"
+          sube() { npx --yes wrangler@4 r2 object put "nubrya-descargas/reciclacat/$1" --file "$2" --content-type "$3" ${4:+--cache-control "$4"} --remote; }
+          # Primero el instalador; latest.yml al final, para que nadie vea la versión antes de que exista el archivo.
+          sube "$EXE" "$EXE" application/vnd.microsoft.portable-executable
+          sube "$EXE.blockmap" "$EXE.blockmap" application/octet-stream
+          sube "ReciclaCat_Gest-Setup.exe" "$EXE" application/vnd.microsoft.portable-executable no-cache
+          sube "latest.yml" "latest.yml" text/yaml no-cache
+          curl -fsS "https://descargas.limonadaweb.com/reciclacat/latest.yml?t=$(date +%s)" | head -3
+
+      - name: Guardar el instalador
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReciclaCat_Gest-instalador
+          path: |
+            escritorio/dist/*.exe
+            escritorio/dist/latest.yml
+          retention-days: 30

@@ -1,0 +1,237 @@
+RECICLACAT_GEST — CONDICIONES DE USO, LICENCIA Y PRIVACIDAD
+Versión 2 · 24 de octubre de 2026
+
+Lee estas condiciones antes de instalar y activar ReciclaCat_Gest. Al
+pulsar «Acepto» en el instalador, o al activar la licencia, las aceptas.
+Si no estás de acuerdo, no instales ni actives el programa.
+
+-----------------------------------------------------------------------
+1. TITULAR DEL PROGRAMA
+-----------------------------------------------------------------------
+ReciclaCat_Gest es un programa de Limonada Web.
+
+  Titular:    Mari Ángeles Pedrosa Alarcón
+  NIF:        53691928S
+  Domicilio:  Málaga, España
+  Email:      hola@limonadaweb.com
+  Teléfono:   +34 628 482 475
+  Web:        https://www.limonadaweb.com
+
+En adelante, «Limonada Web». La persona o empresa que instala y usa el
+programa es «el cliente».
+
+-----------------------------------------------------------------------
+2. QUÉ ES RECICLACAT_GEST
+-----------------------------------------------------------------------
+Es un programa para Windows que ayuda a los Centros Autorizados de
+Tratamiento de vehículos (CAT) a llevar su gestión: documentos, vehículos,
+piezas («kilos gestionados»), residuos peligrosos y no peligrosos,
+documentos de identificación (DI), informes y la memoria anual. Incluye un
+lector de documentos (OCR) y el asistente SeproBot.
+
+ReciclaCat_Gest es una HERRAMIENTA DE AYUDA. No sustituye a las
+obligaciones legales del cliente ni a las plataformas oficiales de la
+administración, ni presenta nada en nombre del cliente:
+
+  - Los datos que lee el OCR (de PDF, fotos o facturas) pueden contener
+    errores. Por eso el programa obliga a revisarlos antes de guardarlos.
+    El cliente es responsable de comprobarlos.
+  - Los pesos de piezas y las taras de vehículos que propone el programa
+    son ESTIMACIONES orientativas. El cliente debe corregirlas con sus
+    pesadas reales cuando sea necesario.
+  - La memoria anual en PDF es un DOCUMENTO DE TRABAJO. Antes de presentar
+    cualquier dato a la administración, el cliente debe comprobarlo y
+    volcarlo en el modelo oficial que corresponda.
+  - SeproBot ofrece información general basada en fichas de normativa
+    revisadas. NO es asesoramiento jurídico ni técnico personalizado y
+    puede no recoger cambios normativos recientes. Ante cualquier duda,
+    consulte al técnico de su asociación, a un profesional o a la
+    administración competente.
+
+-----------------------------------------------------------------------
+3. DÓNDE ESTÁN TUS DATOS (LO MÁS IMPORTANTE)
+-----------------------------------------------------------------------
+  - Todos los datos del centro (documentos, vehículos, matrículas,
+    bastidores, facturas, piezas, residuos, DI, datos de gestores y
+    transportistas…) se guardan SOLO EN EL ORDENADOR DEL CLIENTE, en la
+    carpeta de datos del programa (%APPDATA%\ReciclaCat_Gest\datos).
+
+  - Los documentos se leen (OCR) EN EL PROPIO ORDENADOR. No se envían a
+    internet ni a ningún servicio de inteligencia artificial.
+
+  - Limonada Web NO recibe, NO guarda, NO ve y NO puede abrir los datos
+    ni los documentos del cliente.
+
+  - El programa NO envía estadísticas, datos de uso ni informes de error.
+
+  - La ÚNICA conexión a internet del programa es la consulta de
+    actualizaciones a https://descargas.limonadaweb.com/reciclacat/
+    (servicio alojado en Cloudflare). En esa consulta no se envía ningún
+    dato del cliente; como en cualquier visita a una web, el servidor
+    puede registrar técnicamente la dirección IP. Sin internet, el
+    programa funciona igual (solo no se actualiza).
+
+-----------------------------------------------------------------------
+4. COPIAS DE SEGURIDAD
+-----------------------------------------------------------------------
+El programa hace cada día una copia automática en el propio ordenador y
+permite hacer copias manuales (por ejemplo, en un pendrive) y
+restaurarlas.
+
+Las copias automáticas están en el mismo ordenador: si el equipo se
+estropea, se pierde o se borra, se pierden con él. El CLIENTE es el
+responsable de guardar copias en otro soporte con regularidad. Limonada
+Web no puede recuperar datos, porque no tiene ninguna copia de ellos.
+
+Desinstalar el programa no borra los datos.
+
+-----------------------------------------------------------------------
+5. LICENCIA DE USO
+-----------------------------------------------------------------------
+5.1 Limonada Web concede al cliente una licencia de uso NO EXCLUSIVA e
+    INTRANSFERIBLE de ReciclaCat_Gest, para UN ORDENADOR, durante el
+    periodo indicado en su llave de activación.
+
+5.2 La llave de activación va ligada al código de equipo del ordenador
+    donde se activa. Si el cliente cambia de ordenador, debe pedir una
+    llave nueva a Limonada Web.
+
+5.3 Al terminar el periodo de la licencia, el programa deja de abrirse
+    hasta que se renueve. Los datos del cliente siguen en su ordenador y
+    no se borran; con la renovación vuelven a estar disponibles.
+
+5.4 El precio, la duración y la forma de pago de la licencia son los
+    acordados entre el cliente y Limonada Web en el momento de la compra.
+
+5.4 bis PRUEBA GRATUITA. Sin llave, el programa puede usarse gratis
+    durante 15 días naturales en cada ordenador, desde que el usuario
+    pulsa «Probar gratis 15 días». La prueba incluye todas las funciones,
+    no exige datos de pago y no se renueva sola ni genera ningún cargo.
+    Al terminar, el programa pide la llave para seguir; los datos
+    introducidos durante la prueba se conservan en el ordenador. Queda
+    prohibido manipular el equipo, su fecha o el programa para alargar
+    la prueba.
+
+5.5 DESCARGA OFICIAL. ReciclaCat_Gest solo se distribuye desde la web
+    oficial de Limonada Web (https://www.limonadaweb.com) y su servidor
+    de descargas (https://descargas.limonadaweb.com). Cualquier copia
+    obtenida de otra fuente puede estar manipulada o contener software
+    malicioso; no está autorizada y no recibirá licencia ni soporte.
+
+5.6 Queda PROHIBIDO, salvo autorización expresa y por escrito:
+    - copiar, ceder, alquilar, vender o sublicenciar el programa o las
+      llaves de activación;
+    - descompilar, desensamblar o aplicar ingeniería inversa, modificar
+      el programa o eludir el sistema de licencias;
+    - extraer su código, textos, fichas o diseño, o utilizarlos para
+      entrenar o alimentar sistemas de inteligencia artificial;
+    - distribuir el instalador o el programa desde cualquier sitio
+      distinto de los oficiales indicados en el apartado 5.5.
+
+-----------------------------------------------------------------------
+6. ACTUALIZACIONES
+-----------------------------------------------------------------------
+Mientras la licencia esté vigente, el programa busca actualizaciones,
+las descarga y las instala al cerrarse, sin tocar los datos del cliente.
+Las actualizaciones pueden corregir errores, mejorar funciones o
+adaptarse a cambios normativos.
+
+-----------------------------------------------------------------------
+7. PROPIEDAD INTELECTUAL
+-----------------------------------------------------------------------
+ReciclaCat_Gest, su código, diseño, textos, fichas de SeproBot,
+diccionario de pesos, tabla de taras, logotipos e imágenes son
+propiedad de Limonada Web o de terceros que han autorizado su uso, y
+están protegidos por la legislación de propiedad intelectual e
+industrial. La licencia no transmite ninguno de estos derechos.
+
+Limonada Web se reserva expresamente el uso de ReciclaCat_Gest, de sus
+contenidos y de su web para la minería de textos y datos, conforme al
+artículo 4.3 de la Directiva (UE) 2019/790. Queda prohibido utilizarlos
+para entrenar, ajustar o alimentar sistemas de inteligencia artificial.
+
+Los componentes de software libre que incluye el programa se rigen por
+sus propias licencias (ver «AVISOS DE TERCEROS»).
+
+-----------------------------------------------------------------------
+8. PROTECCIÓN DE DATOS (RGPD)
+-----------------------------------------------------------------------
+8.1 Datos que trata Limonada Web. Solo los necesarios para vender y
+    gestionar la licencia: nombre o razón social del cliente, datos de
+    contacto y facturación, y el código de equipo de la llave.
+
+    - Responsable: Mari Ángeles Pedrosa Alarcón (Limonada Web),
+      NIF 53691928S, hola@limonadaweb.com.
+    - Finalidad: emitir, renovar y dar soporte a la licencia, y facturar.
+    - Base jurídica: ejecución del contrato de licencia y cumplimiento de
+      obligaciones legales (fiscales y contables).
+    - Conservación: mientras dure la relación y, después, los plazos
+      legales de conservación.
+    - Destinatarios: no se ceden a terceros, salvo obligación legal.
+    - Derechos: acceso, rectificación, supresión, oposición, limitación
+      y portabilidad, escribiendo a hola@limonadaweb.com. El cliente
+      puede reclamar ante la Agencia Española de Protección de Datos
+      (www.aepd.es).
+
+8.2 Datos que el cliente guarda en el programa. Los datos personales que
+    el cliente introduzca (por ejemplo, matrículas, titulares, NIF o
+    datos de contacto de gestores, transportistas o clientes) los trata
+    el CLIENTE, como responsable del tratamiento, en su propio ordenador.
+    Limonada Web no accede a ellos y, por tanto, no actúa como encargada
+    del tratamiento. El cliente debe cumplir la normativa de protección
+    de datos y proteger el acceso a su ordenador.
+
+8.3 Soporte técnico. Si el cliente pide ayuda y para ello Limonada Web
+    tuviera que ver su pantalla o sus datos, solo se hará con su
+    autorización expresa, en ese momento, y limitado a resolver la
+    incidencia. Si fuese necesario un acceso continuado, se firmará el
+    correspondiente contrato de encargo del tratamiento.
+
+-----------------------------------------------------------------------
+9. RESPONSABILIDAD
+-----------------------------------------------------------------------
+9.1 El programa se entrega tal cual, una vez comprobado su
+    funcionamiento. Limonada Web corregirá los errores que se le
+    comuniquen dentro de lo razonable mediante actualizaciones.
+
+9.2 Limonada Web no responde de:
+    - errores en los datos introducidos o en datos leídos por el OCR que
+      el cliente no haya revisado;
+    - sanciones, requerimientos o perjuicios derivados de presentar a la
+      administración datos que el cliente no haya comprobado;
+    - la pérdida de datos por no tener copias en otro soporte, por
+      averías, virus o manipulación del ordenador;
+    - el uso del programa contrario a estas condiciones.
+
+9.3 En cualquier caso, la responsabilidad total de Limonada Web se
+    limita al importe pagado por el cliente por la licencia en los doce
+    meses anteriores al hecho que la origine.
+
+9.4 Nada de lo anterior limita los derechos que la ley reconozca de forma
+    imperativa.
+
+-----------------------------------------------------------------------
+10. DURACIÓN Y FIN DE LA LICENCIA
+-----------------------------------------------------------------------
+La licencia dura el periodo indicado en la llave. Limonada Web podrá
+revocar o no renovar la licencia si el cliente incumple estas
+condiciones (en especial, los apartados 5.4 bis y 5.6). El cliente
+puede dejar de usar el programa en cualquier momento; sus datos siguen
+siendo suyos y puede exportarlos (CSV, TXT, PDF) o hacer una copia
+antes de dejarlo.
+
+-----------------------------------------------------------------------
+11. CAMBIOS EN ESTAS CONDICIONES
+-----------------------------------------------------------------------
+Si estas condiciones cambian, la nueva versión se incluirá en el
+programa y se informará de los cambios importantes.
+
+-----------------------------------------------------------------------
+12. LEY Y JURISDICCIÓN
+-----------------------------------------------------------------------
+Estas condiciones se rigen por la ley española. Para cualquier
+controversia, las partes se someten a los juzgados y tribunales de
+Málaga, salvo que la ley establezca otro fuero de forma imperativa.
+
+-----------------------------------------------------------------------
+© 2026 Limonada Web · Mari Ángeles Pedrosa Alarcón · Powered by Limonada Web

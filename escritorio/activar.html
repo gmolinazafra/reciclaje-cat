@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, noai">
+<title>Activar ReciclaCat_Gest</title>
+<!-- © Limonada Web. Todos los derechos reservados. -->
+<style>
+  :root { --verde:#0d7969; --verde-o:#096653; --claro:#e5f3ed; --texto:#17372f; --suave:#657a72; --borde:#cfe0d7; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #f4f7f5; color: var(--texto); font-family: "Segoe UI", system-ui, sans-serif; }
+  main { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+  .tarjeta { width: 100%; max-width: 560px; background: #fff; border: 1px solid #dce8e1; border-radius: 20px; padding: 28px; box-shadow: 0 10px 30px rgba(23,55,47,.08); }
+  .logo { display: block; width: 220px; max-width: 70%; margin: 0 auto 8px; }
+  h1 { font-size: 20px; margin: 8px 0 4px; text-align: center; }
+  p { font-size: 14px; line-height: 1.5; color: var(--suave); margin: 6px 0; }
+  .paso { margin-top: 18px; }
+  .paso b.n { display: inline-flex; width: 24px; height: 24px; border-radius: 50%; background: var(--claro); color: var(--verde-o); align-items: center; justify-content: center; font-size: 13px; margin-right: 6px; }
+  .codigo { display: flex; gap: 8px; margin-top: 8px; }
+  .codigo code { flex: 1; font-size: 20px; letter-spacing: .08em; font-weight: 700; background: #f7faf8; border: 1px solid var(--borde); border-radius: 12px; padding: 10px 12px; text-align: center; color: var(--verde-o); user-select: all; }
+  button { min-height: 44px; border: 0; border-radius: 12px; padding: 0 16px; font: inherit; font-weight: 700; cursor: pointer; }
+  .sec { background: var(--claro); color: var(--verde-o); }
+  .pri { background: var(--verde); color: #fff; width: 100%; margin-top: 10px; }
+  .pri:disabled { opacity: .6; cursor: default; }
+  textarea { width: 100%; min-height: 96px; margin-top: 8px; border: 1px solid var(--borde); border-radius: 12px; padding: 10px 12px; font: 13px/1.4 Consolas, monospace; resize: vertical; outline: none; }
+  textarea:focus { border-color: var(--verde); }
+  .prueba { margin-top: 18px; padding: 16px; border-radius: 14px; background: var(--claro); border: 1px solid #bfe3d3; display: none; }
+  .prueba b { color: var(--verde-o); }
+  .prueba p { margin: 4px 0 10px; }
+  .prueba .pri { margin-top: 0; }
+  .o { text-align: center; margin: 18px 0 0; font-size: 12px; color: #8aa39a; display: none; }
+  .msg { margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; display: none; }
+  .msg.error { display: block; background: #fdecec; color: #9b2c2c; }
+  .msg.ok { display: block; background: #e7f6ee; color: #0b6b4f; }
+  footer { margin-top: 20px; text-align: center; font-size: 11px; color: #8aa39a; }
+  .acepto { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; font-size: 13px; color: var(--texto); line-height: 1.45; }
+  .acepto input { width: 20px; height: 20px; margin-top: 1px; accent-color: var(--verde); flex: none; }
+  .enlace { background: none; border: 0; padding: 0; min-height: 0; color: var(--verde-o); font-weight: 700; text-decoration: underline; cursor: pointer; font-size: inherit; }
+  dialog { width: min(760px, 94vw); max-height: 86vh; border: 0; border-radius: 16px; padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  dialog::backdrop { background: rgba(23,55,47,.45); }
+  dialog header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e3efe9; font-weight: 700; }
+  dialog pre { margin: 0; padding: 16px; max-height: 70vh; overflow: auto; white-space: pre-wrap; font: 12px/1.5 Consolas, monospace; color: var(--texto); }
+</style>
+</head>
+<body>
+<main>
+  <div class="tarjeta">
+    <img class="logo" src="/logo.png" alt="ReciclaCat_Gest">
+    <h1>Activa tu licencia</h1>
+    <p style="text-align:center" id="intro">ReciclaCat_Gest necesita una llave de activación para este ordenador.</p>
+
+    <div class="prueba" id="caja-prueba">
+      <b id="prueba-titulo">Pruébalo gratis 15 días</b>
+      <p id="prueba-texto">Todas las funciones, sin compromiso y sin datos de pago. Al terminar, activa tu licencia y sigues con tus datos.</p>
+      <label class="acepto" style="margin:0 0 10px"><input type="checkbox" id="acepto-prueba"><span>He leído y acepto las <button type="button" class="enlace" data-doc="CONDICIONES-DE-USO-Y-PRIVACIDAD.txt">condiciones de uso, licencia y privacidad</button>.</span></label>
+      <button class="pri" id="empezar" type="button">Probar gratis 15 días</button>
+      <a class="pri" id="volver" href="/index.html" style="display:none;align-items:center;justify-content:center;text-decoration:none">Volver al programa</a>
+      <div class="msg" id="msg-prueba"></div>
+    </div>
+    <p class="o" id="separador">— o, si ya tienes tu licencia —</p>
+
+    <div class="paso">
+      <p><b class="n">1</b><b style="color:var(--texto)">Envía este código de equipo a Limonada Web</b></p>
+      <div class="codigo"><code id="codigo">…</code><button class="sec" id="copiar" type="button">Copiar</button></div>
+    </div>
+
+    <div class="paso">
+      <p><b class="n">2</b><b style="color:var(--texto)">Pega aquí la llave que te enviemos</b></p>
+      <textarea id="llave" placeholder="RCG1.…" spellcheck="false" autocomplete="off"></textarea>
+      <label class="acepto"><input type="checkbox" id="acepto"><span>He leído y acepto las <button type="button" class="enlace" data-doc="CONDICIONES-DE-USO-Y-PRIVACIDAD.txt">condiciones de uso, licencia y privacidad</button>.</span></label>
+      <button class="pri" id="activar" type="button">Activar</button>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <p id="aviso" style="margin-top:16px"></p>
+    <footer>© Limonada Web · Mari Ángeles Pedrosa Alarcón · NIF 53691928S · <button type="button" class="enlace" data-doc="CONDICIONES-DE-USO-Y-PRIVACIDAD.txt">Condiciones y privacidad</button> · <button type="button" class="enlace" data-doc="AVISOS-DE-TERCEROS.txt">Avisos de terceros</button><br>Powered by Limonada Web</footer>
+  </div>
+</main>
+<dialog id="visor"><header><span id="visor-titulo"></span><button type="button" class="sec" id="visor-cerrar">Cerrar</button></header><pre id="visor-texto"></pre></dialog>
+<script>
+  const api = window.reciclacat;
+  const $ = (id) => document.getElementById(id);
+  const msg = (tipo, t) => { const m = $("msg"); m.className = "msg " + tipo; m.textContent = t; };
+  api.licencia().then((e) => {
+    $("codigo").textContent = e.equipo;
+    const p = e.prueba || {};
+    if (!p.usada) {
+      $("caja-prueba").style.display = "block"; $("separador").style.display = "block";
+      $("intro").textContent = "Empieza la prueba gratuita o activa tu licencia.";
+    } else if (p.activa) {
+      $("caja-prueba").style.display = "block"; $("separador").style.display = "block";
+      $("prueba-titulo").textContent = "Estás usando la prueba gratuita";
+      $("prueba-texto").textContent = "Te quedan " + p.diasRestantes + (p.diasRestantes === 1 ? " día" : " días") + ". Cuando quieras, activa tu licencia aquí abajo: tus datos se conservan.";
+      $("empezar").style.display = "none"; $("acepto-prueba").closest("label").style.display = "none"; $("volver").style.display = "flex";
+      $("intro").textContent = "Activa tu licencia de ReciclaCat_Gest.";
+    }
+    if (e.error) $("aviso").textContent = e.error;
+  });
+  $("empezar").onclick = async () => {
+    const m = $("msg-prueba");
+    if (!$("acepto-prueba").checked) { m.className = "msg error"; m.textContent = "Para empezar la prueba tienes que aceptar las condiciones de uso, licencia y privacidad."; return; }
+    $("empezar").disabled = true;
+    const r = await api.empezarPrueba(true);
+    $("empezar").disabled = false;
+    m.className = "msg " + (r.ok ? "ok" : "error");
+    m.textContent = r.ok ? "Prueba activada: tienes " + r.diasRestantes + " días. Abriendo ReciclaCat_Gest…" : r.error;
+  };
+  $("copiar").onclick = async () => {
+    try { await navigator.clipboard.writeText($("codigo").textContent); $("copiar").textContent = "Copiado"; }
+    catch { getSelection().selectAllChildren($("codigo")); }
+    setTimeout(() => ($("copiar").textContent = "Copiar"), 1500);
+  };
+  document.querySelectorAll("[data-doc]").forEach((b) => b.onclick = async () => {
+    $("visor-titulo").textContent = b.dataset.doc.startsWith("AVISOS") ? "Avisos de terceros" : "Condiciones de uso, licencia y privacidad";
+    $("visor-texto").textContent = "Cargando…";
+    $("visor").showModal();
+    try { const r = await fetch("/legal/" + b.dataset.doc); $("visor-texto").textContent = r.ok ? await r.text() : "No disponible."; }
+    catch { $("visor-texto").textContent = "No disponible."; }
+  });
+  $("visor-cerrar").onclick = () => $("visor").close();
+  $("activar").onclick = async () => {
+    const llave = $("llave").value.trim();
+    if (!llave) return msg("error", "Pega la llave que te hemos enviado.");
+    if (!$("acepto").checked) return msg("error", "Para activar tienes que aceptar las condiciones de uso, licencia y privacidad.");
+    $("activar").disabled = true;
+    const r = await api.activar(llave, true);
+    $("activar").disabled = false;
+    if (r.ok) msg("ok", "Licencia activada para " + r.datos.c + ". Abriendo ReciclaCat_Gest…");
+    else msg("error", r.error);
+  };
+</script>
+</body>
+</html>
