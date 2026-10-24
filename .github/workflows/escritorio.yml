@@ -1,6 +1,9 @@
 # Compila el instalador de Windows de ReciclaCat_Gest (.exe) en un equipo Windows de GitHub.
 # - Al subir cambios: instalador de prueba en «Artifacts».
-# - Al crear una etiqueta vX.Y.Z (igual a la versión de escritorio/package.json): se sube a Cloudflare R2
+# - Para PUBLICAR (subir a Cloudflare y que los programas se actualicen): subir los cambios a la rama
+#   «publicar», crear una etiqueta vX.Y.Z, o lanzarlo a mano desde Actions marcando «Publicar».
+#   La versión publicada es la de escritorio/package.json (tiene que ser mayor que la anterior).
+# - Al publicar se sube a Cloudflare R2
 #   (bucket nubrya-descargas, carpeta reciclacat/ → https://descargas.limonadaweb.com/reciclacat/)
 #   y los programas instalados se actualizan solos.
 #   Usa el entorno de GitHub «CLOUDFLARE_API_TOKEN»: secreto CLOUDFLARE_API_TOKEN (permiso «Workers R2 Storage: Edit»)
@@ -9,8 +12,13 @@ name: Instalador Windows
 
 on:
   workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Publicar en Cloudflare (los programas instalados se actualizarán)"
+        type: boolean
+        default: false
   push:
-    branches: [feature/reciclacat-gest-v2, main]
+    branches: [feature/reciclacat-gest-v2, main, publicar]
     tags: ["v*.*.*"]
 
 permissions:
@@ -21,6 +29,8 @@ jobs:
     runs-on: windows-latest
     # Entorno de GitHub donde están el token (secreto) y el Account ID (variable) de Cloudflare.
     environment: CLOUDFLARE_API_TOKEN
+    env:
+      PUBLICAR: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/publicar' || inputs.publicar == true }}
     steps:
       - uses: actions/checkout@v4
 
@@ -58,7 +68,7 @@ jobs:
           [ "v$V" = "${GITHUB_REF_NAME}" ] || { echo "La etiqueta ${GITHUB_REF_NAME} no coincide con la versión $V de escritorio/package.json"; exit 1; }
 
       - name: Publicar en Cloudflare (actualización automática)
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: env.PUBLICAR == 'true'
         shell: bash
         working-directory: escritorio/dist
         env:
@@ -67,6 +77,11 @@ jobs:
         run: |
           [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "Faltan los secretos CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID"; exit 1; }
           V=$(node -p "require('../package.json').version")
+          # No se vuelve a publicar una versión igual o anterior a la que ya está en Cloudflare.
+          ACTUAL=$(curl -fsS "https://descargas.limonadaweb.com/reciclacat/latest.yml?t=$(date +%s)" 2>/dev/null | sed -n 's/^version: *//p' | tr -d "'\"\r" || true)
+          if [ -n "$ACTUAL" ] && [ "$(printf '%s\n%s\n' "$ACTUAL" "$V" | sort -V | tail -1)" != "$V" -o "$ACTUAL" = "$V" ]; then
+            echo "Ya está publicada la versión $ACTUAL. Sube «version» en escritorio/package.json (ahora $V) antes de publicar."; exit 1
+          fi
           EXE="ReciclaCat_Gest-instalador-$V.exe"
           sube() { npx --yes wrangler@4 r2 object put "nubrya-descargas/reciclacat/$1" --file "$2" --content-type "$3" ${4:+--cache-control "$4"} --remote; }
           # Primero el instalador; latest.yml al final, para que nadie vea la versión antes de que exista el archivo.
