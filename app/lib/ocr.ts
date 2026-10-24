@@ -20,6 +20,8 @@ export interface ResultadoOCR {
   texto?: string;
   /** Cómo se ha leído: texto del PDF u OCR. */
   metodo?: "texto-pdf" | "ocr" | "hoja";
+  /** Si el PDF trae varios documentos (p. ej. varios DI, uno por página), cada uno por separado. */
+  documentos?: { tipo: TipoDocumento; campos: CampoDetectado[] }[];
 }
 
 export interface OpcionesOCR {
@@ -70,7 +72,9 @@ export function camposPorTipo(tipo: TipoDocumento): { clave: string; etiqueta: s
       { clave: "numero", etiqueta: "Nº DI" }, { clave: "fecha", etiqueta: "Fecha" }, { clave: "ler", etiqueta: "Código LER" },
       { clave: "descripcion", etiqueta: "Descripción" }, { clave: "cantidadKg", etiqueta: "Cantidad (kg)" },
       { clave: "nimaOrigen", etiqueta: "NIMA origen" }, { clave: "nimaDestino", etiqueta: "NIMA destino" },
-      { clave: "gestor", etiqueta: "Gestor destino" }, { clave: "transportista", etiqueta: "Transportista" },
+      { clave: "gestor", etiqueta: "Gestor destino" }, { clave: "nifDestino", etiqueta: "NIF del gestor" },
+      { clave: "operacionDestino", etiqueta: "Operación en destino (R/D)" }, { clave: "municipioDestino", etiqueta: "Municipio del gestor" },
+      { clave: "transportista", etiqueta: "Transportista" },
     ];
     case "Certificado de destrucción / baja": return [
       { clave: "matricula", etiqueta: "Matrícula" }, { clave: "vin", etiqueta: "Bastidor (VIN)" }, { clave: "marca", etiqueta: "Marca" },
@@ -172,7 +176,8 @@ export class LectorReal implements OcrProvider {
   esDemo = false;
 
   async extraer(archivo: File, opts: OpcionesOCR = {}): Promise<ResultadoOCR> {
-    const { extraerDeTexto } = await import("./extraer");
+    const { extraerDeTexto, dividirDocumentos, esDIOficial } = await import("./extraer");
+    let paginasPdf: string[] = [];
     const n = archivo.name.toLowerCase();
     const base = { origen: "real" as const };
     if (!extensionAdmitida(archivo.name)) return { ...base, tipo: "Otro", campos: [], error: "Formato no admitido" };
@@ -202,6 +207,7 @@ export class LectorReal implements OcrProvider {
           trozos.push(textoDePagina(c.items as { str: string; transform: number[] }[]));
         }
         texto = trozos.join("\n");
+        paginasPdf = trozos;
         if (texto.replace(/\s/g, "").length < 40) {
           // PDF escaneado: se renderiza cada página y se pasa por OCR.
           metodo = "ocr";
@@ -219,6 +225,7 @@ export class LectorReal implements OcrProvider {
             textos.push(r.data.text); confs.push(r.data.confidence);
           }
           texto = textos.join("\n");
+          paginasPdf = textos;
           calidad = confs.length ? confs.reduce((a, b) => a + b, 0) / confs.length / 100 : 0.5;
         }
       } else {
@@ -231,6 +238,12 @@ export class LectorReal implements OcrProvider {
       }
       if (texto.replace(/\s/g, "").length < 10) return { ...base, tipo: clasificarPorNombre(archivo.name, archivo.type), campos: [], texto, metodo, error: "No se ha encontrado texto legible. Prueba con una foto más nítida, de frente y con buena luz." };
       const r = extraerDeTexto(texto, { nombre: archivo.name, mime: archivo.type, calidad, pesosUsuario: opts.pesosUsuario });
+      // Varios DI en un mismo PDF (uno por página): se devuelven por separado.
+      const partes = paginasPdf.length > 1 ? dividirDocumentos(paginasPdf) : [];
+      if (partes.length > 1 && esDIOficial(partes[0])) {
+        const documentos = partes.map((p) => extraerDeTexto(p, { nombre: archivo.name, calidad, tipo: "DI" })).map((x) => ({ tipo: x.tipo, campos: x.campos }));
+        return { ...base, tipo: "DI", campos: documentos[0].campos, texto, metodo, documentos };
+      }
       return { ...base, tipo: r.tipo, campos: r.campos, lineas: r.lineas, texto, metodo };
     } catch (e) {
       return { ...base, tipo: clasificarPorNombre(archivo.name, archivo.type), campos: [], error: "Error al leer el archivo: " + (e as Error).message };

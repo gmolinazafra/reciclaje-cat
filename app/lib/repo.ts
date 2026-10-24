@@ -9,7 +9,7 @@
 
 import { puente } from "./escritorio";
 import { TARAS_INICIALES } from "./pesos";
-import type { BaseDatos, DI, Documento, PesoUsuario, Residuo, TaraVehiculo, Vehiculo, Venta } from "./types";
+import type { BaseDatos, DI, Documento, MovimientoNeumaticos, PesoUsuario, Residuo, TaraVehiculo, Vehiculo, Venta } from "./types";
 
 const CLAVE = "reciclacat.db.v1";
 const EVENTO = "reciclacat:db";
@@ -38,8 +38,8 @@ export function datosDemo(ejercicio = new Date().getFullYear()): BaseDatos {
     ],
   };
   const vehiculos: Vehiculo[] = [
-    { id: "demo-veh-1", ejercicio: e, matricula: "1234 ABC", vin: "VF1BB0A0A12345678", marca: "Renault", modelo: "Clio", fechaEntrada: f(2, 1), estado: "Desmontado", pesoEstimadoKg: 950, documentoBajaId: docBaja.id, demo: true },
-    { id: "demo-veh-2", ejercicio: e, matricula: "5678 DEF", marca: "Seat", modelo: "León", fechaEntrada: f(3, 10), estado: "Descontaminado", pesoEstimadoKg: 1200, pesoBasculaKg: 1185, demo: true },
+    { id: "demo-veh-1", ejercicio: e, matricula: "1234 BCD", vin: "VF1BB0A0A12345678", marca: "Renault", modelo: "Clio", fechaEntrada: f(2, 1), estado: "Compactado", pesoEstimadoKg: 950, documentoBajaId: docBaja.id, fechaDescontaminacion: f(2, 10), procedencia: { tipo: "particular" }, salida: { fecha: f(4, 20), gestor: "Fragmentadora demo S.L.", nima: "2900099999", operacion: "R1203", kg: 700 }, demo: true },
+    { id: "demo-veh-2", ejercicio: e, matricula: "5678 DFG", marca: "Seat", modelo: "León", fechaEntrada: f(3, 10), estado: "Descontaminado", pesoEstimadoKg: 1200, pesoBasculaKg: 1185, fechaDescontaminacion: f(3, 25), procedencia: { tipo: "administracion", nombre: "Ayuntamiento demo" }, demo: true },
     { id: "demo-veh-3", ejercicio: e, matricula: "9012 GHI", marca: "Ford", modelo: "Transit", fechaEntrada: f(4, 5), estado: "Recibido", pesoEstimadoKg: 2100, demo: true },
   ];
   const ventas: Venta[] = [
@@ -49,7 +49,7 @@ export function datosDemo(ejercicio = new Date().getFullYear()): BaseDatos {
     { id: "demo-ven-4", ejercicio: e, fecha: f(4, 2), mes: 4, pieza: "Kit embrague", referencia: "", descripcion: "Kit embrague", cantidad: 1, precio: 120, pesoKg: 0, origenPeso: "pendiente", origen: "excel", demo: true },
   ];
   const dis: DI[] = [
-    { id: "demo-di-1", ejercicio: e, numero: "DI-2900012345-0007", sentido: "salida", fecha: f(2, 28), ler: "16 06 01*", descripcion: "Baterías de plomo", cantidadKg: 320, nimaOrigen: "2900012345", nimaDestino: "4100067890", gestor: "Gestor demo S.L.", transportista: "Transportes demo S.L.", demo: true },
+    { id: "demo-di-1", ejercicio: e, numero: "DI-2900012345-0007", sentido: "salida", fecha: f(2, 28), ler: "16 06 01*", descripcion: "Baterías de plomo", cantidadKg: 320, nimaOrigen: "2900012345", nimaDestino: "4100067890", gestor: "Gestor demo S.L.", transportista: "Transportes demo S.L.", nifDestino: "B00000000", operacionDestino: "R1301", tipoInscripcionDestino: "G01", municipioDestino: "Sevilla", demo: true },
   ];
   const residuos: Residuo[] = [
     { id: "demo-res-1", ejercicio: e, fecha: f(2, 28), ler: "16 06 01*", descripcion: "Baterías de plomo", cantidadKg: 320, gestor: "Gestor demo S.L.", diId: "demo-di-1", demo: true },
@@ -57,9 +57,11 @@ export function datosDemo(ejercicio = new Date().getFullYear()): BaseDatos {
     { id: "demo-res-3", ejercicio: e, fecha: f(4, 9), ler: "16 01 03", descripcion: "Neumáticos fuera de uso", cantidadKg: 640, gestor: "SCRAP neumáticos demo", demo: true },
   ];
   return {
-    centro: { nombre: "Centro demo", nima: "2900012345", provincia: "", usuario: "demo" },
+    centro: { nombre: "Centro demo", nima: "2900012345", provincia: "Málaga", usuario: "demo", razonSocial: "Desguaces Demo, S.L.", nif: "B00000000", municipio: "Málaga", inscripcionGestor: "E01", inscripcionProductor: "P01", operacionAutorizada: "R1201" },
     ejercicio: e,
     documentos: [docBaja, docDI], ventas, vehiculos, residuos, dis, taras: TARAS_INICIALES, pesosUsuario: [],
+    neumaticos: [{ id: "demo-neu-1", ejercicio: e, fecha: f(3, 12), tipo: "segunda_mano", kg: 32, unidades: 4, destinatario: "Taller demo", tipoDestinatario: "profesional", demo: true }],
+    stocks: [],
   };
 }
 
@@ -75,6 +77,8 @@ export function baseVacia(ejercicio = new Date().getFullYear()): BaseDatos {
 function migrar(db: BaseDatos): BaseDatos {
   if (!db.taras) db.taras = TARAS_INICIALES;
   if (!db.pesosUsuario) db.pesosUsuario = [];
+  if (!db.neumaticos) db.neumaticos = [];
+  if (!db.stocks) db.stocks = [];
   for (const k of ["documentos", "ventas", "vehiculos", "residuos", "dis"] as const) if (!Array.isArray(db[k])) (db as unknown as Record<string, unknown[]>)[k] = [];
   if (!db.centro) db.centro = baseVacia().centro;
   if (!db.ejercicio) db.ejercicio = new Date().getFullYear();
@@ -172,6 +176,14 @@ export const ops = {
   addTara: (db: BaseDatos, t: TaraVehiculo): BaseDatos => ({ ...db, taras: [t, ...db.taras] }),
   updTara: (db: BaseDatos, t: TaraVehiculo): BaseDatos => ({ ...db, taras: db.taras.map((x) => (x.id === t.id ? t : x)) }),
   delTara: (db: BaseDatos, id: string): BaseDatos => ({ ...db, taras: db.taras.filter((x) => x.id !== id) }),
+  updDI: (db: BaseDatos, d: DI): BaseDatos => ({ ...db, dis: db.dis.map((x) => (x.id === d.id ? d : x)) }),
+  delDI: (db: BaseDatos, id: string): BaseDatos => ({ ...db, dis: db.dis.filter((x) => x.id !== id), residuos: db.residuos.map((r) => (r.diId === id ? { ...r, diId: undefined } : r)) }),
+  addNeumaticos: (db: BaseDatos, n: MovimientoNeumaticos): BaseDatos => ({ ...db, neumaticos: [n, ...(db.neumaticos ?? [])] }),
+  delNeumaticos: (db: BaseDatos, id: string): BaseDatos => ({ ...db, neumaticos: (db.neumaticos ?? []).filter((x) => x.id !== id) }),
+  setStock: (db: BaseDatos, ejercicio: number, ler: string, kg: number): BaseDatos => {
+    const resto = (db.stocks ?? []).filter((x) => !(x.ejercicio === ejercicio && x.ler === ler));
+    return { ...db, stocks: kg > 0 ? [...resto, { id: uid(), ejercicio, ler, kg }] : resto };
+  },
   delResiduo: (db: BaseDatos, id: string): BaseDatos => ({ ...db, residuos: db.residuos.filter((x) => x.id !== id) }),
   setPesoUsuario: (db: BaseDatos, p: PesoUsuario): BaseDatos => ({ ...db, pesosUsuario: [{ ...p, fecha: new Date().toISOString().slice(0, 10) }, ...db.pesosUsuario.filter((x) => x.articulo.toLowerCase() !== p.articulo.toLowerCase())] }),
   delPesoUsuario: (db: BaseDatos, articulo: string): BaseDatos => ({ ...db, pesosUsuario: db.pesosUsuario.filter((x) => x.articulo.toLowerCase() !== articulo.toLowerCase()) }),

@@ -18,7 +18,7 @@ import Vehiculos from "./components/screens/Vehiculos";
 import Piezas from "./components/screens/Piezas";
 import Residuos from "./components/screens/Residuos";
 import Informes from "./components/screens/Informes";
-import { Aviso, Boton, Campo, Modal } from "./components/ui";
+import { Aviso, Boton, Campo, Modal, Select } from "./components/ui";
 
 const TABS = [
   { n: "Resumen", i: "▦" }, { n: "Documentos", i: "📄" }, { n: "Vehículos", i: "🚗" }, { n: "Piezas", i: "⚙" }, { n: "Residuos", i: "♻" }, { n: "Informes", i: "📊" },
@@ -77,8 +77,13 @@ export default function Home() {
   const [ajustes, setAjustes] = useState(false);
   const [accion, setAccion] = useState<string | null>(null);
   const [legal, setLegal] = useState<DocLegal | null>(null);
+  // Abierto al principio si faltan los datos; después lo controla el usuario (no se cierra al escribir).
+  const [siraAbierto, setSiraAbierto] = useState<boolean | null>(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (ajustes) setSiraAbierto(!db.centro.nif); }, [ajustes]);
   const ir = (t: number, a?: string) => { setTab(t); setAccion(a ?? null); };
-  const anios = [db.ejercicio - 1, db.ejercicio, db.ejercicio + 1].filter((a, i, arr) => arr.indexOf(a) === i);
+  // Años con datos + el actual ± 1, para poder trabajar también con ejercicios anteriores (p. ej. DI del año pasado).
+  const anios = [...new Set([db.ejercicio - 1, db.ejercicio, db.ejercicio + 1, new Date().getFullYear(), ...db.vehiculos.map((v) => v.ejercicio), ...db.dis.map((d) => d.ejercicio), ...db.ventas.map((v) => v.ejercicio), ...db.residuos.map((r) => r.ejercicio)])].filter((a) => a > 2000).sort((a, b) => a - b);
 
   if (!montado) return <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-white text-[#17372f]"><img src="/logo.png" alt="ReciclaCat_Gest" className="w-64 max-w-[70vw]" /><p className="text-xs text-[#8aa39a]">Powered by Limonada Web</p></main>;
 
@@ -92,7 +97,7 @@ export default function Home() {
               {anios.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           )}
-          <button type="button" onClick={() => setAjustes(true)} aria-label="Ajustes" className="min-h-[40px] min-w-[40px] rounded-xl text-lg hover:bg-[#f0f5f2]">⚙️</button>
+          <button type="button" onClick={() => { setSiraAbierto(null); setAjustes(true); }} aria-label="Ajustes" className="min-h-[40px] min-w-[40px] rounded-xl text-lg hover:bg-[#f0f5f2]">⚙️</button>
         </div>
       </header>
       <BandaPrueba />
@@ -112,7 +117,7 @@ export default function Home() {
             {tab === 2 && <Vehiculos db={db} set={set} />}
             {tab === 3 && <Piezas db={db} set={set} abrir={accion === "manual" || accion === "excel" ? accion : null} onAbierto={() => setAccion(null)} />}
             {tab === 4 && <Residuos db={db} set={set} abrirDI={accion === "di"} onAbierto={() => setAccion(null)} />}
-            {tab === 5 && <Informes db={db} />}
+            {tab === 5 && <Informes db={db} set={set} />}
             <footer className="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-[#dce8e1] pt-3 text-[11px] text-[#8aa39a]">
               <span>ReciclaCat_Gest · © Limonada Web</span>
               <button type="button" className="underline hover:text-[#096653]" onClick={() => setLegal("condiciones")}>Condiciones y privacidad</button>
@@ -137,6 +142,21 @@ export default function Home() {
               <Campo label="Provincia" value={db.centro.provincia} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, provincia: v } }))} />
               <Campo label="Usuario" value={db.centro.usuario} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, usuario: v } }))} ayuda="Se registra en cada documento subido." />
             </div>
+            <details className="rounded-2xl border border-[#cfe0d7] bg-white p-3" open={siraAbierto ?? !db.centro.nif}>
+              <summary className="cursor-pointer text-sm font-bold" onClick={(e) => { e.preventDefault(); setSiraAbierto(!(siraAbierto ?? !db.centro.nif)); }}>Datos para la memoria anual (SIRA)</summary>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {([
+                  ["razonSocial", "Razón social", ""], ["nif", "NIF", ""], ["municipio", "Municipio", ""], ["autorizacion", "Nº de autorización", "Como figura en el DI (p. ej. AN000…)."],
+                  ["inscripcionGestor", "Inscripción como gestor", "Habitual en un CAT: E01."], ["inscripcionProductor", "Inscripción como productor", "Habitual: P01."],
+                  ["operacionAutorizada", "Operación autorizada", "La de tu autorización (p. ej. R1201)."],
+                ] as const).map(([k, l, a]) => (
+                  <Campo key={k} label={l} value={(db.centro[k] as string | undefined) ?? ""} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, [k]: v } }))} ayuda={a || undefined} />
+                ))}
+                <Select label="Procedencia de los vehículos en las entradas" value={db.centro.procedenciaEntradas === "particulares" ? "Agrupados como particulares" : "El propio centro (como en SIRA por defecto)"} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, procedenciaEntradas: v.startsWith("Agrupados") ? "particulares" : "propio" } }))} opciones={["El propio centro (como en SIRA por defecto)", "Agrupados como particulares"]} />
+                <Campo label="Método de cálculo del peso total" value={db.centro.metodoPeso ?? ""} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, metodoPeso: v } }))} placeholder="Suma de tara de ficha técnica" />
+                <Campo label="Método de cálculo de lo enviado a reutilización" value={db.centro.metodoReutilizacion ?? ""} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, metodoReutilizacion: v } }))} placeholder="Kilos de piezas vendidas según facturas" />
+              </div>
+            </details>
             <BloqueLegal abrir={setLegal} />
             <div className="flex flex-wrap gap-2">
               <Boton tipo="secundario" onClick={() => confirm("¿Cargar los datos de demostración? Se sustituirán los datos actuales (haz antes una copia si los necesitas).") && repo.reiniciarDemo()}>Cargar datos de demostración</Boton>

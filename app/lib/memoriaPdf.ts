@@ -4,6 +4,7 @@
  * «kilos gestionados piezas», sin describirlas.
  */
 import { alertas, resumenAnual } from "./informes";
+import { memoriaSIRA } from "./memoria";
 import type { BaseDatos } from "./types";
 
 const VERDE: [number, number, number] = [13, 121, 105];
@@ -15,7 +16,8 @@ export async function memoriaPdf(db: BaseDatos, ejercicio = db.ejercicio): Promi
   const { jsPDF } = await import("jspdf");
   const { autoTable } = await import("jspdf-autotable");
   const r = resumenAnual(db, ejercicio);
-  const al = alertas(db, ejercicio);
+  const m = memoriaSIRA(db, ejercicio);
+  const al = [...new Set([...alertas(db, ejercicio), ...m.avisos])];
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   let y = 18;
@@ -31,7 +33,7 @@ export async function memoriaPdf(db: BaseDatos, ejercicio = db.ejercicio): Promi
   doc.setFontSize(11); doc.setTextColor(23, 55, 47);
   y += 7; doc.text(db.centro.nombre || "Centro", 14, y);
   doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(90, 110, 104);
-  y += 5; doc.text([db.centro.nima ? `NIMA ${db.centro.nima}` : "NIMA sin indicar", db.centro.provincia].filter(Boolean).join(" · "), 14, y);
+  y += 5; doc.text([db.centro.razonSocial, db.centro.nif ? `NIF ${db.centro.nif}` : "", db.centro.nima ? `NIMA ${db.centro.nima}` : "NIMA sin indicar", db.centro.municipio, db.centro.provincia].filter(Boolean).join(" · "), 14, y);
   doc.text(`Generada el ${new Date().toLocaleDateString("es-ES")}`, W - 14, y, { align: "right" });
 
   y += 8;
@@ -47,21 +49,53 @@ export async function memoriaPdf(db: BaseDatos, ejercicio = db.ejercicio): Promi
     headStyles: { fillColor: VERDE }, styles: { fontSize: 9.5 }, columnStyles: { 0: { fontStyle: "bold", cellWidth: 70 } },
   });
 
-  const tablaLER = (titulo: string, peligroso: boolean) => {
-    const filas = r.porLER.filter((x) => x.peligroso === peligroso);
-    const total = peligroso ? r.kgPeligrosos : r.kgNoPeligrosos;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sig = () => (doc as any).lastAutoTable.finalY + 8;
+  const t = (n: number) => (n / 1000).toLocaleString("es-ES", { maximumFractionDigits: 3 }) + " t";
+  const p = m.porcentajes;
+  autoTable(doc, {
+    startY: sig(), theme: "grid", head: [[{ content: "Vehículos tratados (formulario de SIRA)", colSpan: 2 }]],
+    body: [
+      ["Nº de vehículos tratados / peso total", `${m.vehiculos.tratados} · ${t(m.vehiculos.tratadosKg)}`],
+      ["Balance de vehículos", `stock inicial ${m.vehiculos.stockInicial} + entradas ${m.vehiculos.entradas} = tratados ${m.vehiculos.tratados} + stock final ${m.vehiculos.stockFinal} ${m.vehiculos.balanceOk ? "(cuadra)" : "(NO CUADRA)"}`],
+      ["% enviado a reutilización", `${p.reutilizacion} %  (objetivo ≥ ${m.objetivoPiezas.objetivo} % · ${m.objetivoPiezas.cumple ? "cumple" : "NO cumple"})`],
+      ["% enviado a reciclaje", `${p.reciclaje} %`], ["% enviado a valorización energética", `${p.valorizacion} %`], ["% enviado a eliminación", `${p.eliminacion} %`],
+      ["% enviado a otros gestores de VFU / fragmentadora", `${p.otrosGestores} % / ${p.fragmentadora} %${m.fragmentadoraPorDiferencia ? " (por diferencia)" : ""}`],
+      ["Método del peso total", db.centro.metodoPeso || "Suma de tara de ficha técnica (o báscula cuando existe)"],
+      ["Método de los elementos a reutilización", db.centro.metodoReutilizacion || "Kilos de piezas vendidas según facturas (diccionario de pesos y báscula)"],
+    ],
+    headStyles: { fillColor: VERDE }, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: "bold", cellWidth: 70 } },
+  });
+  autoTable(doc, {
+    startY: sig(), theme: "striped", head: [[{ content: "Entradas de vehículos · gestor de residuos peligrosos (MAG)", colSpan: 5 }], ["LER", "Procedencia", "NIMA", "Operación", { content: "Cantidad", styles: { halign: "right" } }]],
+    body: m.entradasMAG.length ? m.entradasMAG.map((f) => [f.ler, f.razonSocial, f.nima, f.operacion, t(f.kg)]) : [[{ content: "Sin entradas en el ejercicio", colSpan: 5 }]],
+    headStyles: { fillColor: ROJO }, styles: { fontSize: 8.5 }, columnStyles: { 4: { halign: "right" } },
+  });
+  const tablaSalidas = (titulo: string, peligroso: boolean) => {
+    const filas = peligroso ? m.salidasPeligrosos : m.salidasNoPeligrosos;
+    const total = filas.reduce((a, f) => a + f.kg, 0);
     autoTable(doc, {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      startY: (doc as any).lastAutoTable.finalY + 8, theme: "striped",
-      head: [[{ content: titulo, colSpan: 3 }], ["LER", "Descripción", { content: "Cantidad", styles: { halign: "right" } }]],
-      body: filas.length ? filas.map((x) => [x.ler, x.descripcion, kg(x.kg)]) : [[{ content: "Sin registros en el ejercicio", colSpan: 3 }]],
-      foot: [[{ content: "Total", colSpan: 2 }, kg(total)]],
+      startY: sig(), theme: "striped",
+      head: [[{ content: titulo, colSpan: 6 }], ["LER", "Gestor de destino", "NIMA", "Inscr.", "Operación", { content: "Cantidad", styles: { halign: "right" } }]],
+      body: filas.length ? filas.map((f) => [f.ler, f.razonSocial + (f.faltan.length ? `  (falta: ${f.faltan.join(", ")})` : ""), f.nima, f.tipoInscripcion, f.operacion, t(f.kg)]) : [[{ content: "Sin registros en el ejercicio", colSpan: 6 }]],
+      foot: [[{ content: "Total", colSpan: 5 }, t(total)]],
       headStyles: { fillColor: peligroso ? ROJO : VERDE }, footStyles: { fillColor: [240, 244, 242], textColor: [23, 55, 47] },
-      styles: { fontSize: 9 }, columnStyles: { 0: { cellWidth: 26 }, 2: { halign: "right", cellWidth: 32 } },
+      styles: { fontSize: 8.5 }, columnStyles: { 0: { cellWidth: 22 }, 5: { halign: "right", cellWidth: 24 } },
     });
   };
-  tablaLER("Residuos PELIGROSOS por código LER", true);
-  tablaLER("Residuos NO PELIGROSOS por código LER", false);
+  tablaSalidas("Residuos PELIGROSOS enviados a gestor · productor (MAP peligrosos)", true);
+  tablaSalidas("Residuos NO PELIGROSOS enviados a gestor · productor (MAP no peligrosos)", false);
+  const n = m.neumaticos;
+  autoTable(doc, {
+    startY: sig(), theme: "grid", head: [[{ content: "Información complementaria del CAT", colSpan: 2 }]],
+    body: [
+      ["Neumáticos preparados para la reutilización (segunda mano)", `${t(n.segundaManoKg)} · ${n.segundaManoUds} uds`],
+      ["NFU entregados a cambio", `${t(n.aCambioKg)} · ${n.aCambioUds} uds`],
+      ["Certificado de tratamiento (art. 7.5 RD 265/2021)", `${t(n.certificadoKg)} · ${n.certificadoUds} uds`],
+      ["Stock de residuos a 31/12", m.stockResiduos.length ? m.stockResiduos.map((s) => `${s.ler}: ${t(s.kgFinal)}`).join(" · ") : "Sin stock registrado"],
+    ],
+    headStyles: { fillColor: VERDE }, styles: { fontSize: 9 }, columnStyles: { 0: { fontStyle: "bold", cellWidth: 90 } },
+  });
 
   const meses = r.porMes.filter((m) => m.kgPiezas || m.kgResiduos || m.vehiculos);
   autoTable(doc, {

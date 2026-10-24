@@ -5,6 +5,8 @@ import { camposPorTipo, extensionAdmitida, getOcrProvider, EXTENSIONES_ADMITIDAS
 import type { LineaFacturaDetectada } from "../../lib/extraer";
 import { normalizarFecha } from "../../lib/extraer";
 import { puente } from "../../lib/escritorio";
+import { aplicarDIs, yaExisteDI } from "../../lib/di";
+import type { DatosDI } from "../../lib/di";
 import { ops, uid } from "../../lib/repo";
 import { TIPOS_DOCUMENTO } from "../../lib/types";
 import type { BaseDatos, CampoDetectado, Documento, TipoDocumento, Venta } from "../../lib/types";
@@ -23,6 +25,10 @@ export function SubirDocumento({ db, set, onCerrar, onGuardado }: { db: BaseDato
   const [texto, setTexto] = useState("");
   const [verTexto, setVerTexto] = useState(false);
   const [metodo, setMetodo] = useState("");
+  /** Varios DI en un mismo PDF. */
+  const [variosDI, setVariosDI] = useState<(DatosDI & { incluir: boolean; repetido: boolean })[]>([]);
+  /** Registrar el DI (y su salida de residuo) al guardar un documento de tipo DI. */
+  const [registrarDI, setRegistrarDI] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const camRef = useRef<HTMLInputElement>(null);
   const ocr = getOcrProvider();
@@ -47,6 +53,8 @@ export function SubirDocumento({ db, set, onCerrar, onGuardado }: { db: BaseDato
     setTexto(r.texto ?? "");
     setMetodo(r.metodo === "texto-pdf" ? "texto del PDF" : r.metodo === "ocr" ? "reconocimiento de texto (OCR)" : r.metodo === "hoja" ? "hoja de cálculo" : "");
     setLineas((r.lineas ?? []).map((l) => ({ ...l, incluir: true })));
+    const aDatos = (campos: CampoDetectado[]) => Object.fromEntries(campos.map((c) => [c.clave, c.valorFinal])) as unknown as DatosDI;
+    setVariosDI((r.documentos ?? []).map((x) => { const v = aDatos(x.campos); return { ...v, incluir: !yaExisteDI(db, v.numero), repetido: yaExisteDI(db, v.numero) }; }));
     if (r.error) { setError(r.error); setFase("error"); set((d) => ops.addDocumento(d, base)); return; }
     setFase("revisar");
   };
@@ -79,7 +87,15 @@ export function SubirDocumento({ db, set, onCerrar, onGuardado }: { db: BaseDato
       cantidad: l.cantidad, precio: l.cantidad ? +(l.importe / l.cantidad).toFixed(2) : 0, pesoKg: l.kg, origenPeso: l.kg > 0 ? "estimado" : "pendiente",
       origen: "factura", factura: factura || undefined, observaciones: factura ? `Factura ${factura}` : undefined, documentoId: doc.id,
     }));
-    set((d) => (ventas.length ? ops.addVentas(ops.addDocumento(d, final), ventas) : ops.addDocumento(d, final)));
+    // DI: se registran el DI y su salida de residuo (uno o varios), sin duplicar números ya existentes.
+    const valoresDoc = Object.fromEntries(doc.campos.map((c) => [c.clave, c.valorFinal])) as unknown as DatosDI;
+    const listaDI: DatosDI[] = doc.tipo !== "DI" ? [] : variosDI.length ? variosDI.filter((x) => x.incluir) : registrarDI ? [valoresDoc] : [];
+    set((d) => {
+      let d2 = ops.addDocumento(d, final);
+      if (ventas.length) d2 = ops.addVentas(d2, ventas);
+      if (listaDI.length) d2 = aplicarDIs(d2, listaDI, doc.id).db;
+      return d2;
+    });
     onGuardado?.(final);
     onCerrar();
   };
@@ -128,6 +144,26 @@ export function SubirDocumento({ db, set, onCerrar, onGuardado }: { db: BaseDato
               </label>
             ))}
           </div>
+          {doc.tipo === "DI" && variosDI.length > 0 && (
+            <div className="rounded-2xl border border-[#cfe0d7] bg-[#f7faf8] p-3">
+              <p className="text-sm font-bold">Este PDF trae {variosDI.length} DI</p>
+              <p className="mt-1 text-xs text-[#657a72]">Al guardar se registra cada DI marcado y, si es una salida, su salida de residuo (peligrosos y no peligrosos por separado). Los campos de arriba son los del primer DI.</p>
+              <div className="mt-2 max-h-72 space-y-1 overflow-auto">
+                {variosDI.map((x, i) => (
+                  <label key={i} className={"grid grid-cols-[auto_1fr] items-start gap-2 rounded-xl border bg-white p-2 text-xs " + (x.incluir ? "" : "opacity-50")}>
+                    <input type="checkbox" className="mt-0.5 h-5 w-5" checked={x.incluir} disabled={x.repetido} onChange={(e) => setVariosDI(variosDI.map((y, j) => (j === i ? { ...y, incluir: e.target.checked } : y)))} />
+                    <span><b className={x.ler.endsWith("*") ? "text-[#9b2c2c]" : "text-[#0d7969]"}>{x.ler || "LER ?"}</b> · {x.descripcion || "—"} · <b>{x.cantidadKg || "?"} kg</b> · {x.fecha || "sin fecha"}<br /><span className="text-[#657a72]">{x.numero || "sin número"} · {x.gestor || "gestor ?"} · {x.operacionDestino || "operación ?"}{x.repetido ? " · ya registrado" : ""}</span></span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          {doc.tipo === "DI" && variosDI.length === 0 && (
+            <label className="flex items-start gap-2 rounded-xl border border-[#cfe0d7] bg-[#f7faf8] p-3 text-sm">
+              <input type="checkbox" className="mt-0.5 h-5 w-5" checked={registrarDI} onChange={(e) => setRegistrarDI(e.target.checked)} />
+              <span>Registrar también el DI y su salida de residuo en «Residuos»{yaExisteDI(db, doc.campos.find((c) => c.clave === "numero")?.valorFinal ?? "") ? " (este nº de DI ya está registrado: no se duplicará)" : ""}</span>
+            </label>
+          )}
           {(doc.tipo === "Factura" || doc.tipo === "Albarán" || lineas.length > 0) && (
             <div className="rounded-2xl border border-[#cfe0d7] bg-[#f7faf8] p-3">
               <p className="text-sm font-bold">Piezas detectadas en la factura</p>
@@ -160,7 +196,7 @@ export function SubirDocumento({ db, set, onCerrar, onGuardado }: { db: BaseDato
           <div className="flex flex-wrap justify-end gap-2 pt-2">
             <Boton tipo="texto" onClick={onCerrar}>Descartar</Boton>
             <Boton tipo="secundario" onClick={() => guardar("Revisado")}>Guardar como revisado</Boton>
-            <Boton onClick={() => guardar("Guardado")}>{seleccionadas.length ? `Guardar y añadir ${seleccionadas.length} pieza(s)` : "Guardar"}</Boton>
+            <Boton onClick={() => guardar("Guardado")}>{seleccionadas.length ? `Guardar y añadir ${seleccionadas.length} pieza(s)` : variosDI.length ? `Guardar y registrar ${variosDI.filter((x) => x.incluir).length} DI` : "Guardar"}</Boton>
           </div>
         </div>
       )}

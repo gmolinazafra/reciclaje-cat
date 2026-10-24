@@ -91,6 +91,12 @@ export interface Vehiculo {
   pesoEstimadoKg: number;
   pesoBasculaKg?: number;
   documentoBajaId?: Id;
+  /** Procedencia para la memoria (entradas de 16 01 04*). Por defecto, particular. */
+  procedencia?: { tipo: "particular" | "empresa" | "administracion"; nombre?: string; nif?: string; nima?: string };
+  /** Fecha en que se descontaminó (el RD 265/2021 da 30 días desde el certificado de destrucción). */
+  fechaDescontaminacion?: string;
+  /** Salida del vehículo descontaminado (16 01 06) a fragmentadora u otro gestor. */
+  salida?: { fecha: string; gestor: string; nif?: string; nima?: string; operacion?: string; kg?: number; diId?: Id };
   demo?: boolean;
 }
 
@@ -124,7 +130,38 @@ export interface DI {
   documentoId?: Id;
   vehiculoId?: Id;
   residuoId?: Id;
+  /** Datos del destino para la memoria (SIRA). */
+  nifDestino?: string;
+  tipoInscripcionDestino?: string; // G01, G02…
+  operacionDestino?: string; // R1301…
+  municipioDestino?: string;
+  provinciaDestino?: string;
+  nifOrigen?: string;
+  razonSocialOrigen?: string;
   demo?: boolean;
+}
+
+/** Neumáticos: información complementaria del CAT en la memoria (RD 265/2021, art. 7.5 y 11). */
+export interface MovimientoNeumaticos {
+  id: Id;
+  ejercicio: number;
+  fecha: string;
+  tipo: "segunda_mano" | "nfu_a_cambio" | "certificado_7_5";
+  kg: number;
+  unidades: number;
+  destinatario: string;
+  nif?: string;
+  nima?: string;
+  tipoDestinatario?: "profesional" | "domestico";
+  demo?: boolean;
+}
+
+/** Stock a 31 de diciembre de un ejercicio, por código LER (residuos almacenados sin enviar). */
+export interface StockResiduo {
+  id: Id;
+  ejercicio: number;
+  ler: string;
+  kg: number;
 }
 
 export interface TaraVehiculo {
@@ -151,6 +188,20 @@ export interface Centro {
   nima: string;
   provincia: string;
   usuario: string;
+  /** Datos para la memoria anual (SIRA). */
+  razonSocial?: string;
+  nif?: string;
+  municipio?: string;
+  autorizacion?: string; // AN000…
+  inscripcionGestor?: string; // E01
+  inscripcionProductor?: string; // P01
+  operacionAutorizada?: string; // R1201
+  /** Cómo se declara la procedencia de los vehículos en las entradas: agrupados como particulares o como el propio centro. */
+  procedenciaEntradas?: "propio" | "particulares";
+  metodoPeso?: string;
+  metodoReutilizacion?: string;
+  /** Destino para los % de la memoria por código LER (si se cambia el de por defecto). */
+  destinoLER?: Record<string, string>;
 }
 
 export interface BaseDatos {
@@ -163,4 +214,6 @@ export interface BaseDatos {
   dis: DI[];
   taras: TaraVehiculo[];
   pesosUsuario: PesoUsuario[];
+  neumaticos?: MovimientoNeumaticos[];
+  stocks?: StockResiduo[];
 }

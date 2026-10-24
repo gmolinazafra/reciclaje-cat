@@ -26,9 +26,9 @@ const chk = (nombre: string, el: React.ReactElement, re: RegExp) => {
 const Resumen = def(R), Documentos = def(D), Vehiculos = def(V), Piezas = def(P), Residuos = def(S), Informes = def(I), Home = def(H);
 chk("Resumen", <Resumen db={db} ir={() => {}} />, /DEMO/);
 chk("Documentos", <Documentos db={db} set={set} />, /Pendiente de revisar/);
-chk("Vehículos", <Vehiculos db={db} set={set} />, /1234 ABC/);
+chk("Vehículos", <Vehiculos db={db} set={set} />, /1234 BCD/);
 chk("Piezas", <Piezas db={db} set={set} />, /Importar desde Excel de facturación/);
 chk("Residuos", <Residuos db={db} set={set} />, /16 06 01/);
-chk("Informes", <Informes db={db} />, /MEMORIA ANUAL 2026/);
+chk("Informes", <Informes db={db} />, /Memoria SIRA[\s\S]*Vehículos tratados[\s\S]*16 01 04\*/);
 chk("Home", <Home />, /ReciclaCat_/);
 console.log(`\n✔ ${n} pantallas renderizan`);

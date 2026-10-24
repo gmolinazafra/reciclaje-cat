@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { alertas, memoriaAnualTexto, resumenAnual } from "../../lib/informes";
 import { memoriaPdf } from "../../lib/memoriaPdf";
+import MemoriaSIRA from "./MemoriaSIRA";
 import type { BaseDatos } from "../../lib/types";
 import { Aviso, Boton, eur, kg } from "../ui";
 
-interface Props { db: BaseDatos }
+interface Props { db: BaseDatos; set?: (fn: (db: BaseDatos) => BaseDatos) => void }
 
 function descargarBlob(nombre: string, blob: Blob) {
   const a = document.createElement("a");
@@ -19,8 +20,8 @@ function descargar(nombre: string, contenido: string, mime = "text/plain") {
   descargarBlob(nombre, new Blob([mime === "text/csv" ? "\ufeff" + contenido : contenido], { type: mime + ";charset=utf-8" }));
 }
 
-export default function Informes({ db }: Props) {
-  const [tipo, setTipo] = useState<"memoria" | "residuos" | "piezas" | "vehiculos">("memoria");
+export default function Informes({ db, set }: Props) {
+  const [tipo, setTipo] = useState<"sira" | "memoria" | "residuos" | "piezas" | "vehiculos">("sira");
   const [generando, setGenerando] = useState(false);
   const [errorPdf, setErrorPdf] = useState("");
   const pdf = async () => {
@@ -43,11 +44,12 @@ export default function Informes({ db }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {([["memoria", "Memoria anual"], ["residuos", "Residuos por LER"], ["piezas", "Piezas vendidas"], ["vehiculos", "Vehículos"]] as const).map(([k, l]) => (
+        {([["sira", "Memoria SIRA"], ["memoria", "Resumen anual"], ["residuos", "Residuos por LER"], ["piezas", "Piezas vendidas"], ["vehiculos", "Vehículos"]] as const).map(([k, l]) => (
           <button key={k} type="button" onClick={() => setTipo(k)} className={"min-h-[44px] rounded-xl px-3 text-sm font-bold " + (tipo === k ? "bg-[#0d7969] text-white" : "bg-[#e5f3ed] text-[#096653]")}>{l}</button>
         ))}
       </div>
-      {al.length > 0 && <Aviso tipo="aviso">Faltan datos para cerrar el ejercicio: {al.join(" · ")}</Aviso>}
+      {tipo === "sira" && <MemoriaSIRA db={db} set={set ?? (() => {})} />}
+      {tipo !== "sira" && al.length > 0 && <Aviso tipo="aviso">Faltan datos para cerrar el ejercicio: {al.join(" · ")}</Aviso>}
       {tipo === "memoria" && (
         <div className="grid gap-4 md:grid-cols-2">
           <pre className="max-w-full overflow-x-auto whitespace-pre-wrap rounded-2xl border bg-white p-4 text-xs leading-5">{memoriaAnualTexto(db)}</pre>
@@ -73,8 +75,8 @@ export default function Informes({ db }: Props) {
       )}
       {errorPdf && <Aviso tipo="error">{errorPdf}</Aviso>}
       <div className="flex flex-wrap justify-end gap-2">
-        {tipo === "memoria" && <Boton onClick={pdf} disabled={generando}>{generando ? "Generando PDF…" : "Descargar memoria (PDF)"}</Boton>}
-        <Boton tipo={tipo === "memoria" ? "secundario" : "primario"} onClick={exportar}>Descargar {tipo === "memoria" ? "en texto (TXT)" : "CSV"}</Boton>
+        {(tipo === "memoria" || tipo === "sira") && <Boton onClick={pdf} disabled={generando}>{generando ? "Generando PDF…" : "Descargar memoria (PDF)"}</Boton>}
+        {tipo !== "sira" && <Boton tipo={tipo === "memoria" ? "secundario" : "primario"} onClick={exportar}>Descargar {tipo === "memoria" ? "en texto (TXT)" : "CSV"}</Boton>}
       </div>
       <p className="text-xs text-[#657a72]">La memoria en PDF es un documento de trabajo con peligrosos y no peligrosos separados. Para presentarla, vuelca los datos en el modelo oficial de tu comunidad autónoma. Los CSV se abren en Excel.</p>
     </div>

@@ -5,6 +5,7 @@
  */
 
 import { camposPorTipo, clasificarPorNombre } from "./ocr";
+import { infoLER, normalizarLER, operacion4 } from "./ler";
 import { buscarPeso } from "./pesos";
 import type { CampoDetectado, PesoUsuario, TipoDocumento } from "./types";
 
@@ -156,6 +157,7 @@ function buscarMarcaModelo(t: string): { marca: string; modelo: string } {
 
 /** Clasificación por contenido; si no hay pistas, por nombre de archivo. */
 export function clasificarTexto(t: string, nombre = "", mime = ""): TipoDocumento {
+  if (esDIOficial(t)) return "DI";
   const s = sinAcentos(t).toLowerCase();
   if (/documento de identificacion|\bd\.?i\.?\b.{0,40}residuo|notificacion previa de traslado/.test(s) && /\bler\b/.test(s)) return "DI";
   if (/certificado de destruccion|baja definitiva|tratamiento medioambiental/.test(s)) return "Certificado de destrucción / baja";
@@ -203,12 +205,92 @@ export function lineasFactura(t: string, pesosUsuario: PesoUsuario[] = []): Line
   return out;
 }
 
+
+// ─── DI oficiales (RD 553/2020) ──────────────────────────────────────────────
+
+const ACENTO: Record<string, string> = { a: "á", e: "é", i: "í", o: "ó", u: "ú", A: "Á", E: "É", I: "Í", O: "Ó", U: "Ú" };
+
+/**
+ * Algunos PDF oficiales (DI de la Junta) descomponen las tildes al extraer el texto:
+ * «Razoín» (Razón), «Maílaga» (Málaga), «díígitos» (dígitos), «Pequenño» (Pequeño), «MAÁLAGA».
+ * Solo se corrige si el texto muestra esa firma, para no tocar textos normales.
+ */
+export function limpiarTextoPdf(t: string): string {
+  if (!/íí|ioín|seguín|Razoín|nño|AÁ|EÉ|IÍ|OÓ|UÚ/.test(t)) return t;
+  return t
+    .replace(/([aeiouAEIOU])íí/g, "$1\u0001") // vocal + í real (Coín, país)
+    .replace(/íí/g, "í") // dígitos, artículo
+    .replace(/([aeiou])í/g, (_m, v: string) => ACENTO[v]) // Razón, Málaga, según
+    .replace(/AÁ|EÉ|IÍ|OÓ|UÚ/g, (m) => m[1]) // MAÁLAGA → MÁLAGA
+    .replace(/nñ/g, "ñ").replace(/NÑ/g, "Ñ")
+    .replace(/\u0001/g, "í");
+}
+
+export const esDIOficial = (t: string) => /RD\.?\s*553\/2020|DATOS DEL GESTOR U OPERADOR|DOCUMENTO DE IDENTIFICACI[OÓ]N[\s\S]{0,200}Documento\s*n[ºo°]/i.test(t);
+
+/** Divide el texto de un PDF (por páginas) en documentos: cada DI empieza en una página con su «Documento nº». */
+export function dividirDocumentos(paginas: string[]): string[] {
+  const docs: string[] = [];
+  for (const p of paginas) {
+    const empieza = /DOCUMENTO DE IDENTIFICACI[OÓ]N/i.test(p) && /Documento\s*n[ºo°]\s*[A-Z0-9]{8,}/i.test(p);
+    if (empieza || !docs.length) docs.push(p); else docs[docs.length - 1] += "\n" + p;
+  }
+  return docs;
+}
+
+function bloque(t: string, desde: RegExp, hasta: RegExp): string {
+  const i = t.search(desde);
+  if (i < 0) return "";
+  const resto = t.slice(i);
+  const j = resto.slice(1).search(hasta);
+  return j < 0 ? resto : resto.slice(0, j + 1);
+}
+
+const linea = (t: string, re: RegExp) => (t.match(re)?.[1] ?? "").replace(/\s{2,}/g, " ").trim();
+
+/** Campos de un DI oficial andaluz/estatal (formato RD 553/2020). */
+export function extraerDIOficial(texto: string): Record<string, string> {
+  const t = limpiarTextoPdf(texto);
+  const rem = bloque(t, /DATOS DEL REMITENTE/i, /DATOS DEL RESIDUO|DATOS DEL GESTOR/i);
+  const res = bloque(t, /DATOS DEL RESIDUO/i, /DATOS DEL GESTOR/i);
+  const ges = bloque(t, /DATOS DEL GESTOR/i, /DATOS DEL TRANSPORTE|B\s*\.?\s*DATOS A CUMPLIMENTAR/i);
+  const tra = bloque(t, /DATOS DEL TRANSPORTE/i, /B\s*\.?\s*DATOS A CUMPLIMENTAR|Tipo de envase/i);
+  const dest = bloque(t, /DATOS A CUMPLIMENTAR POR EL DESTINATARIO/i, /\n\s*$/);
+  const v: Record<string, string> = {};
+  v.numero = linea(t, /Documento\s*n[ºo°]\s*([A-Z0-9]{8,})/i);
+  const f = linea(t, /Fecha de inicio:\s*(\d{1,2}\/\d{1,2}\/\d{2,4})/i) || linea(dest, /Fecha:\s*(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
+  v.fecha = f ? normalizarFecha(f) : "";
+  const ler = linea(res, /(?:seis\s*d[ií]gitos\s*\)?|L\.?E\.?R\.?\)?[^\n\d]{0,60})\s*(\d{2}\s?\d{2}\s?\d{2}\s?\*?)(?!\d)/i) || linea(res, /\b(\d{6}\*?)\b/);
+  v.ler = ler ? normalizarLER(ler) : "";
+  v.descripcion = linea(res, /Residuo en el productor:\s*(?:\d+\s*-\s*\d+\s*)?([^\n]+)/i);
+  const kgAceptados = linea(dest, /Kilos Netos Aceptados:\s*([\d.,]+)/i);
+  const kgNetos = linea(res, /Kgs?\.?\s*Netos:\s*([\d.,]+)/i);
+  const kg = kgAceptados || kgNetos;
+  v.cantidadKg = kg ? fmtNum(numeroES(kg)) : "";
+  // En algunas páginas el valor aparece en la línea anterior a su etiqueta: se toma el primer NIMA (10 cifras) del bloque.
+  const nima = (b: string) => linea(b, /NIMA:\s*(\d{10})/i) || (b.match(/(?<!\d)(\d{10})(?!\d)/)?.[1] ?? "");
+  v.nimaOrigen = nima(rem);
+  v.nifOrigen = linea(rem, /N\.?I\.?F\.?:\s*([A-Z0-9]{8,9})/i);
+  v.razonSocialOrigen = linea(rem, /Raz[oó]n social\s*:\s*(.+?)\s+N\.?I\.?F/i);
+  v.gestor = linea(ges, /Raz[oó]n social\s*\/?\s*(?:Nombre)?\s*:\s*(.+?)\s+N\.?I\.?F/i);
+  v.nifDestino = linea(ges, /N\.?I\.?F\.?:\s*([A-Z0-9]{8,9})/i);
+  v.nimaDestino = nima(ges);
+  v.municipioDestino = linea(ges, /Municipio:\s*([^\n]+?)(?:\s+N[ºo°]\s*Tel|$)/im);
+  v.provinciaDestino = linea(ges, /Provincia:\s*(?:\d+\s+)?([^\n]+?)\s+Municipio/i);
+  v.transportista = linea(tra, /Raz[oó]n social\s*\/?\s*(?:Nombre)?\s*:\s*(.+?)\s+NIF/i);
+  // Operación: la fila de valores bajo «Tabla 1 … Tabla 7»; la segunda columna es R/D.
+  const tablas = res.match(/Tabla 1:[^\n]*\n([^\n]+)/i)?.[1] ?? "";
+  const op = tablas.match(/\b([RD]\d{1,2})\b/)?.[1] ?? "";
+  v.operacionDestino = op ? operacion4(op) : (v.ler ? infoLER(v.ler)?.operacion ?? "" : "");
+  return v;
+}
+
 /**
  * Extrae tipo, campos y (si es factura) líneas de piezas.
  * @param calidad 0-1: 1 para PDF con texto; para OCR, la confianza media de Tesseract.
  */
 export function extraerDeTexto(texto: string, opts: { nombre?: string; mime?: string; calidad?: number; pesosUsuario?: PesoUsuario[]; tipo?: TipoDocumento } = {}): ResultadoExtraccion {
-  const t = texto.replace(/\r/g, "");
+  const t = limpiarTextoPdf(texto.replace(/\r/g, ""));
   const q = Math.max(0.45, Math.min(1, opts.calidad ?? 1));
   const tipo = opts.tipo ?? clasificarTexto(t, opts.nombre, opts.mime);
   const valores: Record<string, { v: string; c: number }> = {};
@@ -245,6 +327,10 @@ export function extraerDeTexto(texto: string, opts: { nombre?: string; mime?: st
   const numero = tipo === "DI" ? nDI : tipo === "Factura" || tipo === "Albarán" ? nFac || (t.match(/albar[aá]n\s*(?:n[ºo°.]*)?\s*[:\-]?\s*([A-Z0-9\-/]*\d[A-Z0-9\-/]*)/i)?.[1] ?? "") : (t.match(/(?:expediente|n[ºo°.]\s*(?:de\s*)?(?:contrato|documento|resoluci[oó]n))\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-/.]{3,})/i)?.[1] ?? "");
   pon("numero", numero, 0.8);
 
+  if (tipo === "DI" && esDIOficial(t)) {
+    // Formato oficial: los datos salen de su casilla exacta, con más confianza.
+    for (const [k, val] of Object.entries(extraerDIOficial(t))) if (val) valores[k] = { v: val, c: +(0.95 * q).toFixed(2) };
+  }
   const campos: CampoDetectado[] = camposPorTipo(tipo).map(({ clave, etiqueta }) => {
     const x = valores[clave];
     return { clave, etiqueta, valorDetectado: x?.v ?? "", valorFinal: x?.v ?? "", confianza: x?.c ?? 0, corregido: false };

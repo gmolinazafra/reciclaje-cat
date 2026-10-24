@@ -10,8 +10,60 @@ import { SubirDocumento } from "./Documentos";
 interface Props { db: BaseDatos; set: (fn: (db: BaseDatos) => BaseDatos) => void }
 const ESTADOS: EstadoVehiculo[] = ["Recibido", "Descontaminado", "Desmontado", "Compactado"];
 
+const PROC: Record<string, NonNullable<Vehiculo["procedencia"]>["tipo"]> = { Particular: "particular", Empresa: "empresa", "Administración / grúa municipal": "administracion" };
+const diasDesde = (f: string) => Math.floor((Date.now() - Date.parse(f)) / 864e5);
+
+/** Salida de vehículos descontaminados (16 01 06) a fragmentadora: varios a la vez, como en un camión. */
+export function SalidaFragmentadora({ db, set, onCerrar }: { db: BaseDatos; set: Props["set"]; onCerrar: () => void }) {
+  const candidatos = db.vehiculos.filter((v) => v.estado !== "Recibido" && !v.salida);
+  const [sel, setSel] = useState<string[]>(candidatos.map((v) => v.id));
+  const [f, setF] = useState({ fecha: hoy(), gestor: "", nima: "", nif: "", operacion: "R1203", kgTotal: "" });
+  const u = (k: keyof typeof f, v: string) => setF({ ...f, [k]: v });
+  const elegidos = candidatos.filter((v) => sel.includes(v.id));
+  const pesoTeorico = elegidos.reduce((a, v) => a + (v.pesoBasculaKg ?? v.pesoEstimadoKg), 0);
+  const kgTotal = parseFloat(f.kgTotal.replace(",", ".")) || 0;
+  const guardar = () => set((d) => ({
+    ...d,
+    vehiculos: d.vehiculos.map((v) => {
+      if (!sel.includes(v.id)) return v;
+      const base = v.pesoBasculaKg ?? v.pesoEstimadoKg;
+      // Si se indica el peso total de báscula, se reparte en proporción a la tara de cada vehículo.
+      const kgV = kgTotal > 0 && pesoTeorico > 0 ? +((base / pesoTeorico) * kgTotal).toFixed(1) : base;
+      return { ...v, estado: "Compactado" as EstadoVehiculo, fechaDescontaminacion: v.fechaDescontaminacion ?? v.fechaEntrada, salida: { fecha: f.fecha, gestor: f.gestor.trim(), nima: f.nima.trim() || undefined, nif: f.nif.trim().toUpperCase() || undefined, operacion: f.operacion.trim().toUpperCase() || "R1203", kg: kgV } };
+    }),
+  }));
+  return (
+    <Modal titulo="Salida a fragmentadora (16 01 06)" onCerrar={onCerrar}>
+      <div className="space-y-3">
+        <Aviso tipo="info">Registra la entrega de vehículos ya descontaminados (carrocería/chapajo). En la memoria salen como 16 01 06 en «productor de no peligrosos» y cuentan como «% enviado a fragmentadora».</Aviso>
+        {!candidatos.length ? <Vacio titulo="No hay vehículos para entregar" texto="Solo aparecen los vehículos descontaminados o desmontados que aún no han salido." /> : (
+          <>
+            <div className="max-h-56 space-y-1 overflow-auto rounded-xl border p-2">
+              {candidatos.map((v) => (
+                <label key={v.id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" className="h-5 w-5" checked={sel.includes(v.id)} onChange={(e) => setSel(e.target.checked ? [...sel, v.id] : sel.filter((x) => x !== v.id))} />
+                  {v.matricula || v.vin} · {v.marca} {v.modelo} · {kg(v.pesoBasculaKg ?? v.pesoEstimadoKg)}
+                </label>
+              ))}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Campo label="Fecha de salida" value={f.fecha} onChange={(v) => u("fecha", v)} type="date" required />
+              <Campo label="Fragmentadora / gestor" value={f.gestor} onChange={(v) => u("gestor", v)} required />
+              <Campo label="NIMA del destino" value={f.nima} onChange={(v) => u("nima", v)} />
+              <Campo label="NIF del destino" value={f.nif} onChange={(v) => u("nif", v)} />
+              <Campo label="Operación en destino" value={f.operacion} onChange={(v) => u("operacion", v)} ayuda="Habitual: R1203 (fragmentación)." />
+              <Campo label="Peso total de báscula (kg)" value={f.kgTotal} onChange={(v) => u("kgTotal", v)} type="number" ayuda={`Opcional. Sin báscula se usa la tara: ${kg(pesoTeorico)}.`} />
+            </div>
+            <div className="flex justify-end gap-2"><Boton tipo="texto" onClick={onCerrar}>Cancelar</Boton><Boton onClick={() => { guardar(); onCerrar(); }} disabled={!elegidos.length || !f.gestor.trim()}>Registrar salida de {elegidos.length} vehículo(s)</Boton></div>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 export function AltaVehiculo({ db, set, onCerrar }: { db: BaseDatos; set: Props["set"]; onCerrar: () => void }) {
-  const [f, setF] = useState({ matricula: "", vin: "", marca: "", modelo: "", fechaEntrada: hoy(), estado: "Recibido" as EstadoVehiculo, pesoEstimado: "", pesoBascula: "" });
+  const [f, setF] = useState({ matricula: "", vin: "", marca: "", modelo: "", fechaEntrada: hoy(), estado: "Recibido" as EstadoVehiculo, pesoEstimado: "", pesoBascula: "", procedencia: "Particular", procNombre: "", procNif: "", fechaDesc: "" });
   const [docBaja, setDocBaja] = useState<Documento | null>(null);
   const [subir, setSubir] = useState(false);
   const [ok, setOk] = useState(false);
@@ -26,6 +78,8 @@ export function AltaVehiculo({ db, set, onCerrar }: { db: BaseDatos; set: Props[
     const v: Vehiculo = {
       id: uid(), ejercicio: db.ejercicio, matricula: f.matricula.trim().toUpperCase(), vin: f.vin.trim().toUpperCase() || undefined, marca: f.marca.trim(), modelo: f.modelo.trim(),
       fechaEntrada: f.fechaEntrada, estado: f.estado, pesoEstimadoKg: pesoEstimado, pesoBasculaKg: parseFloat(f.pesoBascula) || undefined, documentoBajaId: docBaja.id,
+      procedencia: { tipo: PROC[f.procedencia] ?? "particular", nombre: f.procNombre.trim() || undefined, nif: f.procNif.trim().toUpperCase() || undefined },
+      fechaDescontaminacion: f.fechaDesc || (f.estado !== "Recibido" ? f.fechaEntrada : undefined),
     };
     set((d) => {
       let d2 = ops.addVehiculo(d, v);
@@ -50,6 +104,10 @@ export function AltaVehiculo({ db, set, onCerrar }: { db: BaseDatos; set: Props[
               <Select label="Estado" value={f.estado} onChange={(v) => u("estado", v)} opciones={ESTADOS} />
               <Campo label="Tara estimada (kg)" value={f.pesoEstimado || String(tara.kg)} onChange={(v) => u("pesoEstimado", v)} type="number" ayuda={`${tara.kg} kg · ${tara.detalle}. La baja no indica el peso: edítalo si lo conoces.`} />
               <Campo label="Peso de báscula (kg)" value={f.pesoBascula} onChange={(v) => u("pesoBascula", v)} type="number" ayuda="Opcional." />
+              <Select label="Procedencia (memoria)" value={f.procedencia} onChange={(v) => u("procedencia", v)} opciones={Object.keys(PROC)} />
+              {f.estado !== "Recibido" && <Campo label="Fecha de descontaminación" value={f.fechaDesc || f.fechaEntrada} onChange={(v) => u("fechaDesc", v)} type="date" ayuda="El RD 265/2021 da 30 días desde el certificado de destrucción." />}
+              {f.procedencia !== "Particular" && <Campo label="Nombre / razón social" value={f.procNombre} onChange={(v) => u("procNombre", v)} />}
+              {f.procedencia !== "Particular" && <Campo label="NIF" value={f.procNif} onChange={(v) => u("procNif", v)} />}
             </div>
             {tara.origen !== "tabla" && f.marca.trim() && f.modelo.trim() && (
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={guardarEnTabla} onChange={(e) => setGuardarEnTabla(e.target.checked)} className="h-5 w-5" />Guardar {f.marca} {f.modelo} = {pesoEstimado} kg en la tabla de taras</label>
@@ -105,6 +163,7 @@ export default function Vehiculos({ db, set }: Props) {
   const [alta, setAlta] = useState(false);
   const [taras, setTaras] = useState(false);
   const [sel, setSel] = useState<Vehiculo | null>(null);
+  const [frag, setFrag] = useState(false);
   const lista = db.vehiculos.filter((v) => v.ejercicio === db.ejercicio);
   const doc = (id?: string) => db.documentos.find((d) => d.id === id);
   const piezasDe = (id: string) => db.ventas.filter((v) => v.vehiculoId === id);
@@ -114,7 +173,7 @@ export default function Vehiculos({ db, set }: Props) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-[#657a72]">{lista.length} vehículo(s) · {lista.filter((v) => !v.documentoBajaId).length} sin baja</p>
-        <div className="flex gap-2"><Boton tipo="secundario" onClick={() => setTaras(true)}>Tabla de taras</Boton><Boton onClick={() => setAlta(true)}>+ Vehículo</Boton></div>
+        <div className="flex flex-wrap gap-2"><Boton tipo="secundario" onClick={() => setTaras(true)}>Tabla de taras</Boton><Boton tipo="secundario" onClick={() => setFrag(true)}>Salida a fragmentadora</Boton><Boton onClick={() => setAlta(true)}>+ Vehículo</Boton></div>
       </div>
       {!lista.length ? <Vacio titulo="Sin vehículos" texto="Da de alta el primer vehículo recibido con su foto o PDF de baja." accion={<Boton onClick={() => setAlta(true)}>Alta de vehículo</Boton>} /> : (
         <div className="grid gap-2 md:grid-cols-2">
@@ -122,7 +181,7 @@ export default function Vehiculos({ db, set }: Props) {
             <button key={v.id} type="button" onClick={() => setSel(v)} className="rounded-xl border bg-white p-3 text-left hover:border-[#0d7969]">
               <div className="flex items-start justify-between gap-2">
                 <div><p className="text-sm font-bold">{v.matricula || v.vin} · {v.marca} {v.modelo}</p><p className="text-xs text-[#657a72]">Entrada {v.fechaEntrada} · {v.pesoBasculaKg ? `${kg(v.pesoBasculaKg)} báscula` : `${kg(v.pesoEstimadoKg)} tara estimada`}</p></div>
-                <div className="flex flex-col items-end gap-1"><Chip>{v.estado}</Chip>{!v.documentoBajaId && <Chip tono="pendiente">Sin baja</Chip>}{v.demo && <ChipDemo />}</div>
+                <div className="flex flex-col items-end gap-1"><Chip>{v.salida ? "Entregado" : v.estado}</Chip>{!v.documentoBajaId && <Chip tono="pendiente">Sin baja</Chip>}{v.estado === "Recibido" && diasDesde(v.fechaEntrada) > 30 && <Chip tono="pendiente">+30 días sin descontaminar</Chip>}{v.demo && <ChipDemo />}</div>
               </div>
             </button>
           ))}
@@ -130,6 +189,7 @@ export default function Vehiculos({ db, set }: Props) {
       )}
       {alta && <AltaVehiculo db={db} set={set} onCerrar={() => setAlta(false)} />}
       {taras && <TablaTaras db={db} set={set} onCerrar={() => setTaras(false)} />}
+      {frag && <SalidaFragmentadora db={db} set={set} onCerrar={() => setFrag(false)} />}
       {sel && (
         <Modal titulo={`${sel.matricula || sel.vin} · ${sel.marca} ${sel.modelo}`} onCerrar={() => setSel(null)}>
           <div className="space-y-3 text-sm">
@@ -138,7 +198,12 @@ export default function Vehiculos({ db, set }: Props) {
               <p><span className="text-[#657a72]">VIN:</span> {sel.vin ?? "—"}</p><p><span className="text-[#657a72]">Entrada:</span> {sel.fechaEntrada}</p>
               <p><span className="text-[#657a72]">Peso estimado:</span> {kg(sel.pesoEstimadoKg)}</p><p><span className="text-[#657a72]">Báscula:</span> {sel.pesoBasculaKg ? kg(sel.pesoBasculaKg) : "—"}</p>
             </div>
-            <Select label="Cambiar estado" value={sel.estado} onChange={(v) => { const n = { ...sel, estado: v as EstadoVehiculo }; setSel(n); set((d) => ops.updVehiculo(d, n)); }} opciones={ESTADOS} />
+            <Select label="Cambiar estado" value={sel.estado} onChange={(v) => { const n = { ...sel, estado: v as EstadoVehiculo, fechaDescontaminacion: sel.fechaDescontaminacion ?? (v !== "Recibido" ? hoy() : undefined) }; setSel(n); set((d) => ops.updVehiculo(d, n)); }} opciones={ESTADOS} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Campo label="Fecha de descontaminación" value={sel.fechaDescontaminacion ?? ""} onChange={(v) => { const n = { ...sel, fechaDescontaminacion: v || undefined }; setSel(n); set((d) => ops.updVehiculo(d, n)); }} type="date" ayuda="Cuenta para «vehículos tratados» de la memoria." />
+              <Select label="Procedencia (memoria)" value={Object.keys(PROC).find((k) => PROC[k] === (sel.procedencia?.tipo ?? "particular")) ?? "Particular"} onChange={(v) => { const n = { ...sel, procedencia: { ...(sel.procedencia ?? {}), tipo: PROC[v] } }; setSel(n); set((d) => ops.updVehiculo(d, n)); }} opciones={Object.keys(PROC)} />
+            </div>
+            {sel.salida && <div className="rounded-xl border p-3"><b>Salida (16 01 06):</b> {sel.salida.fecha} · {sel.salida.gestor}{sel.salida.nima ? ` · NIMA ${sel.salida.nima}` : ""} · {kg(sel.salida.kg ?? 0)} · {sel.salida.operacion} <Boton tipo="texto" onClick={() => { const n = { ...sel, salida: undefined }; setSel(n); set((d) => ops.updVehiculo(d, n)); }}>Quitar</Boton></div>}
             <div className="rounded-xl border p-3"><b>Baja:</b> {doc(sel.documentoBajaId) ? <>{doc(sel.documentoBajaId)!.nombreArchivo} <Chip>{doc(sel.documentoBajaId)!.estado}</Chip></> : <span className="text-[#9b2c2c]">sin documento de baja</span>}</div>
             <div className="rounded-xl border p-3"><b>Piezas recuperadas:</b> {piezasDe(sel.id).length ? piezasDe(sel.id).map((p) => `${p.descripcion} (${kg(p.pesoKg)})`).join(", ") : "ninguna registrada"}</div>
             <div className="rounded-xl border p-3"><b>Residuos gestionados:</b> {residuosDe(sel.id).length ? residuosDe(sel.id).map((r) => `${r.ler} ${kg(r.cantidadKg)}`).join(", ") : "ninguno vinculado"}</div>
