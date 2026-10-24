@@ -3,10 +3,9 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ReciclaCat_Gest",
-  description: "Gestión documental de residuos para CAT y técnicos ambientales.",
-  other: {
-    "codex-preview": "development",
-  },
+  description: "Gestión de residuos, vehículos, piezas y memoria anual para Centros Autorizados de Tratamiento (CAT). Powered by Limonada Web.",
+  robots: { index: false, follow: false },
+  other: { robots: "noai, noimageai" },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

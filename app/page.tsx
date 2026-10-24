@@ -2,9 +2,11 @@
 /**
  * ReciclaCat_Gest — pantalla principal.
  * Navegación por pestañas (móvil: barra inferior; escritorio: lateral), selector de ejercicio, ajustes y SeproBot.
- * Persistencia: localStorage del navegador (ver lib/repo.ts). Sin backend todavía.
+ * Persistencia: versión Windows → archivo en la carpeta de datos del usuario; navegador → localStorage (ver lib/repo.ts).
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { puente } from "./lib/escritorio";
+import type { InfoEscritorio } from "./lib/escritorio";
 import SeproBot from "./seprobot/SeproBot";
 import PanelTecnico from "./seprobot/PanelTecnico";
 import { useDb } from "./lib/useDb";
@@ -21,14 +23,41 @@ const TABS = [
   { n: "Resumen", i: "▦" }, { n: "Documentos", i: "📄" }, { n: "Vehículos", i: "🚗" }, { n: "Piezas", i: "⚙" }, { n: "Residuos", i: "♻" }, { n: "Informes", i: "📊" },
 ];
 
+function AjustesEscritorio() {
+  const p = puente();
+  const [info, setInfo] = useState<InfoEscritorio | null>(null);
+  const [msg, setMsg] = useState<{ tipo: "ok" | "error"; t: string } | null>(null);
+  useEffect(() => { p?.info().then(setInfo).catch(() => setInfo(null)); }, [p]);
+  if (!p) return null;
+  return (
+    <div className="space-y-2 rounded-2xl border border-[#cfe0d7] bg-[#f7faf8] p-3">
+      <p className="text-sm font-bold">Datos y copias de seguridad</p>
+      <p className="text-xs text-[#657a72]">Los datos se guardan en este ordenador{info ? <>: <code className="break-all">{info.carpetaDatos}</code></> : ""}. Cada día se hace una copia automática (se guardan las 30 últimas){info?.ultimaCopia ? ` · última: ${new Date(info.ultimaCopia).toLocaleString("es-ES")}` : ""}.</p>
+      <p className="text-xs text-[#657a72]">Haz también una copia en un pendrive o disco externo de vez en cuando: si el ordenador se estropea, es lo único que conserva los datos.</p>
+      {msg && <Aviso tipo={msg.tipo}>{msg.t}</Aviso>}
+      <div className="flex flex-wrap gap-2">
+        <Boton onClick={async () => { const r = await p.crearCopia(); if (r) setMsg({ tipo: "ok", t: "Copia guardada en " + r }); }}>Hacer copia de seguridad…</Boton>
+        <Boton tipo="secundario" onClick={async () => { if (!confirm("Restaurar una copia sustituye los datos actuales por los de la copia (antes se guarda una copia de los actuales). ¿Continuar?")) return; const ok = await p.restaurarCopia(); if (!ok) setMsg({ tipo: "error", t: "No se ha restaurado ninguna copia." }); }}>Restaurar copia…</Boton>
+        <Boton tipo="texto" onClick={() => p.abrirCarpetaDatos()}>Abrir carpeta de datos</Boton>
+      </div>
+      {info && <p className="text-[11px] text-[#8aa39a]">ReciclaCat_Gest para Windows · versión {info.version}</p>}
+    </div>
+  );
+}
+
 export default function Home() {
   const { db, set, repo } = useDb();
+  // La interfaz se pinta solo en el equipo del usuario (los datos viven allí), evitando parpadeos de datos de ejemplo.
+  const [montado, setMontado] = useState(false);
+  useEffect(() => setMontado(true), []);
   const [tab, setTab] = useState(0);
   const [tech, setTech] = useState(false);
   const [ajustes, setAjustes] = useState(false);
   const [accion, setAccion] = useState<string | null>(null);
   const ir = (t: number, a?: string) => { setTab(t); setAccion(a ?? null); };
   const anios = [db.ejercicio - 1, db.ejercicio, db.ejercicio + 1].filter((a, i, arr) => arr.indexOf(a) === i);
+
+  if (!montado) return <main className="flex min-h-dvh items-center justify-center bg-[#f4f7f5] text-[#17372f]"><b className="text-lg">♻ ReciclaCat_<span className="text-[#0d7969]">Gest</span></b></main>;
 
   return (
     <main className="min-h-dvh overflow-x-hidden bg-[#f4f7f5] text-[#17372f]">
@@ -61,6 +90,7 @@ export default function Home() {
             {tab === 3 && <Piezas db={db} set={set} abrir={accion === "manual" || accion === "excel" ? accion : null} onAbierto={() => setAccion(null)} />}
             {tab === 4 && <Residuos db={db} set={set} abrirDI={accion === "di"} onAbierto={() => setAccion(null)} />}
             {tab === 5 && <Informes db={db} />}
+            <footer className="mt-8 border-t border-[#dce8e1] pt-3 text-center text-[11px] text-[#8aa39a]">ReciclaCat_Gest · Powered by Limonada Web</footer>
           </section>
           {/* Barra inferior móvil */}
           <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t border-[#dce8e1] bg-white md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
@@ -72,7 +102,7 @@ export default function Home() {
       {ajustes && (
         <Modal titulo="Ajustes del centro" onCerrar={() => setAjustes(false)}>
           <div className="space-y-3">
-            <Aviso tipo="info">Los datos se guardan en <b>este navegador</b>. Todavía no hay persistencia central; cuando se conecte el backend (Supabase) se migrarán.</Aviso>
+            {repo.tipo === "navegador" ? <Aviso tipo="info">Los datos se guardan en <b>este navegador</b>. Para guardarlos en el ordenador con copias de seguridad, usa la versión de Windows.</Aviso> : <AjustesEscritorio />}
             <div className="grid gap-3 sm:grid-cols-2">
               <Campo label="Nombre del centro" value={db.centro.nombre} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, nombre: v } }))} />
               <Campo label="NIMA" value={db.centro.nima} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, nima: v } }))} />
@@ -80,8 +110,8 @@ export default function Home() {
               <Campo label="Usuario" value={db.centro.usuario} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, usuario: v } }))} ayuda="Se registra en cada documento subido." />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Boton tipo="secundario" onClick={() => confirm("¿Restaurar los datos de demostración? Se perderán los datos actuales de este navegador.") && repo.reiniciarDemo()}>Restaurar demo</Boton>
-              <Boton tipo="peligro" onClick={() => confirm("¿Borrar todos los datos de este navegador y empezar de cero?") && repo.borrarTodo()}>Borrar todo</Boton>
+              <Boton tipo="secundario" onClick={() => confirm("¿Cargar los datos de demostración? Se sustituirán los datos actuales (haz antes una copia si los necesitas).") && repo.reiniciarDemo()}>Cargar datos de demostración</Boton>
+              <Boton tipo="peligro" onClick={() => confirm("¿Borrar todos los datos y empezar de cero? Esta acción no se puede deshacer si no tienes copia.") && repo.borrarTodo()}>Borrar todo</Boton>
             </div>
           </div>
         </Modal>

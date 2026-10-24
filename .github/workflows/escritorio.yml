@@ -1,0 +1,67 @@
+# Compila el instalador de Windows de ReciclaCat_Gest (.exe) en un equipo Windows de GitHub.
+# Se lanza al subir cambios de la app o a mano (Actions → «Instalador Windows» → Run workflow).
+name: Instalador Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/reciclacat-gest-v2, main]
+    paths:
+      - "app/**"
+      - "escritorio/**"
+      - "public/**"
+      - "scripts/**"
+      - "package.json"
+      - "next.config.ts"
+      - ".github/workflows/escritorio.yml"
+    tags: ["escritorio-v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  instalador:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias de la app
+        run: npm install --no-audit --no-fund
+
+      - name: Pruebas
+        run: npm test
+
+      - name: Compilar la app (exportación estática)
+        run: npm run build
+
+      - name: Preparar la carpeta del programa
+        run: npm run escritorio:preparar
+
+      - name: Instalar Electron y electron-builder
+        working-directory: escritorio
+        run: npm install --no-audit --no-fund
+
+      - name: Crear instalador .exe
+        working-directory: escritorio
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run instalador
+
+      - name: Guardar el instalador
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReciclaCat_Gest-instalador
+          path: escritorio/dist/*.exe
+          retention-days: 30
+
+      - name: Publicar versión (solo con etiqueta escritorio-v*)
+        if: startsWith(github.ref, 'refs/tags/escritorio-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: escritorio/dist/*.exe
+          name: ReciclaCat_Gest ${{ github.ref_name }}
+          body: Instalador de ReciclaCat_Gest para Windows. Powered by Limonada Web.

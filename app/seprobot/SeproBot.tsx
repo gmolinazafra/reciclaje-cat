@@ -48,6 +48,8 @@ const nextId = () => ++contador;
 
 export default function SeproBot() {
   const [abierto, setAbierto] = useState(false);
+  // Si falta public/seprobot.png (el personaje lo aporta Gustavo), se muestra un distintivo en su lugar.
+  const [sinImagen, setSinImagen] = useState(false);
   const [escribiendo, setEscribiendo] = useState(false);
   const [entrada, setEntrada] = useState("");
   const [estado, setEstado] = useState<EstadoConversacion>(estadoInicial);
@@ -130,7 +132,7 @@ export default function SeproBot() {
           {/* Cabecera */}
           <header className="flex shrink-0 items-center justify-between border-b border-[#e3efe9] px-4 py-3">
             <div className="flex items-center gap-2">
-              <img src="/seprobot.png" className="h-8 w-8 object-contain" alt="" />
+              {sinImagen ? <span className="text-2xl" aria-hidden>♻</span> : <img src="/seprobot.png" className="h-8 w-8 object-contain" alt="" onError={() => setSinImagen(true)} />}
               <b className="text-[#17372f]">SeproBot</b>
             </div>
             <button
@@ -245,7 +247,7 @@ export default function SeproBot() {
         aria-label={abierto ? "Cerrar SeproBot" : "Abrir SeproBot"}
         className="flex flex-col items-center bg-transparent"
       >
-        <img src="/seprobot.png" className="h-20 w-20 object-contain drop-shadow-md sm:h-24 sm:w-24" alt="SeproBot" />
+        {sinImagen ? <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#0d7969] text-3xl text-white shadow-md" aria-hidden>♻</span> : <img src="/seprobot.png" className="h-20 w-20 object-contain drop-shadow-md sm:h-24 sm:w-24" alt="SeproBot" onError={() => setSinImagen(true)} />}
         <span className="-mt-2 text-xs font-extrabold text-[#17372f]">SeproBot</span>
       </button>
     </div>

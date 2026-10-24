@@ -44,6 +44,8 @@ export interface Documento {
   campos: CampoDetectado[];
   /** Proveedor OCR usado ("demo" si simulado). */
   origenOCR: "demo" | "real";
+  /** Ruta relativa del archivo original guardado en la carpeta de datos (solo versión Windows). */
+  archivoRuta?: string;
   /** Vínculos opcionales. */
   vehiculoId?: Id;
   diId?: Id;
@@ -69,6 +71,8 @@ export interface Venta {
   vehiculoId?: Id;
   /** factura = línea registrada desde una factura; excel = importación de listado. */
   origen: "factura" | "excel";
+  /** Nº de la factura de la que sale la línea. */
+  factura?: string;
   documentoId?: Id;
   demo?: boolean;
 }

@@ -10,7 +10,9 @@ import { DICCIONARIO_PESOS } from "./diccionarioPesos";
 import type { ArticuloPeso } from "./diccionarioPesos";
 import type { PesoUsuario, TaraVehiculo } from "./types";
 
-const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+/** Normaliza para comparar: minúsculas, sin acentos ni signos y sin palabras vacías («caja de cambios» = «caja cambios»). */
+const norm = (s: string) => (" " + s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ") + " ")
+  .replace(/ (de|del|la|el|los|las|y|con|para) /g, " ").replace(/ (de|del|la|el|los|las|y|con|para) /g, " ").replace(/\s+/g, " ").trim();
 
 export interface CoincidenciaPeso { kg: number; articulo: string; familia: string; exacta: boolean; origen: "usuario" | "diccionario" }
 

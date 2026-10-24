@@ -1,20 +1,34 @@
 "use client";
-/** Informes: memoria anual, kilos por LER y por mes; exportación TXT/CSV (el PDF llegará con backend). */
+/** Informes: memoria anual (PDF/TXT), kilos por LER y por mes; exportación CSV. */
 import { useState } from "react";
 import { alertas, memoriaAnualTexto, resumenAnual } from "../../lib/informes";
+import { memoriaPdf } from "../../lib/memoriaPdf";
 import type { BaseDatos } from "../../lib/types";
 import { Aviso, Boton, eur, kg } from "../ui";
 
 interface Props { db: BaseDatos }
 
-function descargar(nombre: string, contenido: string, mime = "text/plain") {
+function descargarBlob(nombre: string, blob: Blob) {
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([contenido], { type: mime + ";charset=utf-8" }));
+  a.href = URL.createObjectURL(blob);
   a.download = nombre; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+function descargar(nombre: string, contenido: string, mime = "text/plain") {
+  // BOM para que Excel abra bien los acentos de los CSV.
+  descargarBlob(nombre, new Blob([mime === "text/csv" ? "\ufeff" + contenido : contenido], { type: mime + ";charset=utf-8" }));
 }
 
 export default function Informes({ db }: Props) {
   const [tipo, setTipo] = useState<"memoria" | "residuos" | "piezas" | "vehiculos">("memoria");
+  const [generando, setGenerando] = useState(false);
+  const [errorPdf, setErrorPdf] = useState("");
+  const pdf = async () => {
+    setGenerando(true); setErrorPdf("");
+    try { descargarBlob(`memoria_${db.ejercicio}.pdf`, await memoriaPdf(db)); }
+    catch (e) { setErrorPdf("No se ha podido generar el PDF: " + (e as Error).message); }
+    finally { setGenerando(false); }
+  };
   const r = resumenAnual(db);
   const al = alertas(db);
   const csv = (filas: string[][]) => filas.map((f) => f.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
@@ -22,7 +36,7 @@ export default function Informes({ db }: Props) {
   const exportar = () => {
     if (tipo === "memoria") return descargar(`memoria_${db.ejercicio}.txt`, memoriaAnualTexto(db));
     if (tipo === "residuos") return descargar(`residuos_${db.ejercicio}.csv`, csv([["Categoría", "LER", "Descripción", "kg"], ...r.porLER.map((x) => [x.peligroso ? "Peligroso" : "No peligroso", x.ler, x.descripcion, String(x.kg)])]), "text/csv");
-    if (tipo === "piezas") return descargar(`piezas_${db.ejercicio}.csv`, csv([["Fecha", "Pieza", "Referencia", "Cantidad", "Precio", "kg", "Origen peso"], ...db.ventas.filter((v) => v.ejercicio === db.ejercicio).map((v) => [v.fecha, v.descripcion, v.referencia, String(v.cantidad), String(v.precio), String(v.pesoKg), v.origenPeso])]), "text/csv");
+    if (tipo === "piezas") return descargar(`piezas_${db.ejercicio}.csv`, csv([["Fecha", "Factura", "Pieza", "Cantidad", "kg", "Origen peso"], ...db.ventas.filter((v) => v.ejercicio === db.ejercicio).map((v) => [v.fecha, v.factura ?? "", v.pieza, String(v.cantidad), String(v.pesoKg).replace(".", ","), v.origenPeso])]), "text/csv");
     return descargar(`vehiculos_${db.ejercicio}.csv`, csv([["Matrícula", "VIN", "Marca", "Modelo", "Entrada", "Estado", "kg estimado", "kg báscula", "Baja"], ...db.vehiculos.filter((v) => v.ejercicio === db.ejercicio).map((v) => [v.matricula, v.vin ?? "", v.marca, v.modelo, v.fechaEntrada, v.estado, String(v.pesoEstimadoKg), String(v.pesoBasculaKg ?? ""), v.documentoBajaId ? "sí" : "no"])]), "text/csv");
   };
 
@@ -57,8 +71,12 @@ export default function Informes({ db }: Props) {
         <table className="w-full rounded-xl border bg-white text-sm"><thead className="bg-[#f7faf8] text-xs text-[#567067]"><tr><th className="px-3 py-2 text-left">Mes</th><th className="px-3 py-2 text-right">{tipo === "piezas" ? "kg piezas" : "vehículos"}</th><th className="px-3 py-2 text-right">{tipo === "piezas" ? "ventas" : ""}</th></tr></thead>
           <tbody>{r.porMes.map((m) => <tr key={m.mes} className="border-t"><td className="px-3 py-2">{m.mes}</td><td className="px-3 py-2 text-right">{tipo === "piezas" ? kg(m.kgPiezas) : m.vehiculos}</td><td className="px-3 py-2 text-right">{tipo === "piezas" ? m.ventas : ""}</td></tr>)}</tbody></table>
       )}
-      <div className="flex justify-end"><Boton onClick={exportar}>Descargar {tipo === "memoria" ? "memoria (TXT)" : "CSV"}</Boton></div>
-      <p className="text-xs text-[#657a72]">Hoy se exporta en TXT y CSV (importables en Excel). No existe todavía un PDF con formato oficial: requerirá backend y la plantilla de la administración.</p>
+      {errorPdf && <Aviso tipo="error">{errorPdf}</Aviso>}
+      <div className="flex flex-wrap justify-end gap-2">
+        {tipo === "memoria" && <Boton onClick={pdf} disabled={generando}>{generando ? "Generando PDF…" : "Descargar memoria (PDF)"}</Boton>}
+        <Boton tipo={tipo === "memoria" ? "secundario" : "primario"} onClick={exportar}>Descargar {tipo === "memoria" ? "en texto (TXT)" : "CSV"}</Boton>
+      </div>
+      <p className="text-xs text-[#657a72]">La memoria en PDF es un documento de trabajo con peligrosos y no peligrosos separados. Para presentarla, vuelca los datos en el modelo oficial de tu comunidad autónoma. Los CSV se abren en Excel.</p>
     </div>
   );
 }

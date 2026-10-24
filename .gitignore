@@ -18,3 +18,11 @@ yarn-error.*
 .next/
 tsconfig.tsbuildinfo
 next-env.d.ts
+
+# Generados
+/out/
+public/ocr/
+escritorio/app/
+escritorio/dist/
+escritorio/node_modules/
+package-lock.json

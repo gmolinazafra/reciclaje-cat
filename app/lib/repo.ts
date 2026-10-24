@@ -1,10 +1,13 @@
 /**
  * Repositorio de datos.
- * - Interfaz Repositorio: la misma para localStorage (hoy) y Supabase (futuro).
- * - LocalRepositorio: guarda en localStorage del navegador. NO es persistencia central.
- * - Datos demo: se cargan la primera vez y van marcados con demo: true (visibles como tal en la UI).
+ * - Interfaz Repositorio: la misma para todas las persistencias.
+ * - ArchivoRepositorio: versión Windows. Guarda en un archivo JSON dentro de la carpeta de datos del usuario
+ *   (%APPDATA%\ReciclaCat_Gest\datos), con escritura atómica y copias automáticas (las hace el proceso principal).
+ * - LocalRepositorio: versión navegador. Guarda en localStorage. NO es persistencia central.
+ * - Datos demo: marcados con demo: true (visibles como tal en la UI).
  */
 
+import { puente } from "./escritorio";
 import { TARAS_INICIALES } from "./pesos";
 import type { BaseDatos, DI, Documento, PesoUsuario, Residuo, TaraVehiculo, Vehiculo, Venta } from "./types";
 
@@ -60,7 +63,27 @@ export function datosDemo(ejercicio = new Date().getFullYear()): BaseDatos {
   };
 }
 
+/** Base vacía para empezar de cero (primer arranque de la versión Windows y «Borrar todo»). */
+export function baseVacia(ejercicio = new Date().getFullYear()): BaseDatos {
+  return {
+    centro: { nombre: "Mi centro", nima: "", provincia: "", usuario: "usuario" },
+    ejercicio, documentos: [], ventas: [], vehiculos: [], residuos: [], dis: [], taras: TARAS_INICIALES, pesosUsuario: [],
+  };
+}
+
+/** Completa campos que faltan en bases guardadas por versiones anteriores. */
+function migrar(db: BaseDatos): BaseDatos {
+  if (!db.taras) db.taras = TARAS_INICIALES;
+  if (!db.pesosUsuario) db.pesosUsuario = [];
+  for (const k of ["documentos", "ventas", "vehiculos", "residuos", "dis"] as const) if (!Array.isArray(db[k])) (db as unknown as Record<string, unknown[]>)[k] = [];
+  if (!db.centro) db.centro = baseVacia().centro;
+  if (!db.ejercicio) db.ejercicio = new Date().getFullYear();
+  return db;
+}
+
 export interface Repositorio {
+  /** Dónde viven los datos, para mostrarlo en Ajustes. */
+  readonly tipo: "archivo" | "navegador";
   leer(): BaseDatos;
   guardar(db: BaseDatos): void;
   suscribir(fn: () => void): () => void;
@@ -69,15 +92,13 @@ export interface Repositorio {
 }
 
 export class LocalRepositorio implements Repositorio {
+  readonly tipo = "navegador" as const;
   private cache: BaseDatos | null = null;
   leer(): BaseDatos {
     if (this.cache) return this.cache;
     try {
       const raw = typeof window !== "undefined" ? window.localStorage.getItem(CLAVE) : null;
-      const db = raw ? (JSON.parse(raw) as BaseDatos) : datosDemo();
-      if (!db.taras) db.taras = TARAS_INICIALES; // migración de versiones anteriores
-      if (!db.pesosUsuario) db.pesosUsuario = [];
-      this.cache = db;
+      this.cache = migrar(raw ? (JSON.parse(raw) as BaseDatos) : datosDemo());
     } catch { this.cache = datosDemo(); }
     return this.cache;
   }
@@ -91,10 +112,47 @@ export class LocalRepositorio implements Repositorio {
     return () => window.removeEventListener(EVENTO, fn);
   }
   reiniciarDemo() { this.guardar(datosDemo()); }
-  borrarTodo() { const d = datosDemo(); this.guardar({ ...d, documentos: [], ventas: [], vehiculos: [], residuos: [], dis: [], taras: TARAS_INICIALES, pesosUsuario: [], centro: { ...d.centro, nombre: "Mi centro", usuario: "usuario" } }); }
+  borrarTodo() { this.guardar(baseVacia()); }
 }
 
-let repo: Repositorio = new LocalRepositorio();
+/** Versión Windows: archivo JSON en la carpeta de datos del usuario, a través del puente de Electron. */
+export class ArchivoRepositorio implements Repositorio {
+  readonly tipo = "archivo" as const;
+  private cache: BaseDatos | null = null;
+  private cola: Promise<unknown> = Promise.resolve();
+  private oyentes = new Set<() => void>();
+  /** Último error de escritura (se muestra en Ajustes si lo hay). */
+  errorEscritura: string | null = null;
+  leer(): BaseDatos {
+    if (this.cache) return this.cache;
+    const p = puente();
+    try {
+      const raw = p?.leerDB() ?? null;
+      this.cache = migrar(raw ? (JSON.parse(raw) as BaseDatos) : baseVacia());
+    } catch (e) {
+      // Nunca sobrescribimos un archivo que no se ha podido leer: se trabaja en memoria y se avisa.
+      this.errorEscritura = "No se ha podido leer el archivo de datos: " + (e as Error).message;
+      this.cache = baseVacia();
+      return this.cache;
+    }
+    return this.cache;
+  }
+  guardar(db: BaseDatos) {
+    this.cache = db;
+    this.oyentes.forEach((f) => f());
+    if (this.errorEscritura?.startsWith("No se ha podido leer")) return;
+    const json = JSON.stringify(db);
+    const p = puente();
+    // Escrituras en serie: nunca se pisa una versión nueva con una vieja.
+    this.cola = this.cola.then(() => p?.guardarDB(json)).then((ok) => { this.errorEscritura = ok === false ? "No se ha podido guardar en disco." : null; })
+      .catch((e: Error) => { this.errorEscritura = "No se ha podido guardar en disco: " + e.message; });
+  }
+  suscribir(fn: () => void) { this.oyentes.add(fn); return () => { this.oyentes.delete(fn); }; }
+  reiniciarDemo() { this.guardar(datosDemo()); }
+  borrarTodo() { this.guardar(baseVacia()); }
+}
+
+let repo: Repositorio = puente() ? new ArchivoRepositorio() : new LocalRepositorio();
 export const getRepo = () => repo;
 export const setRepo = (r: Repositorio) => { repo = r; };
 
@@ -114,6 +172,7 @@ export const ops = {
   addTara: (db: BaseDatos, t: TaraVehiculo): BaseDatos => ({ ...db, taras: [t, ...db.taras] }),
   updTara: (db: BaseDatos, t: TaraVehiculo): BaseDatos => ({ ...db, taras: db.taras.map((x) => (x.id === t.id ? t : x)) }),
   delTara: (db: BaseDatos, id: string): BaseDatos => ({ ...db, taras: db.taras.filter((x) => x.id !== id) }),
+  delResiduo: (db: BaseDatos, id: string): BaseDatos => ({ ...db, residuos: db.residuos.filter((x) => x.id !== id) }),
   setPesoUsuario: (db: BaseDatos, p: PesoUsuario): BaseDatos => ({ ...db, pesosUsuario: [{ ...p, fecha: new Date().toISOString().slice(0, 10) }, ...db.pesosUsuario.filter((x) => x.articulo.toLowerCase() !== p.articulo.toLowerCase())] }),
   delPesoUsuario: (db: BaseDatos, articulo: string): BaseDatos => ({ ...db, pesosUsuario: db.pesosUsuario.filter((x) => x.articulo.toLowerCase() !== articulo.toLowerCase()) }),
 };

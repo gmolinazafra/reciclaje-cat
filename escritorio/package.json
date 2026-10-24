@@ -1,0 +1,42 @@
+{
+  "name": "reciclacat-gest",
+  "productName": "ReciclaCat_Gest",
+  "version": "1.0.0",
+  "description": "Gestión de residuos, vehículos, piezas y memoria anual para Centros Autorizados de Tratamiento (CAT).",
+  "author": "Limonada Web",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "iniciar": "electron .",
+    "instalador": "electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "38.2.2",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "es.limonadaweb.reciclacatgest",
+    "productName": "ReciclaCat_Gest",
+    "copyright": "© Limonada Web",
+    "asar": true,
+    "files": ["main.cjs", "preload.cjs", "app/**/*", "recursos/icono.png"],
+    "directories": { "output": "dist", "buildResources": "recursos" },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "recursos/icono.ico",
+      "artifactName": "ReciclaCat_Gest-instalador-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ReciclaCat_Gest",
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": ["es_ES"],
+      "language": "3082"
+    }
+  }
+}
