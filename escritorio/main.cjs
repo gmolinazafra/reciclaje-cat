@@ -9,7 +9,8 @@
  *     copias\              copia automática diaria (se guardan las 30 últimas)
  * - Copias de seguridad manuales y restauración desde Ajustes.
  * - Licencia: sin llave válida para este equipo solo se muestra la pantalla de activación (licencia.cjs).
- * - Actualizaciones automáticas desde GitHub Releases (electron-updater): se descargan solas y se instalan al cerrar.
+ * - Actualizaciones automáticas desde Cloudflare R2 (descargas.limonadaweb.com/reciclacat, electron-updater): se descargan solas,
+ *   se comprueba su huella SHA-512 y se instalan al cerrar.
  */
 const { app, BrowserWindow, Menu, dialog, ipcMain, protocol, shell, session } = require("electron");
 const fs = require("node:fs");
@@ -246,7 +247,7 @@ function buscarActualizaciones(ventana, manual) {
 }
 
 /** Únicos destinos de red permitidos: los de las actualizaciones. */
-const RED_PERMITIDA = /^https:\/\/([a-z0-9-]+\.)*(github\.com|githubusercontent\.com)\//i;
+const RED_PERMITIDA = /^https:\/\/descargas\.limonadaweb\.com\/reciclacat\//i;
 
 // ─── Ventana ─────────────────────────────────────────────────────────────────
 function crearVentana() {

@@ -9,8 +9,7 @@
   "main": "main.cjs",
   "scripts": {
     "iniciar": "electron .",
-    "instalador": "electron-builder --win nsis --x64 --publish never",
-    "publicar": "electron-builder --win nsis --x64 --publish always"
+    "instalador": "electron-builder --win nsis --x64 --publish never"
   },
   "devDependencies": {
     "electron": "38.2.2",
@@ -62,10 +61,8 @@
     },
     "publish": [
       {
-        "provider": "github",
-        "owner": "gmolinazafra",
-        "repo": "reciclaje-cat",
-        "releaseType": "release"
+        "provider": "generic",
+        "url": "https://descargas.limonadaweb.com/reciclacat/"
       }
     ]
   },

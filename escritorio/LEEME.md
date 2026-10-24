@@ -18,11 +18,16 @@ Desinstalar el programa **no borra** los datos.
 - La llave va firmada (Ed25519) y ligada a ese equipo; puede caducar (1 año por defecto) o no.
 - Sin llave válida no se abre la app ni se accede a los datos.
 
-## Actualizaciones
-- Al arrancar busca versiones nuevas en GitHub Releases; se descargan solas y se instalan al cerrar
-  (o al pulsar «Reiniciar ahora»). Los datos no se tocan.
-- Publicar una versión: subir `version` en `escritorio/package.json` (p. ej. 1.0.1) y crear la etiqueta
-  `v1.0.1` en ese commit. GitHub Actions compila y publica.
+## Actualizaciones (Cloudflare)
+- Se publican en el bucket R2 `nubrya-descargas`, carpeta `reciclacat/` → `https://descargas.limonadaweb.com/reciclacat/`
+  (el mismo dominio que NUBRYA). Botón de descarga para la web: `https://descargas.limonadaweb.com/reciclacat/ReciclaCat_Gest-Setup.exe`.
+- El programa comprueba `latest.yml` al arrancar, descarga la versión nueva en segundo plano, verifica su huella SHA-512
+  y la instala al cerrar (o al pulsar «Reiniciar ahora»). Los datos no se tocan.
+- Única conexión a internet del programa: `descargas.limonadaweb.com/reciclacat/`.
+- Publicar una versión: subir `version` en `escritorio/package.json` (p. ej. 1.0.1) y crear la etiqueta `v1.0.1`
+  en ese commit. GitHub Actions compila en Windows y sube a R2.
+- Requisito (una vez): secretos del repositorio `CLOUDFLARE_API_TOKEN` (permiso *Workers R2 Storage: Edit*) y
+  `CLOUDFLARE_ACCOUNT_ID`.
 
 ## Lectura de documentos
 - PDF con texto: pdf.js (lectura exacta).
@@ -32,7 +37,7 @@ Desinstalar el programa **no borra** los datos.
 
 ## Compilar el instalador
 Lo hace GitHub Actions en Windows (`.github/workflows/escritorio.yml`): Actions → «Instalador Windows».
-El `.exe` queda en los artefactos de la ejecución. Con una etiqueta `vX.Y.Z` se publica como versión (y llega a todos como actualización).
+El `.exe` queda en los artefactos de la ejecución. Con una etiqueta `vX.Y.Z` se sube a Cloudflare y llega a todos como actualización.
 
 En local (Windows):
 ```
