@@ -9,14 +9,33 @@
  *     copias\              copia automática diaria (se guardan las 30 últimas)
  * - Copias de seguridad manuales y restauración desde Ajustes.
  * - Licencia: sin llave válida para este equipo solo se muestra la pantalla de activación (licencia.cjs).
+ * - Doble autenticación opcional (contraseña + app autenticadora, seguridad.cjs): con ella activada, al abrir el programa,
+ *   tras un rato sin usar el equipo o al bloquear Windows se pide contraseña y código.
  * - Actualizaciones automáticas desde Cloudflare R2 (descargas.limonadaweb.com/reciclacat, electron-updater): se descargan solas,
  *   se comprueba su huella SHA-512 y se instalan al cerrar.
  */
-const { app, BrowserWindow, Menu, dialog, ipcMain, protocol, shell, session } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, powerMonitor, protocol, safeStorage, shell, session } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const { codigoEquipo, verificarLlave } = require("./licencia.cjs");
 const { DIAS_PRUEBA, estadoPrueba, iniciarPrueba, anotarUso } = require("./prueba.cjs");
+const { crearGestor } = require("./seguridad.cjs");
+
+// ─── Doble autenticación ─────────────────────────────────────────────────────
+let seguridad = null;
+/** true cuando ya se ha introducido contraseña + código en esta sesión (o la doble autenticación no está activada). */
+let desbloqueado = false;
+function gestorSeguridad() {
+  if (!seguridad) {
+    const dpapi = () => { try { return safeStorage.isEncryptionAvailable(); } catch { return false; } };
+    seguridad = crearGestor(path.join(app.getPath("userData"), "seguridad.json"), {
+      cifrar: (t) => (dpapi() ? { dpapi: true, dato: safeStorage.encryptString(t).toString("base64") } : { dpapi: false, dato: Buffer.from(t).toString("base64") }),
+      descifrar: (o) => (o.dpapi ? safeStorage.decryptString(Buffer.from(o.dato, "base64")) : Buffer.from(o.dato, "base64").toString()),
+    });
+  }
+  return seguridad;
+}
+const bloqueado = () => gestorSeguridad().estado().activa && !desbloqueado;
 
 // ─── Licencia ────────────────────────────────────────────────────────────────
 const archivoLicencia = () => path.join(app.getPath("userData"), "licencia.json");
@@ -137,11 +156,14 @@ function registrarProtocolo() {
       if (!rel || rel.endsWith("/")) rel += "index.html";
       let abs;
       // Sin licencia válida, cualquier página lleva a la activación (los recursos estáticos sí se sirven).
-      if (rel === "activar.html" || (!licencia.ok && /\.html?$/.test(rel))) abs = path.join(__dirname, "activar.html");
+      const html = /\.html?$/.test(rel) || !path.extname(rel);
+      if (rel === "activar.html" || (!licencia.ok && /\.html?$/.test(rel))) abs = path.join(__dirname, licencia.ok && bloqueado() ? "acceso.html" : "activar.html");
+      // Con la doble autenticación activada y sin desbloquear, solo se ve la pantalla de acceso.
+      else if (licencia.ok && html && bloqueado()) abs = path.join(__dirname, "acceso.html");
       else {
         abs = dentroDe(DIR_APP, rel);
         if (!fs.existsSync(abs) && fs.existsSync(abs + ".html")) abs += ".html";
-        if (!fs.existsSync(abs) || fs.statSync(abs).isDirectory()) abs = path.join(DIR_APP, licencia.ok ? "index.html" : "../activar.html");
+        if (!fs.existsSync(abs) || fs.statSync(abs).isDirectory()) abs = !licencia.ok ? path.join(__dirname, "activar.html") : bloqueado() ? path.join(__dirname, "acceso.html") : path.join(DIR_APP, "index.html");
       }
       const datos = await fs.promises.readFile(abs);
       return new Response(datos, { headers: { "content-type": MIME[path.extname(abs).toLowerCase()] ?? "application/octet-stream", "x-robots-tag": "noindex, noai" } });
@@ -174,13 +196,37 @@ function registrarIPC(ventana) {
     return { ok: true, datos: r.datos };
   });
   ipcMain.handle("act:buscar", () => buscarActualizaciones(ventana, true));
+  ipcMain.handle("seg:estado", () => ({ ...gestorSeguridad().estado(), desbloqueado: !bloqueado() }));
+  ipcMain.handle("seg:desbloquear", (_e, clave, codigo) => {
+    if (!licencia.ok) return { ok: false, error: "Licencia no activada" };
+    const r = gestorSeguridad().comprobar(clave, codigo);
+    if (!r.ok) return r;
+    desbloqueado = true;
+    setTimeout(() => ventana.loadURL(`${ESQUEMA}://${HOST}/index.html`), r.usadoRecuperacion ? 2500 : 300);
+    return r;
+  });
 
   // A partir de aquí, nada funciona sin licencia válida.
-  const conLicencia = (fn) => (...a) => { if (!licencia.ok) throw new Error("Licencia no activada"); return fn(...a); };
+  const conLicencia = (fn) => (...a) => { if (!licencia.ok) throw new Error("Licencia no activada"); if (bloqueado()) throw new Error("Programa bloqueado"); return fn(...a); };
   const handleOriginal = ipcMain.handle.bind(ipcMain);
   ipcMain.handle = (canal, fn) => handleOriginal(canal, conLicencia(fn));
 
-  ipcMain.on("db:leer", (e) => { e.returnValue = licencia.ok ? leerDB() : null; });
+  ipcMain.on("db:leer", (e) => { e.returnValue = licencia.ok && !bloqueado() ? leerDB() : null; });
+
+  // Configuración de la doble autenticación (solo con el programa desbloqueado).
+  ipcMain.handle("seg:preparar", (_e, clave, clave2, cuenta) => {
+    const r = gestorSeguridad().preparar(clave, clave2, cuenta);
+    if (!r.ok) return r;
+    const qr = require("qrcode-generator")(0, "M");
+    qr.addData(r.uri); qr.make();
+    return { ok: true, secreto: r.secreto, qr: "data:image/svg+xml;base64," + Buffer.from(qr.createSvgTag({ cellSize: 5, margin: 4, scalable: true })).toString("base64") };
+  });
+  ipcMain.handle("seg:confirmar", (_e, codigo, minutos) => { const r = gestorSeguridad().confirmar(codigo, minutos); if (r.ok) desbloqueado = true; return r; });
+  ipcMain.handle("seg:cancelar", () => { gestorSeguridad().cancelar(); return true; });
+  ipcMain.handle("seg:desactivar", (_e, clave, codigo) => gestorSeguridad().desactivar(clave, codigo));
+  ipcMain.handle("seg:codigos", (_e, clave, codigo) => gestorSeguridad().nuevosCodigos(clave, codigo));
+  ipcMain.handle("seg:minutos", (_e, minutos) => gestorSeguridad().cambiarMinutos(minutos));
+  ipcMain.handle("seg:bloquear", () => { bloquear(ventana); return true; });
   ipcMain.handle("db:guardar", (_e, json) => guardarDB(json));
 
   ipcMain.handle("adj:guardar", (_e, id, nombre, datos) => {
@@ -243,6 +289,24 @@ function registrarIPC(ventana) {
   ipcMain.handle = handleOriginal;
 }
 
+/** Bloquea el programa y muestra la pantalla de acceso (si la doble autenticación está activada). */
+function bloquear(ventana) {
+  if (!gestorSeguridad().estado().activa || !desbloqueado) return;
+  desbloqueado = false;
+  if (ventana && !ventana.isDestroyed()) ventana.loadURL(`${ESQUEMA}://${HOST}/index.html`);
+}
+
+/** Bloqueo automático: tras X minutos sin tocar el equipo, o al bloquear la sesión de Windows. */
+function vigilarInactividad(ventana) {
+  setInterval(() => {
+    try {
+      const e = gestorSeguridad().estado();
+      if (e.activa && desbloqueado && e.minutosBloqueo > 0 && powerMonitor.getSystemIdleTime() >= e.minutosBloqueo * 60) bloquear(ventana);
+    } catch { /* nunca rompe el programa */ }
+  }, 20000);
+  for (const ev of ["lock-screen", "suspend"]) powerMonitor.on(ev, () => bloquear(ventana));
+}
+
 // ─── Actualizaciones ─────────────────────────────────────────────────────────
 let estadoActualizacion = "sin comprobar";
 let actualizador = null;
@@ -303,6 +367,7 @@ if (!app.requestSingleInstanceLock()) {
     comprobarLicencia();
     registrarProtocolo();
     principal = crearVentana();
+    vigilarInactividad(principal);
     if (licencia.ok) setTimeout(() => buscarActualizaciones(principal, false), 5000);
   });
   app.on("window-all-closed", () => app.quit());

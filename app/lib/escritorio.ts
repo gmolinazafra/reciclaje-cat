@@ -14,6 +14,27 @@ export interface InfoEscritorio {
   actualizacion: string;
 }
 
+/** Doble autenticación (contraseña + app autenticadora). */
+export interface EstadoSeguridad {
+  activa: boolean;
+  desbloqueado: boolean;
+  /** Minutos sin usar el equipo antes de bloquear (0 = solo al abrir). */
+  minutosBloqueo: number;
+  recuperacionRestantes: number;
+  creada: string | null;
+  cuenta: string | null;
+}
+
+export interface ResultadoSeguridad {
+  ok: boolean;
+  error?: string;
+  /** Códigos de recuperación (solo se devuelven una vez). */
+  codigos?: string[];
+  /** Imagen del QR (data URL SVG) y clave para introducir a mano. */
+  qr?: string;
+  secreto?: string;
+}
+
 export interface PuenteEscritorio {
   /** Lectura síncrona al arrancar (JSON de la base de datos o null si es la primera vez). */
   leerDB(): string | null;
@@ -31,6 +52,14 @@ export interface PuenteEscritorio {
   info(): Promise<InfoEscritorio>;
   /** Busca una versión nueva; devuelve el estado («buscando…», «al día»…). */
   buscarActualizacion(): Promise<string>;
+  seguridad?(): Promise<EstadoSeguridad>;
+  prepararDobleFactor(clave: string, clave2: string, cuenta: string): Promise<ResultadoSeguridad>;
+  confirmarDobleFactor(codigo: string, minutos: number): Promise<ResultadoSeguridad>;
+  cancelarDobleFactor(): Promise<boolean>;
+  desactivarDobleFactor(clave: string, codigo: string): Promise<ResultadoSeguridad>;
+  nuevosCodigosRecuperacion(clave: string, codigo: string): Promise<ResultadoSeguridad>;
+  minutosBloqueo(minutos: number): Promise<{ ok: boolean }>;
+  bloquear(): Promise<boolean>;
 }
 
 declare global {

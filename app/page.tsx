@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { puente } from "./lib/escritorio";
 import type { InfoEscritorio } from "./lib/escritorio";
 import { BloqueLegal, VisorLegal } from "./components/Legal";
+import DobleFactor from "./components/DobleFactor";
 import type { DocLegal } from "./components/Legal";
 import SeproBot from "./seprobot/SeproBot";
 import { useDb } from "./lib/useDb";
@@ -24,7 +25,7 @@ const TABS = [
   { n: "Resumen", i: "▦" }, { n: "Documentos", i: "📄" }, { n: "Vehículos", i: "🚗" }, { n: "Piezas", i: "⚙" }, { n: "Residuos", i: "♻" }, { n: "Informes", i: "📊" },
 ];
 
-function AjustesEscritorio() {
+function AjustesEscritorio({ cuenta }: { cuenta: string }) {
   const p = puente();
   const [info, setInfo] = useState<InfoEscritorio | null>(null);
   const [msg, setMsg] = useState<{ tipo: "ok" | "error"; t: string } | null>(null);
@@ -43,6 +44,7 @@ function AjustesEscritorio() {
       </div>
       {info?.prueba?.activa && <p className="text-xs text-[#567067]"><b>Prueba gratuita</b> · te quedan {info.prueba.diasRestantes} días · equipo {info.equipo} · <a href="/activar.html" className="font-bold text-[#096653] underline">Activar licencia</a></p>}
       {info?.licencia && <p className="text-xs text-[#567067]"><b>Licencia</b> {info.licencia.numero} · {info.licencia.cliente} · {info.licencia.caduca ? `válida hasta ${info.licencia.caduca.split("-").reverse().join("/")}` : "sin caducidad"} · equipo {info.equipo}</p>}
+      <DobleFactor cuenta={cuenta} />
       {info && (
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#8aa39a]">
           <span>ReciclaCat_Gest para Windows · versión {info.version} · actualizaciones: {info.actualizacion}</span>
@@ -135,7 +137,7 @@ export default function Home() {
       {ajustes && (
         <Modal titulo="Ajustes del centro" onCerrar={() => setAjustes(false)}>
           <div className="space-y-3">
-            {repo.tipo === "navegador" ? <Aviso tipo="info">Los datos se guardan en <b>este navegador</b>. Para guardarlos en el ordenador con copias de seguridad, usa la versión de Windows.</Aviso> : <AjustesEscritorio />}
+            {repo.tipo === "navegador" ? <Aviso tipo="info">Los datos se guardan en <b>este navegador</b>. Para guardarlos en el ordenador con copias de seguridad, usa la versión de Windows.</Aviso> : <AjustesEscritorio cuenta={db.centro.razonSocial || db.centro.nombre} />}
             <div className="grid gap-3 sm:grid-cols-2">
               <Campo label="Nombre del centro" value={db.centro.nombre} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, nombre: v } }))} />
               <Campo label="NIMA" value={db.centro.nima} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, nima: v } }))} />

@@ -18,6 +18,15 @@ Desinstalar el programa **no borra** los datos.
 - La llave va firmada (Ed25519) y ligada a ese equipo; puede caducar (1 año por defecto) o no.
 - Sin llave válida no se abre la app ni se accede a los datos.
 
+## Doble autenticación (opcional)
+
+Ajustes → «Doble autenticación»: contraseña + código de una app autenticadora (Google Authenticator, Microsoft Authenticator, Authy, 2FAS…). TOTP estándar (RFC 6238), funciona sin internet.
+
+- Se pide al abrir el programa, tras X minutos sin usar el equipo (5/15/30/60 o nunca) y al bloquear o suspender Windows.
+- Se guarda en `%APPDATA%\ReciclaCat_Gest\seguridad.json`: huella scrypt de la contraseña, secreto cifrado con DPAPI y huellas de 8 códigos de recuperación de un solo uso.
+- Freno a la fuerza bruta (espera creciente tras 5 fallos) y un mismo código no vale dos veces.
+- Soporte, si el cliente pierde contraseña, móvil y códigos: cerrar el programa y borrar `seguridad.json`. Los datos no se tocan.
+
 ## Actualizaciones (Cloudflare)
 - Se publican en el bucket R2 `nubrya-descargas`, carpeta `reciclacat/` → `https://descargas.limonadaweb.com/reciclacat/`
   (el mismo dominio que NUBRYA). Botón de descarga para la web: `https://descargas.limonadaweb.com/reciclacat/ReciclaCat_Gest-Setup.exe`.

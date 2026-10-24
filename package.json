@@ -12,7 +12,7 @@
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
-    "test": "tsx app/lib/lib.test.ts && tsx app/lib/extraer.test.ts && tsx app/lib/memoria.test.ts && tsx app/seprobot/casos.test.ts && tsx tests/render.test.tsx",
+    "test": "node escritorio/seguridad.test.cjs && tsx app/lib/lib.test.ts && tsx app/lib/extraer.test.ts && tsx app/lib/memoria.test.ts && tsx app/seprobot/casos.test.ts && tsx tests/render.test.tsx",
     "predev": "node scripts/copiar-ocr.mjs",
     "prebuild": "node scripts/copiar-ocr.mjs",
     "escritorio:preparar": "node scripts/preparar-escritorio.mjs"
