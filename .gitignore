@@ -30,3 +30,4 @@ package-lock.json
 # Clave privada de licencias: NUNCA en el repositorio
 *.pem
 registro-licencias.csv
+escritorio/recursos/licencia.txt

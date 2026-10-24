@@ -7,6 +7,8 @@
 import { useEffect, useState } from "react";
 import { puente } from "./lib/escritorio";
 import type { InfoEscritorio } from "./lib/escritorio";
+import { BloqueLegal, VisorLegal } from "./components/Legal";
+import type { DocLegal } from "./components/Legal";
 import SeproBot from "./seprobot/SeproBot";
 import { useDb } from "./lib/useDb";
 import { ops } from "./lib/repo";
@@ -58,6 +60,7 @@ export default function Home() {
   const [tab, setTab] = useState(0);
   const [ajustes, setAjustes] = useState(false);
   const [accion, setAccion] = useState<string | null>(null);
+  const [legal, setLegal] = useState<DocLegal | null>(null);
   const ir = (t: number, a?: string) => { setTab(t); setAccion(a ?? null); };
   const anios = [db.ejercicio - 1, db.ejercicio, db.ejercicio + 1].filter((a, i, arr) => arr.indexOf(a) === i);
 
@@ -93,7 +96,12 @@ export default function Home() {
             {tab === 3 && <Piezas db={db} set={set} abrir={accion === "manual" || accion === "excel" ? accion : null} onAbierto={() => setAccion(null)} />}
             {tab === 4 && <Residuos db={db} set={set} abrirDI={accion === "di"} onAbierto={() => setAccion(null)} />}
             {tab === 5 && <Informes db={db} />}
-            <footer className="mt-8 border-t border-[#dce8e1] pt-3 text-center text-[11px] text-[#8aa39a]">ReciclaCat_Gest · Powered by Limonada Web</footer>
+            <footer className="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-[#dce8e1] pt-3 text-[11px] text-[#8aa39a]">
+              <span>ReciclaCat_Gest · © Limonada Web</span>
+              <button type="button" className="underline hover:text-[#096653]" onClick={() => setLegal("condiciones")}>Condiciones y privacidad</button>
+              <button type="button" className="underline hover:text-[#096653]" onClick={() => setLegal("terceros")}>Avisos de terceros</button>
+              <a href="https://www.limonadaweb.com/" target="_blank" rel="noopener" className="hover:text-[#096653]">Powered by Limonada Web</a>
+            </footer>
           </section>
           {/* Barra inferior móvil */}
           <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t border-[#dce8e1] bg-white md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
@@ -112,6 +120,7 @@ export default function Home() {
               <Campo label="Provincia" value={db.centro.provincia} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, provincia: v } }))} />
               <Campo label="Usuario" value={db.centro.usuario} onChange={(v) => set((d) => ({ ...d, centro: { ...d.centro, usuario: v } }))} ayuda="Se registra en cada documento subido." />
             </div>
+            <BloqueLegal abrir={setLegal} />
             <div className="flex flex-wrap gap-2">
               <Boton tipo="secundario" onClick={() => confirm("¿Cargar los datos de demostración? Se sustituirán los datos actuales (haz antes una copia si los necesitas).") && repo.reiniciarDemo()}>Cargar datos de demostración</Boton>
               <Boton tipo="peligro" onClick={() => confirm("¿Borrar todos los datos y empezar de cero? Esta acción no se puede deshacer si no tienes copia.") && repo.borrarTodo()}>Borrar todo</Boton>
@@ -119,6 +128,7 @@ export default function Home() {
           </div>
         </Modal>
       )}
+      {legal && <VisorLegal doc={legal} onCerrar={() => setLegal(null)} />}
       <SeproBot />
     </main>
   );

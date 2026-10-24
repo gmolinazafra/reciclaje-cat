@@ -29,6 +29,13 @@
   .msg.error { display: block; background: #fdecec; color: #9b2c2c; }
   .msg.ok { display: block; background: #e7f6ee; color: #0b6b4f; }
   footer { margin-top: 20px; text-align: center; font-size: 11px; color: #8aa39a; }
+  .acepto { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; font-size: 13px; color: var(--texto); line-height: 1.45; }
+  .acepto input { width: 20px; height: 20px; margin-top: 1px; accent-color: var(--verde); flex: none; }
+  .enlace { background: none; border: 0; padding: 0; min-height: 0; color: var(--verde-o); font-weight: 700; text-decoration: underline; cursor: pointer; font-size: inherit; }
+  dialog { width: min(760px, 94vw); max-height: 86vh; border: 0; border-radius: 16px; padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  dialog::backdrop { background: rgba(23,55,47,.45); }
+  dialog header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e3efe9; font-weight: 700; }
+  dialog pre { margin: 0; padding: 16px; max-height: 70vh; overflow: auto; white-space: pre-wrap; font: 12px/1.5 Consolas, monospace; color: var(--texto); }
 </style>
 </head>
 <body>
@@ -46,14 +53,16 @@
     <div class="paso">
       <p><b class="n">2</b><b style="color:var(--texto)">Pega aquí la llave que te enviemos</b></p>
       <textarea id="llave" placeholder="RCG1.…" spellcheck="false" autocomplete="off"></textarea>
+      <label class="acepto"><input type="checkbox" id="acepto"><span>He leído y acepto las <button type="button" class="enlace" data-doc="CONDICIONES-DE-USO-Y-PRIVACIDAD.txt">condiciones de uso, licencia y privacidad</button>.</span></label>
       <button class="pri" id="activar" type="button">Activar</button>
       <div class="msg" id="msg"></div>
     </div>
 
     <p id="aviso" style="margin-top:16px"></p>
-    <footer>© Limonada Web · Powered by Limonada Web</footer>
+    <footer>© Limonada Web · Mari Ángeles Pedrosa Alarcón · NIF 53691928S · <button type="button" class="enlace" data-doc="CONDICIONES-DE-USO-Y-PRIVACIDAD.txt">Condiciones y privacidad</button> · <button type="button" class="enlace" data-doc="AVISOS-DE-TERCEROS.txt">Avisos de terceros</button><br>Powered by Limonada Web</footer>
   </div>
 </main>
+<dialog id="visor"><header><span id="visor-titulo"></span><button type="button" class="sec" id="visor-cerrar">Cerrar</button></header><pre id="visor-texto"></pre></dialog>
 <script>
   const api = window.reciclacat;
   const $ = (id) => document.getElementById(id);
@@ -67,11 +76,20 @@
     catch { getSelection().selectAllChildren($("codigo")); }
     setTimeout(() => ($("copiar").textContent = "Copiar"), 1500);
   };
+  document.querySelectorAll("[data-doc]").forEach((b) => b.onclick = async () => {
+    $("visor-titulo").textContent = b.dataset.doc.startsWith("AVISOS") ? "Avisos de terceros" : "Condiciones de uso, licencia y privacidad";
+    $("visor-texto").textContent = "Cargando…";
+    $("visor").showModal();
+    try { const r = await fetch("/legal/" + b.dataset.doc); $("visor-texto").textContent = r.ok ? await r.text() : "No disponible."; }
+    catch { $("visor-texto").textContent = "No disponible."; }
+  });
+  $("visor-cerrar").onclick = () => $("visor").close();
   $("activar").onclick = async () => {
     const llave = $("llave").value.trim();
     if (!llave) return msg("error", "Pega la llave que te hemos enviado.");
+    if (!$("acepto").checked) return msg("error", "Para activar tienes que aceptar las condiciones de uso, licencia y privacidad.");
     $("activar").disabled = true;
-    const r = await api.activar(llave);
+    const r = await api.activar(llave, true);
     $("activar").disabled = false;
     if (r.ok) msg("ok", "Licencia activada para " + r.datos.c + ". Abriendo ReciclaCat_Gest…");
     else msg("error", r.error);

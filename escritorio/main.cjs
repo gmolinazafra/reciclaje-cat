@@ -19,6 +19,8 @@ const { codigoEquipo, verificarLlave } = require("./licencia.cjs");
 
 // ─── Licencia ────────────────────────────────────────────────────────────────
 const archivoLicencia = () => path.join(app.getPath("userData"), "licencia.json");
+/** Versión de public/legal/CONDICIONES-DE-USO-Y-PRIVACIDAD.txt que se acepta al activar. */
+const VERSION_CONDICIONES = "1 · 24/10/2026";
 let licencia = { ok: false, error: null, datos: null };
 
 function comprobarLicencia() {
@@ -141,11 +143,13 @@ function registrarProtocolo() {
 // ─── IPC ─────────────────────────────────────────────────────────────────────
 function registrarIPC(ventana) {
   ipcMain.handle("licencia:estado", () => ({ ok: licencia.ok, error: licencia.error, equipo: codigoEquipo(), ...resumenLicencia() }));
-  ipcMain.handle("licencia:activar", (_e, llave) => {
+  ipcMain.handle("licencia:activar", (_e, llave, aceptaCondiciones) => {
+    if (aceptaCondiciones !== true) return { ok: false, error: "Para activar tienes que aceptar las condiciones de uso, licencia y privacidad." };
     const r = verificarLlave(llave);
     if (!r.ok) return { ok: false, error: r.error };
     fs.mkdirSync(path.dirname(archivoLicencia()), { recursive: true });
-    fs.writeFileSync(archivoLicencia(), JSON.stringify({ llave: String(llave).replace(/\s+/g, ""), activada: new Date().toISOString() }), "utf8");
+    // Se guarda la aceptación de las condiciones (versión y fecha) junto a la llave.
+    fs.writeFileSync(archivoLicencia(), JSON.stringify({ llave: String(llave).replace(/\s+/g, ""), activada: new Date().toISOString(), condiciones: { version: VERSION_CONDICIONES, aceptadas: new Date().toISOString() } }), "utf8");
     comprobarLicencia();
     setTimeout(() => { ventana.loadURL(`${ESQUEMA}://${HOST}/index.html`); buscarActualizaciones(ventana, false); }, 1200);
     return { ok: true, datos: r.datos };

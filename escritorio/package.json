@@ -3,7 +3,11 @@
   "productName": "ReciclaCat_Gest",
   "version": "1.0.0",
   "description": "Gestión de residuos, vehículos, piezas y memoria anual para Centros Autorizados de Tratamiento (CAT).",
-  "author": "Limonada Web",
+  "author": {
+    "name": "Limonada Web (Mari Ángeles Pedrosa Alarcón)",
+    "email": "hola@limonadaweb.com",
+    "url": "https://www.limonadaweb.com"
+  },
   "license": "UNLICENSED",
   "private": true,
   "main": "main.cjs",
@@ -18,7 +22,7 @@
   "build": {
     "appId": "es.limonadaweb.reciclacatgest",
     "productName": "ReciclaCat_Gest",
-    "copyright": "© Limonada Web",
+    "copyright": "© 2026 Limonada Web · Mari Ángeles Pedrosa Alarcón",
     "asar": true,
     "files": [
       "main.cjs",
@@ -57,7 +61,8 @@
         "es_ES"
       ],
       "language": "3082",
-      "differentialPackage": true
+      "differentialPackage": true,
+      "license": "recursos/licencia.txt"
     },
     "publish": [
       {
