@@ -20,6 +20,12 @@ export async function memoriaPdf(db: BaseDatos, ejercicio = db.ejercicio): Promi
   const W = doc.internal.pageSize.getWidth();
   let y = 18;
 
+  // Logo de ReciclaCat_Gest en la cabecera (si no se puede cargar, el PDF sale igual sin él).
+  try {
+    const b = await (await fetch("/logo-simbolo.png")).blob();
+    const url = await new Promise<string>((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = ko; r.readAsDataURL(b); });
+    doc.addImage(url, "PNG", W - 30, 8, 16, 16);
+  } catch { /* sin logo */ }
   doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(...VERDE);
   doc.text(`Memoria anual ${ejercicio}`, 14, y);
   doc.setFontSize(11); doc.setTextColor(23, 55, 47);

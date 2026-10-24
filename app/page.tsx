@@ -57,12 +57,12 @@ export default function Home() {
   const ir = (t: number, a?: string) => { setTab(t); setAccion(a ?? null); };
   const anios = [db.ejercicio - 1, db.ejercicio, db.ejercicio + 1].filter((a, i, arr) => arr.indexOf(a) === i);
 
-  if (!montado) return <main className="flex min-h-dvh items-center justify-center bg-[#f4f7f5] text-[#17372f]"><b className="text-lg">♻ ReciclaCat_<span className="text-[#0d7969]">Gest</span></b></main>;
+  if (!montado) return <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-white text-[#17372f]"><img src="/logo.png" alt="ReciclaCat_Gest" className="w-64 max-w-[70vw]" /><p className="text-xs text-[#8aa39a]">Powered by Limonada Web</p></main>;
 
   return (
     <main className="min-h-dvh overflow-x-hidden bg-[#f4f7f5] text-[#17372f]">
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-[#dce8e1] bg-white px-3 sm:px-4">
-        <b className="text-base sm:text-lg">♻ ReciclaCat_<span className="text-[#0d7969]">Gest</span></b>
+        <b className="flex items-center gap-2 text-base sm:text-lg"><img src="/logo-simbolo.png" alt="" className="h-8 w-8" />ReciclaCat_<span className="-ml-2 text-[#0d7969]">Gest</span></b>
         <div className="flex items-center gap-2">
           {!tech && (
             <select aria-label="Ejercicio" value={db.ejercicio} onChange={(e) => set((d) => ops.setEjercicio(d, parseInt(e.target.value, 10)))} className="min-h-[40px] rounded-xl border border-[#cfe0d7] bg-white px-2 text-sm">
