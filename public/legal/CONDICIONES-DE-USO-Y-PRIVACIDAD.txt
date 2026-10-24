@@ -1,5 +1,5 @@
 RECICLACAT_GEST — CONDICIONES DE USO, LICENCIA Y PRIVACIDAD
-Versión 1 · 24 de octubre de 2026
+Versión 2 · 24 de octubre de 2026
 
 Lee estas condiciones antes de instalar y activar ReciclaCat_Gest. Al
 pulsar «Acepto» en el instalador, o al activar la licencia, las aceptas.
@@ -103,13 +103,30 @@ Desinstalar el programa no borra los datos.
 5.4 El precio, la duración y la forma de pago de la licencia son los
     acordados entre el cliente y Limonada Web en el momento de la compra.
 
-5.5 Queda PROHIBIDO, salvo autorización expresa y por escrito:
+5.4 bis PRUEBA GRATUITA. Sin llave, el programa puede usarse gratis
+    durante 15 días naturales en cada ordenador, desde que el usuario
+    pulsa «Probar gratis 15 días». La prueba incluye todas las funciones,
+    no exige datos de pago y no se renueva sola ni genera ningún cargo.
+    Al terminar, el programa pide la llave para seguir; los datos
+    introducidos durante la prueba se conservan en el ordenador. Queda
+    prohibido manipular el equipo, su fecha o el programa para alargar
+    la prueba.
+
+5.5 DESCARGA OFICIAL. ReciclaCat_Gest solo se distribuye desde la web
+    oficial de Limonada Web (https://www.limonadaweb.com) y su servidor
+    de descargas (https://descargas.limonadaweb.com). Cualquier copia
+    obtenida de otra fuente puede estar manipulada o contener software
+    malicioso; no está autorizada y no recibirá licencia ni soporte.
+
+5.6 Queda PROHIBIDO, salvo autorización expresa y por escrito:
     - copiar, ceder, alquilar, vender o sublicenciar el programa o las
       llaves de activación;
     - descompilar, desensamblar o aplicar ingeniería inversa, modificar
       el programa o eludir el sistema de licencias;
     - extraer su código, textos, fichas o diseño, o utilizarlos para
-      entrenar o alimentar sistemas de inteligencia artificial.
+      entrenar o alimentar sistemas de inteligencia artificial;
+    - distribuir el instalador o el programa desde cualquier sitio
+      distinto de los oficiales indicados en el apartado 5.5.
 
 -----------------------------------------------------------------------
 6. ACTUALIZACIONES
@@ -127,6 +144,11 @@ diccionario de pesos, tabla de taras, logotipos e imágenes son
 propiedad de Limonada Web o de terceros que han autorizado su uso, y
 están protegidos por la legislación de propiedad intelectual e
 industrial. La licencia no transmite ninguno de estos derechos.
+
+Limonada Web se reserva expresamente el uso de ReciclaCat_Gest, de sus
+contenidos y de su web para la minería de textos y datos, conforme al
+artículo 4.3 de la Directiva (UE) 2019/790. Queda prohibido utilizarlos
+para entrenar, ajustar o alimentar sistemas de inteligencia artificial.
 
 Los componentes de software libre que incluye el programa se rigen por
 sus propias licencias (ver «AVISOS DE TERCEROS»).
@@ -193,9 +215,10 @@ sus propias licencias (ver «AVISOS DE TERCEROS»).
 -----------------------------------------------------------------------
 La licencia dura el periodo indicado en la llave. Limonada Web podrá
 revocar o no renovar la licencia si el cliente incumple estas
-condiciones (en especial, el apartado 5.5). El cliente puede dejar de
-usar el programa en cualquier momento; sus datos siguen siendo suyos y
-puede exportarlos (CSV, TXT, PDF) o hacer una copia antes de dejarlo.
+condiciones (en especial, los apartados 5.4 bis y 5.6). El cliente
+puede dejar de usar el programa en cualquier momento; sus datos siguen
+siendo suyos y puede exportarlos (CSV, TXT, PDF) o hacer una copia
+antes de dejarlo.
 
 -----------------------------------------------------------------------
 11. CAMBIOS EN ESTAS CONDICIONES

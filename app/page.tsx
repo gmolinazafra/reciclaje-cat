@@ -41,6 +41,7 @@ function AjustesEscritorio() {
         <Boton tipo="secundario" onClick={async () => { if (!confirm("Restaurar una copia sustituye los datos actuales por los de la copia (antes se guarda una copia de los actuales). ¿Continuar?")) return; const ok = await p.restaurarCopia(); if (!ok) setMsg({ tipo: "error", t: "No se ha restaurado ninguna copia." }); }}>Restaurar copia…</Boton>
         <Boton tipo="texto" onClick={() => p.abrirCarpetaDatos()}>Abrir carpeta de datos</Boton>
       </div>
+      {info?.prueba?.activa && <p className="text-xs text-[#567067]"><b>Prueba gratuita</b> · te quedan {info.prueba.diasRestantes} días · equipo {info.equipo} · <a href="/activar.html" className="font-bold text-[#096653] underline">Activar licencia</a></p>}
       {info?.licencia && <p className="text-xs text-[#567067]"><b>Licencia</b> {info.licencia.numero} · {info.licencia.cliente} · {info.licencia.caduca ? `válida hasta ${info.licencia.caduca.split("-").reverse().join("/")}` : "sin caducidad"} · equipo {info.equipo}</p>}
       {info && (
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#8aa39a]">
@@ -48,6 +49,21 @@ function AjustesEscritorio() {
           <button type="button" className="font-bold text-[#096653] underline" onClick={async () => { const e = await p.buscarActualizacion(); setInfo({ ...info, actualizacion: e }); setTimeout(() => p.info().then(setInfo), 4000); }}>Buscar actualizaciones</button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Banda de la versión de prueba (solo en Windows, sin licencia). */
+function BandaPrueba() {
+  const p = puente();
+  const [info, setInfo] = useState<InfoEscritorio | null>(null);
+  useEffect(() => { p?.info().then(setInfo).catch(() => setInfo(null)); }, [p]);
+  if (!info?.prueba?.activa) return null;
+  const d = info.prueba.diasRestantes;
+  return (
+    <div className={"flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-3 py-2 text-center text-xs font-semibold sm:text-sm " + (d <= 3 ? "bg-[#fff4e5] text-[#92400e]" : "bg-[#e5f3ed] text-[#096653]")}>
+      <span>Versión de prueba gratuita · te {d === 1 ? "queda 1 día" : `quedan ${d} días`}</span>
+      <a href="/activar.html" className="rounded-lg bg-[#0d7969] px-3 py-1 text-white hover:bg-[#096653]">Activar licencia</a>
     </div>
   );
 }
@@ -79,6 +95,7 @@ export default function Home() {
           <button type="button" onClick={() => setAjustes(true)} aria-label="Ajustes" className="min-h-[40px] min-w-[40px] rounded-xl text-lg hover:bg-[#f0f5f2]">⚙️</button>
         </div>
       </header>
+      <BandaPrueba />
 
       {(
         <div className="md:grid md:grid-cols-[200px_1fr]">

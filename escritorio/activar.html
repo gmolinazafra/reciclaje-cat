@@ -25,6 +25,11 @@
   .pri:disabled { opacity: .6; cursor: default; }
   textarea { width: 100%; min-height: 96px; margin-top: 8px; border: 1px solid var(--borde); border-radius: 12px; padding: 10px 12px; font: 13px/1.4 Consolas, monospace; resize: vertical; outline: none; }
   textarea:focus { border-color: var(--verde); }
+  .prueba { margin-top: 18px; padding: 16px; border-radius: 14px; background: var(--claro); border: 1px solid #bfe3d3; display: none; }
+  .prueba b { color: var(--verde-o); }
+  .prueba p { margin: 4px 0 10px; }
+  .prueba .pri { margin-top: 0; }
+  .o { text-align: center; margin: 18px 0 0; font-size: 12px; color: #8aa39a; display: none; }
   .msg { margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; display: none; }
   .msg.error { display: block; background: #fdecec; color: #9b2c2c; }
   .msg.ok { display: block; background: #e7f6ee; color: #0b6b4f; }
@@ -43,7 +48,17 @@
   <div class="tarjeta">
     <img class="logo" src="/logo.png" alt="ReciclaCat_Gest">
     <h1>Activa tu licencia</h1>
-    <p style="text-align:center">ReciclaCat_Gest necesita una llave de activación para este ordenador.</p>
+    <p style="text-align:center" id="intro">ReciclaCat_Gest necesita una llave de activación para este ordenador.</p>
+
+    <div class="prueba" id="caja-prueba">
+      <b id="prueba-titulo">Pruébalo gratis 15 días</b>
+      <p id="prueba-texto">Todas las funciones, sin compromiso y sin datos de pago. Al terminar, activa tu licencia y sigues con tus datos.</p>
+      <label class="acepto" style="margin:0 0 10px"><input type="checkbox" id="acepto-prueba"><span>He leído y acepto las <button type="button" class="enlace" data-doc="CONDICIONES-DE-USO-Y-PRIVACIDAD.txt">condiciones de uso, licencia y privacidad</button>.</span></label>
+      <button class="pri" id="empezar" type="button">Probar gratis 15 días</button>
+      <a class="pri" id="volver" href="/index.html" style="display:none;align-items:center;justify-content:center;text-decoration:none">Volver al programa</a>
+      <div class="msg" id="msg-prueba"></div>
+    </div>
+    <p class="o" id="separador">— o, si ya tienes tu licencia —</p>
 
     <div class="paso">
       <p><b class="n">1</b><b style="color:var(--texto)">Envía este código de equipo a Limonada Web</b></p>
@@ -69,8 +84,28 @@
   const msg = (tipo, t) => { const m = $("msg"); m.className = "msg " + tipo; m.textContent = t; };
   api.licencia().then((e) => {
     $("codigo").textContent = e.equipo;
+    const p = e.prueba || {};
+    if (!p.usada) {
+      $("caja-prueba").style.display = "block"; $("separador").style.display = "block";
+      $("intro").textContent = "Empieza la prueba gratuita o activa tu licencia.";
+    } else if (p.activa) {
+      $("caja-prueba").style.display = "block"; $("separador").style.display = "block";
+      $("prueba-titulo").textContent = "Estás usando la prueba gratuita";
+      $("prueba-texto").textContent = "Te quedan " + p.diasRestantes + (p.diasRestantes === 1 ? " día" : " días") + ". Cuando quieras, activa tu licencia aquí abajo: tus datos se conservan.";
+      $("empezar").style.display = "none"; $("acepto-prueba").closest("label").style.display = "none"; $("volver").style.display = "flex";
+      $("intro").textContent = "Activa tu licencia de ReciclaCat_Gest.";
+    }
     if (e.error) $("aviso").textContent = e.error;
   });
+  $("empezar").onclick = async () => {
+    const m = $("msg-prueba");
+    if (!$("acepto-prueba").checked) { m.className = "msg error"; m.textContent = "Para empezar la prueba tienes que aceptar las condiciones de uso, licencia y privacidad."; return; }
+    $("empezar").disabled = true;
+    const r = await api.empezarPrueba(true);
+    $("empezar").disabled = false;
+    m.className = "msg " + (r.ok ? "ok" : "error");
+    m.textContent = r.ok ? "Prueba activada: tienes " + r.diasRestantes + " días. Abriendo ReciclaCat_Gest…" : r.error;
+  };
   $("copiar").onclick = async () => {
     try { await navigator.clipboard.writeText($("codigo").textContent); $("copiar").textContent = "Copiado"; }
     catch { getSelection().selectAllChildren($("codigo")); }

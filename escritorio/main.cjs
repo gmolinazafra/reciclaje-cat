@@ -16,26 +16,37 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, protocol, shell, session } = 
 const fs = require("node:fs");
 const path = require("node:path");
 const { codigoEquipo, verificarLlave } = require("./licencia.cjs");
+const { DIAS_PRUEBA, estadoPrueba, iniciarPrueba, anotarUso } = require("./prueba.cjs");
 
 // ─── Licencia ────────────────────────────────────────────────────────────────
 const archivoLicencia = () => path.join(app.getPath("userData"), "licencia.json");
 /** Versión de public/legal/CONDICIONES-DE-USO-Y-PRIVACIDAD.txt que se acepta al activar. */
-const VERSION_CONDICIONES = "1 · 24/10/2026";
-let licencia = { ok: false, error: null, datos: null };
+const VERSION_CONDICIONES = "2 · 24/10/2026";
+const archivoPrueba = () => path.join(app.getPath("userData"), "prueba.json");
+/** ok = puede usar el programa (con licencia válida o durante la prueba de 15 días). */
+let licencia = { ok: false, error: null, datos: null, prueba: null };
 
 function comprobarLicencia() {
+  let error = null;
   try {
-    if (!fs.existsSync(archivoLicencia())) { licencia = { ok: false, error: null, datos: null }; return licencia; }
-    const { llave } = JSON.parse(fs.readFileSync(archivoLicencia(), "utf8"));
-    const r = verificarLlave(llave);
-    licencia = { ok: r.ok, error: r.ok ? null : r.error, datos: r.datos ?? null };
+    if (fs.existsSync(archivoLicencia())) {
+      const { llave } = JSON.parse(fs.readFileSync(archivoLicencia(), "utf8"));
+      const r = verificarLlave(llave);
+      if (r.ok) { licencia = { ok: true, error: null, datos: r.datos, prueba: null }; return licencia; }
+      error = r.error;
+    }
   } catch {
-    licencia = { ok: false, error: "No se ha podido leer la licencia guardada. Vuelve a introducir tu llave.", datos: null };
+    error = "No se ha podido leer la licencia guardada. Vuelve a introducir tu llave.";
   }
+  // Sin licencia válida: prueba gratuita de 15 días.
+  const p = estadoPrueba(archivoPrueba(), codigoEquipo());
+  if (p.activa) { anotarUso(archivoPrueba(), codigoEquipo()); licencia = { ok: true, error: null, datos: null, prueba: p }; return licencia; }
+  licencia = { ok: false, error: error ?? p.error, datos: null, prueba: p };
   return licencia;
 }
 
 const resumenLicencia = () => (licencia.datos ? { cliente: licencia.datos.c, caduca: licencia.datos.v, numero: licencia.datos.n } : null);
+const resumenPrueba = () => (licencia.prueba ? { usada: licencia.prueba.usada, activa: licencia.prueba.activa && !licencia.datos, diasRestantes: licencia.prueba.diasRestantes, fin: licencia.prueba.fin, dias: DIAS_PRUEBA } : { usada: false, activa: false, diasRestantes: DIAS_PRUEBA, fin: null, dias: DIAS_PRUEBA });
 
 const ESQUEMA = "app";
 const HOST = "reciclacat";
@@ -142,7 +153,15 @@ function registrarProtocolo() {
 
 // ─── IPC ─────────────────────────────────────────────────────────────────────
 function registrarIPC(ventana) {
-  ipcMain.handle("licencia:estado", () => ({ ok: licencia.ok, error: licencia.error, equipo: codigoEquipo(), ...resumenLicencia() }));
+  ipcMain.handle("licencia:estado", () => ({ ok: licencia.ok, error: licencia.error, equipo: codigoEquipo(), licencia: resumenLicencia(), prueba: resumenPrueba(), ...resumenLicencia() }));
+  ipcMain.handle("licencia:prueba", (_e, aceptaCondiciones) => {
+    if (aceptaCondiciones !== true) return { ok: false, error: "Para empezar la prueba tienes que aceptar las condiciones de uso, licencia y privacidad." };
+    const p = iniciarPrueba(archivoPrueba(), codigoEquipo(), { version: VERSION_CONDICIONES, aceptadas: new Date().toISOString() });
+    if (!p.activa) return { ok: false, error: p.error ?? "La prueba gratuita ya se ha usado en este equipo." };
+    comprobarLicencia();
+    setTimeout(() => { ventana.loadURL(`${ESQUEMA}://${HOST}/index.html`); buscarActualizaciones(ventana, false); }, 1200);
+    return { ok: true, diasRestantes: p.diasRestantes };
+  });
   ipcMain.handle("licencia:activar", (_e, llave, aceptaCondiciones) => {
     if (aceptaCondiciones !== true) return { ok: false, error: "Para activar tienes que aceptar las condiciones de uso, licencia y privacidad." };
     const r = verificarLlave(llave);
@@ -219,7 +238,7 @@ function registrarIPC(ventana) {
       const f = fs.readdirSync(dirCopias()).filter((x) => x.endsWith(".json")).map((x) => fs.statSync(path.join(dirCopias(), x)).mtime).sort((a, b) => b - a)[0];
       if (f) ultimaCopia = f.toISOString();
     } catch { /* sin copias */ }
-    return { version: app.getVersion(), carpetaDatos: dirDatos(), ultimaCopia, licencia: resumenLicencia(), equipo: codigoEquipo(), actualizacion: estadoActualizacion };
+    return { version: app.getVersion(), carpetaDatos: dirDatos(), ultimaCopia, licencia: resumenLicencia(), prueba: resumenPrueba(), equipo: codigoEquipo(), actualizacion: estadoActualizacion };
   });
   ipcMain.handle = handleOriginal;
 }

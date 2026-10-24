@@ -1,7 +1,7 @@
 {
   "name": "reciclacat-gest",
   "productName": "ReciclaCat_Gest",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Gestión de residuos, vehículos, piezas y memoria anual para Centros Autorizados de Tratamiento (CAT).",
   "author": {
     "name": "Limonada Web (Mari Ángeles Pedrosa Alarcón)",
@@ -28,6 +28,7 @@
       "main.cjs",
       "preload.cjs",
       "licencia.cjs",
+      "prueba.cjs",
       "activar.html",
       "app/**/*",
       "recursos/icono.png",

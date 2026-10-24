@@ -8,6 +8,8 @@ export interface InfoEscritorio {
   carpetaDatos: string;
   ultimaCopia: string | null;
   licencia: { cliente: string; caduca: string | null; numero: string } | null;
+  /** Prueba gratuita: activa = se está usando ahora (sin licencia). */
+  prueba: { usada: boolean; activa: boolean; diasRestantes: number; fin: string | null; dias: number };
   equipo: string;
   actualizacion: string;
 }

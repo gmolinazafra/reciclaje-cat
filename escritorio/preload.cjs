@@ -17,4 +17,5 @@ contextBridge.exposeInMainWorld("reciclacat", {
   licencia: () => ipcRenderer.invoke("licencia:estado"),
   activar: (llave, aceptaCondiciones) => ipcRenderer.invoke("licencia:activar", llave, aceptaCondiciones === true),
   buscarActualizacion: () => ipcRenderer.invoke("act:buscar"),
+  empezarPrueba: (aceptaCondiciones) => ipcRenderer.invoke("licencia:prueba", aceptaCondiciones === true),
 });
