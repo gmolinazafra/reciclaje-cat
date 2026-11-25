@@ -1,0 +1,9 @@
+# Excepciones revisadas a mano el 25-11-2026: no son claves secretas (nombres de almacenamiento local,
+# claves públicas por diseño o ejemplos). Cualquier otra clave sigue haciendo saltar la alarma.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Falsos positivos revisados"
+regexTarget = "line"
+regexes = ['''STORAGE_KEY''']
